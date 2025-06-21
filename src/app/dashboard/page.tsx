@@ -3,11 +3,17 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
 import Link from 'next/link'
+import DateRangePicker from '@/app/components/DateRangePicker'
 
 type Stats = {
   date: string
   leads: number
   conversations: number
+}
+
+type DateRange = {
+  from: Date | null
+  to: Date | null
 }
 
 export default function Dashboard() {
@@ -16,6 +22,19 @@ export default function Dashboard() {
   const [totalLeads, setTotalLeads] = useState(0)
   const [totalConvs, setTotalConvs] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: (() => {
+      const date = new Date()
+      date.setDate(date.getDate() - 6)
+      date.setHours(0, 0, 0, 0)
+      return date
+    })(),
+    to: (() => {
+      const date = new Date()
+      date.setHours(23, 59, 59, 999)
+      return date
+    })()
+  })
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -26,21 +45,19 @@ export default function Dashboard() {
 
         setUserId(user.id)
 
-        const to = new Date()
-        const from = new Date()
-        from.setDate(to.getDate() - 6)
+        if (!dateRange.from || !dateRange.to) return
 
-        // Statistiche ultimi 7 giorni
+        // Statistiche per il periodo selezionato
         const [leadsRes, convsRes] = await Promise.all([
           supabase.from('leads')
             .select('created_at')
-            .gte('created_at', from.toISOString())
-            .lte('created_at', to.toISOString())
+            .gte('created_at', dateRange.from.toISOString())
+            .lte('created_at', dateRange.to.toISOString())
             .eq('user_id', user.id),
           supabase.from('conversations')
             .select('created_at')
-            .gte('created_at', from.toISOString())
-            .lte('created_at', to.toISOString())
+            .gte('created_at', dateRange.from.toISOString())
+            .lte('created_at', dateRange.to.toISOString())
             .eq('user_id', user.id)
         ])
 
@@ -49,12 +66,14 @@ export default function Dashboard() {
           return
         }
 
+        // Genera range di date
         const format = (date: Date) => date.toISOString().slice(0, 10)
         const range: Stats[] = []
-        for (let i = 6; i >= 0; i--) {
-          const d = new Date()
-          d.setDate(d.getDate() - i)
-          range.push({ date: format(d), leads: 0, conversations: 0 })
+        const current = new Date(dateRange.from)
+        
+        while (current <= dateRange.to) {
+          range.push({ date: format(current), leads: 0, conversations: 0 })
+          current.setDate(current.getDate() + 1)
         }
 
         const countByDay = (arr: any[]) => {
@@ -85,7 +104,7 @@ export default function Dashboard() {
     }
 
     fetchStats()
-  }, [])
+  }, [dateRange])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -94,6 +113,11 @@ export default function Dashboard() {
       day: 'numeric', 
       month: 'short' 
     })
+  }
+
+  const formatDateRange = () => {
+    if (!dateRange.from || !dateRange.to) return 'Seleziona periodo'
+    return `${dateRange.from.toLocaleDateString('it-IT')} - ${dateRange.to.toLocaleDateString('it-IT')}`
   }
 
   if (isLoading) {
@@ -118,13 +142,26 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-          <span className="text-white text-lg">📊</span>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+            <span className="text-white text-lg">📊</span>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+            <p className="text-slate-600 mt-1">Panoramica delle tue attività</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-slate-600 mt-1">Panoramica delle tue attività</p>
+
+        {/* Filtro Data */}
+        <div className="sm:w-80">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Periodo di analisi
+          </label>
+          <DateRangePicker
+            value={dateRange}
+            onChange={setDateRange}
+          />
         </div>
       </div>
 
@@ -136,7 +173,7 @@ export default function Dashboard() {
             <div>
               <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Totale Lead</p>
               <p className="text-3xl font-bold text-slate-900 mt-2">{totalLeads}</p>
-              <p className="text-sm text-slate-500 mt-1">Ultimi 7 giorni</p>
+              <p className="text-sm text-slate-500 mt-1">{formatDateRange()}</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <span className="text-blue-600 text-xl">📇</span>
@@ -150,7 +187,7 @@ export default function Dashboard() {
             <div>
               <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Conversazioni</p>
               <p className="text-3xl font-bold text-slate-900 mt-2">{totalConvs}</p>
-              <p className="text-sm text-slate-500 mt-1">Ultimi 7 giorni</p>
+              <p className="text-sm text-slate-500 mt-1">{formatDateRange()}</p>
             </div>
             <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
               <span className="text-purple-600 text-xl">💬</span>
@@ -195,8 +232,8 @@ export default function Dashboard() {
       {/* Weekly Stats */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900">Attività degli ultimi 7 giorni</h2>
-          <p className="text-sm text-slate-600 mt-1">Riepilogo giornaliero di lead e conversazioni</p>
+          <h2 className="text-lg font-semibold text-slate-900">Attività per periodo</h2>
+          <p className="text-sm text-slate-600 mt-1">Riepilogo giornaliero di lead e conversazioni per {formatDateRange()}</p>
         </div>
         
         <div className="overflow-x-auto">

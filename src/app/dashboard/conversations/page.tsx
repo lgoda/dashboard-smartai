@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
+import DateRangePicker from '@/app/components/DateRangePicker'
+import FilterBadge from '@/app/components/FilterBadge'
 
 type Conversation = {
   id: string
@@ -12,12 +14,35 @@ type Conversation = {
   created_at: string
 }
 
+type DateRange = {
+  from: Date | null
+  to: Date | null
+}
+
+type Filters = {
+  search: string
+  dateRange: DateRange
+  minMessages: number
+  sender: string // 'all' | 'user' | 'bot'
+  sortBy: 'date' | 'messages' | 'session'
+  sortOrder: 'asc' | 'desc'
+}
+
 export default function ConversationsPage() {
   const [user, setUser] = useState<any>(null)
+  const [allConversations, setAllConversations] = useState<Conversation[]>([])
   const [groupedConversations, setGroupedConversations] = useState<Record<string, Conversation[]>>({})
+  const [filteredSessions, setFilteredSessions] = useState<[string, Conversation[]][]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set())
-  const [searchTerm, setSearchTerm] = useState('')
+  const [filters, setFilters] = useState<Filters>({
+    search: '',
+    dateRange: { from: null, to: null },
+    minMessages: 0,
+    sender: 'all',
+    sortBy: 'date',
+    sortOrder: 'desc'
+  })
   const router = useRouter()
 
   useEffect(() => {
@@ -34,6 +59,8 @@ export default function ConversationsPage() {
           .order('created_at', { ascending: true })
 
         if (!conv) return
+
+        setAllConversations(conv)
 
         // Raggruppa per session_id
         const sessions: Record<string, Conversation[]> = {}
@@ -52,6 +79,93 @@ export default function ConversationsPage() {
     fetchData()
   }, [router])
 
+  useEffect(() => {
+    applyFilters()
+  }, [groupedConversations, filters])
+
+  const applyFilters = () => {
+    let sessions = Object.entries(groupedConversations)
+
+    // Filtro per ricerca full-text
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase()
+      sessions = sessions.filter(([sessionId, messages]) =>
+        sessionId.toLowerCase().includes(searchLower) ||
+        messages.some(msg => 
+          msg.message.toLowerCase().includes(searchLower) ||
+          msg.sender.toLowerCase().includes(searchLower)
+        )
+      )
+    }
+
+    // Filtro per data
+    if (filters.dateRange.from || filters.dateRange.to) {
+      sessions = sessions.filter(([_, messages]) => {
+        const sessionStart = new Date(messages[0].created_at)
+        const sessionEnd = new Date(messages[messages.length - 1].created_at)
+        
+        if (filters.dateRange.from && sessionEnd < filters.dateRange.from) return false
+        if (filters.dateRange.to && sessionStart > filters.dateRange.to) return false
+        return true
+      })
+    }
+
+    // Filtro per numero minimo di messaggi
+    if (filters.minMessages > 0) {
+      sessions = sessions.filter(([_, messages]) => messages.length >= filters.minMessages)
+    }
+
+    // Filtro per tipo di mittente
+    if (filters.sender !== 'all') {
+      sessions = sessions.filter(([_, messages]) =>
+        messages.some(msg => msg.sender === filters.sender)
+      )
+    }
+
+    // Ordinamento
+    sessions.sort(([sessionIdA, messagesA], [sessionIdB, messagesB]) => {
+      let aValue: string | number | Date
+      let bValue: string | number | Date
+
+      switch (filters.sortBy) {
+        case 'session':
+          aValue = sessionIdA.toLowerCase()
+          bValue = sessionIdB.toLowerCase()
+          break
+        case 'messages':
+          aValue = messagesA.length
+          bValue = messagesB.length
+          break
+        case 'date':
+        default:
+          aValue = new Date(messagesA[messagesA.length - 1].created_at)
+          bValue = new Date(messagesB[messagesB.length - 1].created_at)
+          break
+      }
+
+      if (aValue < bValue) return filters.sortOrder === 'asc' ? -1 : 1
+      if (aValue > bValue) return filters.sortOrder === 'asc' ? 1 : -1
+      return 0
+    })
+
+    setFilteredSessions(sessions)
+  }
+
+  const updateFilter = (key: keyof Filters, value: any) => {
+    setFilters(prev => ({ ...prev, [key]: value }))
+  }
+
+  const clearAllFilters = () => {
+    setFilters({
+      search: '',
+      dateRange: { from: null, to: null },
+      minMessages: 0,
+      sender: 'all',
+      sortBy: 'date',
+      sortOrder: 'desc'
+    })
+  }
+
   const toggleSession = (sessionId: string) => {
     const newExpanded = new Set(expandedSessions)
     if (newExpanded.has(sessionId)) {
@@ -62,16 +176,23 @@ export default function ConversationsPage() {
     setExpandedSessions(newExpanded)
   }
 
-  const getFilteredSessions = () => {
-    if (!searchTerm) return Object.entries(groupedConversations)
-    
-    return Object.entries(groupedConversations).filter(([sessionId, messages]) =>
-      sessionId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      messages.some(msg => 
-        msg.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        msg.sender.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    )
+  const getActiveFiltersCount = () => {
+    let count = 0
+    if (filters.search) count++
+    if (filters.dateRange.from || filters.dateRange.to) count++
+    if (filters.minMessages > 0) count++
+    if (filters.sender !== 'all') count++
+    return count
+  }
+
+  const formatDateRange = (range: DateRange) => {
+    if (!range.from && !range.to) return ''
+    if (range.from && range.to) {
+      return `${range.from.toLocaleDateString('it-IT')} - ${range.to.toLocaleDateString('it-IT')}`
+    }
+    if (range.from) return `Dal ${range.from.toLocaleDateString('it-IT')}`
+    if (range.to) return `Fino al ${range.to.toLocaleDateString('it-IT')}`
+    return ''
   }
 
   const formatTime = (dateString: string) => {
@@ -108,9 +229,10 @@ export default function ConversationsPage() {
 
   if (!user) return <p className="text-center mt-10 text-slate-600">Caricamento...</p>
 
-  const filteredSessions = getFilteredSessions()
   const totalSessions = Object.keys(groupedConversations).length
   const totalMessages = Object.values(groupedConversations).reduce((acc, messages) => acc + messages.length, 0)
+  const filteredMessages = filteredSessions.reduce((acc, [_, messages]) => acc + messages.length, 0)
+  const activeFiltersCount = getActiveFiltersCount()
 
   return (
     <div className="space-y-6">
@@ -121,17 +243,172 @@ export default function ConversationsPage() {
         </div>
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Conversazioni</h1>
-          <p className="text-slate-600 mt-1">{totalSessions} sessioni • {totalMessages} messaggi totali</p>
+          <p className="text-slate-600 mt-1">
+            {filteredSessions.length} di {totalSessions} sessioni • {filteredMessages} di {totalMessages} messaggi
+            {activeFiltersCount > 0 && (
+              <span className="text-blue-600 font-medium"> • {activeFiltersCount} filtri attivi</span>
+            )}
+          </p>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Filtri Avanzati */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-slate-900">Filtri e Ricerca</h3>
+          {activeFiltersCount > 0 && (
+            <button
+              onClick={clearAllFilters}
+              className="text-sm text-slate-500 hover:text-slate-700 font-medium"
+            >
+              Cancella tutti i filtri
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          {/* Ricerca Full-Text */}
+          <div className="lg:col-span-2">
+            <label htmlFor="search" className="block text-sm font-medium text-slate-700 mb-2">
+              Ricerca
+            </label>
+            <div className="relative">
+              <input
+                id="search"
+                type="text"
+                placeholder="Cerca in ID sessione, messaggi o mittente..."
+                value={filters.search}
+                onChange={(e) => updateFilter('search', e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
+              <svg className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Filtro Data */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Periodo
+            </label>
+            <DateRangePicker
+              value={filters.dateRange}
+              onChange={(range) => updateFilter('dateRange', range)}
+            />
+          </div>
+
+          {/* Filtro Mittente */}
+          <div>
+            <label htmlFor="sender" className="block text-sm font-medium text-slate-700 mb-2">
+              Mittente
+            </label>
+            <select
+              id="sender"
+              value={filters.sender}
+              onChange={(e) => updateFilter('sender', e.target.value)}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            >
+              <option value="all">Tutti i messaggi</option>
+              <option value="user">Solo utente</option>
+              <option value="bot">Solo bot</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Filtro Numero Messaggi */}
+          <div>
+            <label htmlFor="minMessages" className="block text-sm font-medium text-slate-700 mb-2">
+              Messaggi minimi per sessione
+            </label>
+            <input
+              id="minMessages"
+              type="number"
+              min="0"
+              value={filters.minMessages}
+              onChange={(e) => updateFilter('minMessages', parseInt(e.target.value) || 0)}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
+          </div>
+
+          {/* Ordinamento */}
+          <div>
+            <label htmlFor="sortBy" className="block text-sm font-medium text-slate-700 mb-2">
+              Ordina per
+            </label>
+            <select
+              id="sortBy"
+              value={filters.sortBy}
+              onChange={(e) => updateFilter('sortBy', e.target.value as 'date' | 'messages' | 'session')}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            >
+              <option value="date">Data ultima attività</option>
+              <option value="messages">Numero messaggi</option>
+              <option value="session">ID sessione</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="sortOrder" className="block text-sm font-medium text-slate-700 mb-2">
+              Direzione
+            </label>
+            <select
+              id="sortOrder"
+              value={filters.sortOrder}
+              onChange={(e) => updateFilter('sortOrder', e.target.value as 'asc' | 'desc')}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            >
+              <option value="desc">Decrescente</option>
+              <option value="asc">Crescente</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Filtri Attivi */}
+        {activeFiltersCount > 0 && (
+          <div className="mt-4 pt-4 border-t border-slate-200">
+            <div className="flex flex-wrap gap-2">
+              {filters.search && (
+                <FilterBadge
+                  label="Ricerca"
+                  value={filters.search}
+                  onRemove={() => updateFilter('search', '')}
+                />
+              )}
+              {(filters.dateRange.from || filters.dateRange.to) && (
+                <FilterBadge
+                  label="Periodo"
+                  value={formatDateRange(filters.dateRange)}
+                  onRemove={() => updateFilter('dateRange', { from: null, to: null })}
+                />
+              )}
+              {filters.minMessages > 0 && (
+                <FilterBadge
+                  label="Min messaggi"
+                  value={filters.minMessages.toString()}
+                  onRemove={() => updateFilter('minMessages', 0)}
+                />
+              )}
+              {filters.sender !== 'all' && (
+                <FilterBadge
+                  label="Mittente"
+                  value={filters.sender === 'user' ? 'Utente' : 'Bot'}
+                  onRemove={() => updateFilter('sender', 'all')}
+                />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Statistiche Filtrate */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Sessioni Totali</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{totalSessions}</p>
+              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Sessioni Visibili</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{filteredSessions.length}</p>
             </div>
             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
               <span className="text-purple-600">🗂️</span>
@@ -142,8 +419,8 @@ export default function ConversationsPage() {
         <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Messaggi Totali</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{totalMessages}</p>
+              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Messaggi Visibili</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{filteredMessages}</p>
             </div>
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
               <span className="text-blue-600">💭</span>
@@ -156,7 +433,7 @@ export default function ConversationsPage() {
             <div>
               <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Media per Sessione</p>
               <p className="text-2xl font-bold text-slate-900 mt-1">
-                {totalSessions > 0 ? Math.round(totalMessages / totalSessions) : 0}
+                {filteredSessions.length > 0 ? Math.round(filteredMessages / filteredSessions.length) : 0}
               </p>
             </div>
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -164,35 +441,23 @@ export default function ConversationsPage() {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Search */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-        <label htmlFor="search" className="block text-sm font-medium text-slate-700 mb-2">
-          Cerca nelle conversazioni
-        </label>
-        <input
-          id="search"
-          type="text"
-          placeholder="Cerca per ID sessione, messaggio o mittente..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-        />
-        {searchTerm && (
-          <div className="mt-3 flex items-center justify-between text-sm text-slate-600">
-            <span>Trovate {filteredSessions.length} sessioni per "{searchTerm}"</span>
-            <button
-              onClick={() => setSearchTerm('')}
-              className="text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Cancella ricerca
-            </button>
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">% del Totale</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">
+                {totalSessions > 0 ? Math.round((filteredSessions.length / totalSessions) * 100) : 0}%
+              </p>
+            </div>
+            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+              <span className="text-amber-600">📈</span>
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Conversations */}
+      {/* Conversazioni */}
       <div className="space-y-4">
         {filteredSessions.length === 0 ? (
           <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-slate-200">
@@ -200,11 +465,11 @@ export default function ConversationsPage() {
               <span className="text-slate-400 text-2xl">💬</span>
             </div>
             <h3 className="text-lg font-medium text-slate-900 mb-2">
-              {searchTerm ? 'Nessun risultato trovato' : 'Nessuna conversazione ancora'}
+              {activeFiltersCount > 0 ? 'Nessun risultato trovato' : 'Nessuna conversazione ancora'}
             </h3>
             <p className="text-slate-600">
-              {searchTerm 
-                ? 'Prova a modificare i termini di ricerca' 
+              {activeFiltersCount > 0 
+                ? 'Prova a modificare i filtri di ricerca' 
                 : 'Le conversazioni con i tuoi chatbot appariranno qui'
               }
             </p>
@@ -241,7 +506,7 @@ export default function ConversationsPage() {
                       
                       <div className="bg-slate-50 rounded-lg p-3 mt-3">
                         <p className="text-sm text-slate-700">
-                          <span className="font-medium text-slate-900">{lastMsg.sender}:</span> {lastMsg.message}
+                          <span className="font-medium text-slate-900">{lastMsg.sender === 'user' ? 'Utente' : 'Bot'}:</span> {lastMsg.message}
                         </p>
                         <p className="text-xs text-slate-500 mt-1">{formatTime(lastMsg.created_at)}</p>
                       </div>
