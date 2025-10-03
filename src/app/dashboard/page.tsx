@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import DateRangePicker from '@/app/components/DateRangePicker'
+import { useUserRole } from '@/hooks/useUserRole'
+import { useSelectedClient } from '@/contexts/ClientContext'
+import ClientBadge from '@/app/components/ClientBadge'
 
 type Stats = {
   date: string
@@ -35,8 +38,12 @@ export default function Dashboard() {
       return date
     })()
   })
+  const { role, clientId, isLoading: roleLoading } = useUserRole()
+  const { selectedClient } = useSelectedClient()
 
   useEffect(() => {
+    if (roleLoading) return
+
     const supabase = createClient()
 
     const fetchStats = async () => {
@@ -49,18 +56,27 @@ export default function Dashboard() {
 
         if (!dateRange.from || !dateRange.to) return
 
-        // Statistiche per il periodo selezionato
+        const filterClientId = role === 'admin' ? selectedClient?.id : clientId
+
+        if (!filterClientId) {
+          setStats([])
+          setTotalLeads(0)
+          setTotalConvs(0)
+          setIsLoading(false)
+          return
+        }
+
         const [leadsRes, convsRes] = await Promise.all([
           supabase.from('leads')
             .select('created_at')
             .gte('created_at', dateRange.from.toISOString())
             .lte('created_at', dateRange.to.toISOString())
-            .eq('user_id', user.id),
+            .eq('client_id', filterClientId),
           supabase.from('conversations')
             .select('created_at')
             .gte('created_at', dateRange.from.toISOString())
             .lte('created_at', dateRange.to.toISOString())
-            .eq('user_id', user.id)
+            .eq('client_id', filterClientId)
         ])
 
         if (leadsRes.error || convsRes.error) {
@@ -106,7 +122,7 @@ export default function Dashboard() {
     }
 
     fetchStats()
-  }, [dateRange])
+  }, [dateRange, role, clientId, selectedClient, roleLoading])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -151,7 +167,12 @@ export default function Dashboard() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-            <p className="text-slate-600 mt-1">Panoramica delle tue attività</p>
+            <p className="text-slate-600 mt-1">
+              Panoramica delle tue attività
+              {(role === 'admin' && selectedClient) && (
+                <span> • <ClientBadge client={selectedClient} /></span>
+              )}
+            </p>
           </div>
         </div>
 

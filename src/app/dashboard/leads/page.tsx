@@ -5,6 +5,9 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
+import { useUserRole } from '@/hooks/useUserRole'
+import { useSelectedClient } from '@/contexts/ClientContext'
+import ClientBadge from '@/app/components/ClientBadge'
 
 type Lead = {
   id: string
@@ -45,8 +48,12 @@ export default function LeadsPage() {
     sortOrder: 'desc'
   })
   const router = useRouter()
+  const { role, clientId, isLoading: roleLoading } = useUserRole()
+  const { selectedClient } = useSelectedClient()
 
   useEffect(() => {
+    if (roleLoading) return
+
     const supabase = createClient()
 
     const fetchData = async () => {
@@ -55,17 +62,25 @@ export default function LeadsPage() {
         if (!userData?.user) return router.push('/')
         setUser(userData.user)
 
+        const filterClientId = role === 'admin' ? selectedClient?.id : clientId
+
+        if (!filterClientId) {
+          setAllLeads([])
+          setSources([])
+          setIsLoading(false)
+          return
+        }
+
         const { data, error } = await supabase
           .from('leads')
           .select('*')
-          .eq('user_id', userData.user.id)
+          .eq('client_id', filterClientId)
           .order('created_at', { ascending: false })
 
         if (error) {
           console.error('Errore nel recupero dei lead:', error)
         } else {
           setAllLeads(data || [])
-          // Estrai le fonti uniche per il filtro
           const uniqueSources = [...new Set((data || []).map(lead => lead.source))].filter(Boolean)
           setSources(uniqueSources)
         }
@@ -77,7 +92,7 @@ export default function LeadsPage() {
     }
 
     fetchData()
-  }, [router])
+  }, [router, role, clientId, selectedClient, roleLoading])
 
   useEffect(() => {
     applyFilters()
@@ -234,6 +249,9 @@ export default function LeadsPage() {
               {filteredLeads.length} di {allLeads.length} lead
               {activeFiltersCount > 0 && (
                 <span className="text-blue-600 font-medium"> • {activeFiltersCount} filtri attivi</span>
+              )}
+              {(role === 'admin' && selectedClient) && (
+                <span> • <ClientBadge client={selectedClient} /></span>
               )}
             </p>
           </div>

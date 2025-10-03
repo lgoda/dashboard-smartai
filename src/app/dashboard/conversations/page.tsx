@@ -5,6 +5,9 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
+import { useUserRole } from '@/hooks/useUserRole'
+import { useSelectedClient } from '@/contexts/ClientContext'
+import ClientBadge from '@/app/components/ClientBadge'
 
 type Conversation = {
   id: string
@@ -44,8 +47,12 @@ export default function ConversationsPage() {
     sortOrder: 'desc'
   })
   const router = useRouter()
+  const { role, clientId, isLoading: roleLoading } = useUserRole()
+  const { selectedClient } = useSelectedClient()
 
   useEffect(() => {
+    if (roleLoading) return
+
     const supabase = createClient()
 
     const fetchData = async () => {
@@ -54,17 +61,25 @@ export default function ConversationsPage() {
         if (!userData?.user) return router.push('/')
         setUser(userData.user)
 
+        const filterClientId = role === 'admin' ? selectedClient?.id : clientId
+
+        if (!filterClientId) {
+          setAllConversations([])
+          setGroupedConversations({})
+          setIsLoading(false)
+          return
+        }
+
         const { data: conv } = await supabase
           .from('conversations')
           .select('*')
-          .eq('user_id', userData.user.id)
+          .eq('client_id', filterClientId)
           .order('created_at', { ascending: true })
 
         if (!conv) return
 
         setAllConversations(conv)
 
-        // Raggruppa per session_id
         const sessions: Record<string, Conversation[]> = {}
         conv.forEach(c => {
           if (!sessions[c.session_id]) sessions[c.session_id] = []
@@ -79,7 +94,7 @@ export default function ConversationsPage() {
     }
 
     fetchData()
-  }, [router])
+  }, [router, role, clientId, selectedClient, roleLoading])
 
   useEffect(() => {
     applyFilters()
@@ -239,19 +254,24 @@ export default function ConversationsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
-          <span className="text-white text-lg">💬</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+            <span className="text-white text-lg">💬</span>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Conversazioni</h1>
+            <p className="text-slate-600 mt-1">
+              {filteredSessions.length} di {totalSessions} sessioni • {filteredMessages} di {totalMessages} messaggi
+              {activeFiltersCount > 0 && (
+                <span className="text-blue-600 font-medium"> • {activeFiltersCount} filtri attivi</span>
+              )}
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Conversazioni</h1>
-          <p className="text-slate-600 mt-1">
-            {filteredSessions.length} di {totalSessions} sessioni • {filteredMessages} di {totalMessages} messaggi
-            {activeFiltersCount > 0 && (
-              <span className="text-blue-600 font-medium"> • {activeFiltersCount} filtri attivi</span>
-            )}
-          </p>
-        </div>
+        {(role === 'admin' && selectedClient) && (
+          <ClientBadge client={selectedClient} />
+        )}
       </div>
 
       {/* Filtri Avanzati */}
