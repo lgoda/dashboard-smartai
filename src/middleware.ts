@@ -43,10 +43,30 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && request.nextUrl.pathname === '/') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+  if (user) {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('role, client_id')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (request.nextUrl.pathname.startsWith('/dashboard/admin')) {
+      if (profile?.role !== 'admin') {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard'
+        return NextResponse.redirect(url)
+      }
+    }
+
+    if (request.nextUrl.pathname === '/') {
+      const url = request.nextUrl.clone()
+      if (profile?.role === 'admin') {
+        url.pathname = '/dashboard/admin/select-client'
+      } else {
+        url.pathname = '/dashboard'
+      }
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse
