@@ -7,13 +7,14 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient()
   const [user, setUser] = useState<any>(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
+    const supabase = createClient()
+
     const fetchUser = async () => {
       const { data, error } = await supabase.auth.getSession()
       if (data?.session?.user) {
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   }, [])
 
   const handleLogout = async () => {
+    const supabase = createClient()
     await supabase.auth.signOut()
     setUser(null)
     router.push('/')

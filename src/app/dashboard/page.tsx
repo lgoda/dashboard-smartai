@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/app/lib/supabaseClient'
+import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import DateRangePicker from '@/app/components/DateRangePicker'
 
@@ -37,6 +37,8 @@ export default function Dashboard() {
   })
 
   useEffect(() => {
+    const supabase = createClient()
+
     const fetchStats = async () => {
       try {
         const { data: session } = await supabase.auth.getUser()

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/app/lib/supabaseClient'
+import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
@@ -47,6 +47,8 @@ export default function LeadsPage() {
   const router = useRouter()
 
   useEffect(() => {
+    const supabase = createClient()
+
     const fetchData = async () => {
       try {
         const { data: userData } = await supabase.auth.getUser()
