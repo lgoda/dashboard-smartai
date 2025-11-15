@@ -73,6 +73,26 @@ export function Navigation() {
               >
                 Conversazioni
               </Link>
+              <Link
+                href="/dashboard/ai-calls"
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  pathname?.startsWith('/dashboard/ai-calls')
+                    ? 'bg-blue-50 text-blue-600'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                Chiamate IA
+              </Link>
+              <Link
+                href="/dashboard/settings"
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  pathname === '/dashboard/settings'
+                    ? 'bg-blue-50 text-blue-600'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                Impostazioni
+              </Link>
             </div>
           </div>
 

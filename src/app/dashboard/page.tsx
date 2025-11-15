@@ -16,12 +16,21 @@ type DateRange = {
   to: Date | null
 }
 
+type ServiceFilter = 'all' | 'chatbot' | 'ai-calls'
+
+type UserServices = {
+  has_chatbot: boolean
+  has_ai_calls: boolean
+}
+
 export default function Dashboard() {
   const [userId, setUserId] = useState<string | null>(null)
   const [stats, setStats] = useState<Stats[]>([])
   const [totalLeads, setTotalLeads] = useState(0)
   const [totalConvs, setTotalConvs] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [serviceFilter, setServiceFilter] = useState<ServiceFilter>('all')
+  const [userServices, setUserServices] = useState<UserServices>({ has_chatbot: true, has_ai_calls: false })
   const [dateRange, setDateRange] = useState<DateRange>({
     from: (() => {
       const date = new Date()
@@ -47,7 +56,16 @@ export default function Dashboard() {
 
         if (!dateRange.from || !dateRange.to) return
 
-        // Statistiche per il periodo selezionato
+        const { data: servicesData } = await supabase
+          .from('user_services')
+          .select('has_chatbot, has_ai_calls')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        if (servicesData) {
+          setUserServices(servicesData)
+        }
+
         const [leadsRes, convsRes] = await Promise.all([
           supabase.from('leads')
             .select('created_at')
@@ -165,76 +183,151 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Service Filter */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <div className="flex items-center space-x-4">
+          <label className="text-sm font-medium text-slate-700">Filtra per servizio:</label>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setServiceFilter('all')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                serviceFilter === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              Tutti i Servizi
+            </button>
+            {userServices.has_chatbot && (
+              <button
+                onClick={() => setServiceFilter('chatbot')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  serviceFilter === 'chatbot'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                Chatbot
+              </button>
+            )}
+            {userServices.has_ai_calls && (
+              <button
+                onClick={() => setServiceFilter('ai-calls')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  serviceFilter === 'ai-calls'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                Chiamate IA
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total Leads */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 card-hover">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Totale Lead</p>
-              <p className="text-3xl font-bold text-slate-900 mt-2">{totalLeads}</p>
-              <p className="text-sm text-slate-500 mt-1">{formatDateRange()}</p>
+        {(serviceFilter === 'all' || serviceFilter === 'chatbot') && userServices.has_chatbot && (
+          <>
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 card-hover">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Totale Lead</p>
+                  <p className="text-3xl font-bold text-slate-900 mt-2">{totalLeads}</p>
+                  <p className="text-sm text-slate-500 mt-1">{formatDateRange()}</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <span className="text-blue-600 text-xl">📇</span>
+                </div>
+              </div>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <span className="text-blue-600 text-xl">📇</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Total Conversations */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 card-hover">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Conversazioni</p>
-              <p className="text-3xl font-bold text-slate-900 mt-2">{totalConvs}</p>
-              <p className="text-sm text-slate-500 mt-1">{formatDateRange()}</p>
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 card-hover">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Conversazioni</p>
+                  <p className="text-3xl font-bold text-slate-900 mt-2">{totalConvs}</p>
+                  <p className="text-sm text-slate-500 mt-1">{formatDateRange()}</p>
+                </div>
+                <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center">
+                  <span className="text-slate-600 text-xl">💬</span>
+                </div>
+              </div>
             </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <span className="text-purple-600 text-xl">💬</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Quick Actions */}
-        <Link 
-          href="/dashboard/leads" 
-          className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white card-hover group"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-100 uppercase tracking-wide">Gestisci</p>
-              <p className="text-xl font-bold mt-2 group-hover:scale-105 transition-transform">I tuoi Lead</p>
-              <p className="text-sm text-green-100 mt-1">Visualizza e esporta</p>
-            </div>
-            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
-              <span className="text-2xl">📥</span>
-            </div>
-          </div>
-        </Link>
+            <Link
+              href="/dashboard/leads"
+              className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white card-hover group"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-green-100 uppercase tracking-wide">Gestisci</p>
+                  <p className="text-xl font-bold mt-2 group-hover:scale-105 transition-transform">I tuoi Lead</p>
+                  <p className="text-sm text-green-100 mt-1">Visualizza e esporta</p>
+                </div>
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                  <span className="text-2xl">📥</span>
+                </div>
+              </div>
+            </Link>
 
-        <Link 
-          href="/dashboard/conversations" 
-          className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-6 text-white card-hover group"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-amber-100 uppercase tracking-wide">Analizza</p>
-              <p className="text-xl font-bold mt-2 group-hover:scale-105 transition-transform">Conversazioni</p>
-              <p className="text-sm text-amber-100 mt-1">Per sessione</p>
+            <Link
+              href="/dashboard/conversations"
+              className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-6 text-white card-hover group"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-amber-100 uppercase tracking-wide">Analizza</p>
+                  <p className="text-xl font-bold mt-2 group-hover:scale-105 transition-transform">Conversazioni</p>
+                  <p className="text-sm text-amber-100 mt-1">Per sessione</p>
+                </div>
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                  <span className="text-2xl">🔍</span>
+                </div>
+              </div>
+            </Link>
+          </>
+        )}
+
+        {(serviceFilter === 'all' || serviceFilter === 'ai-calls') && userServices.has_ai_calls && (
+          <Link
+            href="/dashboard/ai-calls"
+            className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl p-6 text-white card-hover group"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-teal-100 uppercase tracking-wide">Gestisci</p>
+                <p className="text-xl font-bold mt-2 group-hover:scale-105 transition-transform">Chiamate IA</p>
+                <p className="text-sm text-teal-100 mt-1">ElevenLabs</p>
+              </div>
+              <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                <span className="text-2xl">📞</span>
+              </div>
             </div>
-            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
-              <span className="text-2xl">🔍</span>
-            </div>
+          </Link>
+        )}
+
+        {!userServices.has_chatbot && !userServices.has_ai_calls && (
+          <div className="col-span-full bg-slate-50 rounded-xl p-12 text-center border border-slate-200">
+            <p className="text-slate-600 mb-4">Nessun servizio attivo configurato</p>
+            <Link
+              href="/dashboard/settings"
+              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              Vai alle Impostazioni
+            </Link>
           </div>
-        </Link>
+        )}
       </div>
 
       {/* Weekly Stats */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900">Attività per periodo</h2>
-          <p className="text-sm text-slate-600 mt-1">Riepilogo giornaliero di lead e conversazioni per {formatDateRange()}</p>
-        </div>
+      {(serviceFilter === 'all' || serviceFilter === 'chatbot') && userServices.has_chatbot && (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200">
+            <h2 className="text-lg font-semibold text-slate-900">Attività per periodo - Chatbot</h2>
+            <p className="text-sm text-slate-600 mt-1">Riepilogo giornaliero di lead e conversazioni per {formatDateRange()}</p>
+          </div>
         
         <div className="overflow-x-auto">
           <table className="min-w-full">
@@ -297,7 +390,8 @@ export default function Dashboard() {
             </tbody>
           </table>
         </div>
-      </div>
+        </div>
+      )}
     </div>
   )
 }
