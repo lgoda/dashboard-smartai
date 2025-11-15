@@ -5,6 +5,8 @@ import { supabase } from '@/app/lib/supabaseClient'
 import Link from 'next/link'
 import DateRangePicker from '@/app/components/DateRangePicker'
 
+export const dynamic = 'force-dynamic'
+
 type Stats = {
   date: string
   leads: number

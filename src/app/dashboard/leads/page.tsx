@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
 
+export const dynamic = 'force-dynamic'
+
 type Lead = {
   id: string
   name: string

@@ -5,6 +5,8 @@ import { supabase } from '@/app/lib/supabaseClient'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 type ConversationMessage = {
   role: string
   message: string

@@ -8,6 +8,8 @@ import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
 import Pagination from '@/app/components/Pagination'
 
+export const dynamic = 'force-dynamic'
+
 type AICall = {
   conversation_id: string
   agent_id: string

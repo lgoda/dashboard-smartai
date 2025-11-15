@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 
+export const dynamic = 'force-dynamic'
+
 type ServiceConfig = {
   has_chatbot: boolean
   has_ai_calls: boolean
