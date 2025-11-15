@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
+import Pagination from '@/app/components/Pagination'
 
 type AICall = {
   conversation_id: string
@@ -39,6 +40,8 @@ export default function AICallsPage() {
   const [filteredCalls, setFilteredCalls] = useState<AICall[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(20)
   const [filters, setFilters] = useState<Filters>({
     search: '',
     dateRange: { from: null, to: null },
@@ -78,6 +81,13 @@ export default function AICallsPage() {
     checkToken()
   }, [router])
 
+  const normalizeOutcome = (outcome: string): string => {
+    const normalized = outcome?.toLowerCase().trim()
+    if (normalized === 'success' || normalized === 'successful') return 'successful'
+    if (normalized === 'failure' || normalized === 'failed') return 'failed'
+    return 'unknown'
+  }
+
   const fetchCalls = async (currentUser: any) => {
     try {
       setIsRefreshing(true)
@@ -100,7 +110,11 @@ export default function AICallsPage() {
       }
 
       const data = await response.json()
-      setAllCalls(data.conversations || [])
+      const normalizedCalls = (data.conversations || []).map((call: AICall) => ({
+        ...call,
+        call_successful: normalizeOutcome(call.call_successful)
+      }))
+      setAllCalls(normalizedCalls)
     } catch (error) {
       console.error('Error fetching calls:', error)
     } finally {
@@ -175,6 +189,7 @@ export default function AICallsPage() {
 
   const updateFilter = (key: keyof Filters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }))
+    setCurrentPage(1)
   }
 
   const clearAllFilters = () => {
@@ -187,6 +202,7 @@ export default function AICallsPage() {
       sortBy: 'date',
       sortOrder: 'desc'
     })
+    setCurrentPage(1)
   }
 
   const handleRefresh = async () => {
@@ -240,11 +256,11 @@ export default function AICallsPage() {
   const getOutcomeBadgeColor = (outcome: string) => {
     switch (outcome) {
       case 'successful':
-        return 'bg-green-100 text-green-800'
+        return 'bg-green-50 text-green-700 border border-green-200'
       case 'failed':
-        return 'bg-red-100 text-red-800'
+        return 'bg-red-50 text-red-700 border border-red-200'
       default:
-        return 'bg-slate-100 text-slate-800'
+        return 'bg-slate-50 text-slate-600 border border-slate-200'
     }
   }
 
@@ -315,8 +331,23 @@ export default function AICallsPage() {
 
   const activeFiltersCount = getActiveFiltersCount()
   const totalDuration = allCalls.reduce((acc, call) => acc + call.call_duration_secs, 0)
-  const successfulCalls = filteredCalls.filter(c => c.call_successful === 'successful').length
-  const successRate = filteredCalls.length > 0 ? Math.round((successfulCalls / filteredCalls.length) * 100) : 0
+  const successfulCalls = allCalls.filter(c => c.call_successful === 'successful').length
+  const successRate = allCalls.length > 0 ? Math.round((successfulCalls / allCalls.length) * 100) : 0
+
+  const totalPages = Math.ceil(filteredCalls.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedCalls = filteredCalls.slice(startIndex, endIndex)
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage)
+    setCurrentPage(1)
+  }
 
   return (
     <div className="space-y-6">
@@ -525,7 +556,10 @@ export default function AICallsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Chiamate Totali</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{filteredCalls.length}</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{allCalls.length}</p>
+              {activeFiltersCount > 0 && (
+                <p className="text-xs text-slate-500 mt-1">{filteredCalls.length} filtrate</p>
+              )}
             </div>
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
               <span className="text-green-600">📞</span>
@@ -578,7 +612,7 @@ export default function AICallsPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        {filteredCalls.length === 0 ? (
+        {paginatedCalls.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-slate-400 text-2xl">📞</span>
@@ -619,7 +653,7 @@ export default function AICallsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {filteredCalls.map((call) => {
+                {paginatedCalls.map((call) => {
                   const callDate = new Date(call.start_time_unix_secs * 1000)
                   return (
                     <tr key={call.conversation_id} className="table-row">
@@ -673,6 +707,17 @@ export default function AICallsPage() {
           </div>
         )}
       </div>
+
+      {filteredCalls.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredCalls.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
     </div>
   )
 }
