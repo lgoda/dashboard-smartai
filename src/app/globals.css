@@ -87,12 +87,24 @@ body {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* Select and option styling improvements */
+select {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+select option {
+  font-weight: 600;
+  color: #0f172a;
+  padding: 8px;
+}
+
 /* Mobile responsive improvements */
 @media (max-width: 768px) {
   .mobile-stack {
     flex-direction: column;
   }
-  
+
   .mobile-full {
     width: 100%;
   }

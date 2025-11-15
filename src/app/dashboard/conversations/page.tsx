@@ -5,6 +5,7 @@ import { supabase } from '@/app/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
+import Pagination from '@/app/components/Pagination'
 
 type Conversation = {
   id: string
@@ -33,8 +34,11 @@ export default function ConversationsPage() {
   const [allConversations, setAllConversations] = useState<Conversation[]>([])
   const [groupedConversations, setGroupedConversations] = useState<Record<string, Conversation[]>>({})
   const [filteredSessions, setFilteredSessions] = useState<[string, Conversation[]][]>([])
+  const [paginatedSessions, setPaginatedSessions] = useState<[string, Conversation[]][]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set())
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(20)
   const [filters, setFilters] = useState<Filters>({
     search: '',
     dateRange: { from: null, to: null },
@@ -83,6 +87,26 @@ export default function ConversationsPage() {
     applyFilters()
   }, [groupedConversations, filters])
 
+  useEffect(() => {
+    applyPagination()
+  }, [filteredSessions, currentPage, itemsPerPage])
+
+  const applyPagination = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    setPaginatedSessions(filteredSessions.slice(startIndex, endIndex))
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage)
+    setCurrentPage(1)
+  }
+
   const applyFilters = () => {
     let sessions = Object.entries(groupedConversations)
 
@@ -115,11 +139,11 @@ export default function ConversationsPage() {
       sessions = sessions.filter(([_, messages]) => messages.length >= filters.minMessages)
     }
 
-    // Filtro per tipo di mittente
+    // Filtro per tipo di mittente - mostra sessioni che contengono ALMENO UN messaggio del tipo selezionato
     if (filters.sender !== 'all') {
-      sessions = sessions.filter(([_, messages]) =>
-        messages.some(msg => msg.sender === filters.sender)
-      )
+      sessions = sessions.filter(([_, messages]) => {
+        return messages.some(msg => msg.sender === filters.sender)
+      })
     }
 
     // Ordinamento
@@ -153,6 +177,7 @@ export default function ConversationsPage() {
 
   const updateFilter = (key: keyof Filters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }))
+    setCurrentPage(1)
   }
 
   const clearAllFilters = () => {
@@ -164,6 +189,7 @@ export default function ConversationsPage() {
       sortBy: 'date',
       sortOrder: 'desc'
     })
+    setCurrentPage(1)
   }
 
   const toggleSession = (sessionId: string) => {
@@ -233,6 +259,9 @@ export default function ConversationsPage() {
   const totalMessages = Object.values(groupedConversations).reduce((acc, messages) => acc + messages.length, 0)
   const filteredMessages = filteredSessions.reduce((acc, [_, messages]) => acc + messages.length, 0)
   const activeFiltersCount = getActiveFiltersCount()
+  const totalPages = Math.ceil(filteredSessions.length / itemsPerPage)
+  const startItem = filteredSessions.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1
+  const endItem = Math.min(currentPage * itemsPerPage, filteredSessions.length)
 
   return (
     <div className="space-y-6">
@@ -244,7 +273,7 @@ export default function ConversationsPage() {
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Conversazioni</h1>
           <p className="text-slate-600 mt-1">
-            {filteredSessions.length} di {totalSessions} sessioni • {filteredMessages} di {totalMessages} messaggi
+            Mostrando {startItem}-{endItem} di {filteredSessions.length} sessioni ({totalSessions} totali) • {filteredMessages} messaggi
             {activeFiltersCount > 0 && (
               <span className="text-blue-600 font-medium"> • {activeFiltersCount} filtri attivi</span>
             )}
@@ -307,7 +336,7 @@ export default function ConversationsPage() {
               id="sender"
               value={filters.sender}
               onChange={(e) => updateFilter('sender', e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors font-medium text-slate-900"
             >
               <option value="all">Tutti i messaggi</option>
               <option value="user">Solo utente</option>
@@ -341,7 +370,7 @@ export default function ConversationsPage() {
               id="sortBy"
               value={filters.sortBy}
               onChange={(e) => updateFilter('sortBy', e.target.value as 'date' | 'messages' | 'session')}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors font-medium text-slate-900"
             >
               <option value="date">Data ultima attività</option>
               <option value="messages">Numero messaggi</option>
@@ -357,7 +386,7 @@ export default function ConversationsPage() {
               id="sortOrder"
               value={filters.sortOrder}
               onChange={(e) => updateFilter('sortOrder', e.target.value as 'asc' | 'desc')}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors font-medium text-slate-900"
             >
               <option value="desc">Decrescente</option>
               <option value="asc">Crescente</option>
@@ -457,9 +486,21 @@ export default function ConversationsPage() {
         </div>
       </div>
 
+      {/* Pagination Top */}
+      {filteredSessions.length > itemsPerPage && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredSessions.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
+
       {/* Conversazioni */}
       <div className="space-y-4">
-        {filteredSessions.length === 0 ? (
+        {paginatedSessions.length === 0 && filteredSessions.length === 0 ? (
           <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-slate-200">
             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-slate-400 text-2xl">💬</span>
@@ -474,8 +515,20 @@ export default function ConversationsPage() {
               }
             </p>
           </div>
+        ) : paginatedSessions.length === 0 ? (
+          <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-slate-200">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-slate-400 text-2xl">📄</span>
+            </div>
+            <h3 className="text-lg font-medium text-slate-900 mb-2">
+              Nessun risultato in questa pagina
+            </h3>
+            <p className="text-slate-600">
+              Prova a cambiare pagina o modificare i filtri
+            </p>
+          </div>
         ) : (
-          filteredSessions.map(([sessionId, messages]) => {
+          paginatedSessions.map(([sessionId, messages]) => {
             const lastMsg = messages[messages.length - 1]
             const firstMsg = messages[0]
             const isExpanded = expandedSessions.has(sessionId)
@@ -561,6 +614,18 @@ export default function ConversationsPage() {
           })
         )}
       </div>
+
+      {/* Pagination Bottom */}
+      {filteredSessions.length > itemsPerPage && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredSessions.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
     </div>
   )
 }
