@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
 import Pagination from '@/app/components/Pagination'
+import { useDebounce } from '@/app/lib/useDebounce'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,6 +52,8 @@ export default function ConversationsPage() {
   })
   const router = useRouter()
 
+  const debouncedSearch = useDebounce(filters.search, 500)
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -87,7 +90,7 @@ export default function ConversationsPage() {
 
   useEffect(() => {
     applyFilters()
-  }, [groupedConversations, filters])
+  }, [groupedConversations, filters, debouncedSearch])
 
   useEffect(() => {
     applyPagination()
@@ -109,15 +112,14 @@ export default function ConversationsPage() {
     setCurrentPage(1)
   }
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let sessions = Object.entries(groupedConversations)
 
-    // Filtro per ricerca full-text
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase()
+    if (debouncedSearch) {
+      const searchLower = debouncedSearch.toLowerCase()
       sessions = sessions.filter(([sessionId, messages]) =>
         sessionId.toLowerCase().includes(searchLower) ||
-        messages.some(msg => 
+        messages.some(msg =>
           msg.message.toLowerCase().includes(searchLower) ||
           msg.sender.toLowerCase().includes(searchLower)
         )
@@ -175,14 +177,14 @@ export default function ConversationsPage() {
     })
 
     setFilteredSessions(sessions)
-  }
+  }, [groupedConversations, debouncedSearch, filters])
 
-  const updateFilter = (key: keyof Filters, value: any) => {
+  const updateFilter = useCallback((key: keyof Filters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }))
     setCurrentPage(1)
-  }
+  }, [])
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setFilters({
       search: '',
       dateRange: { from: null, to: null },
@@ -192,9 +194,9 @@ export default function ConversationsPage() {
       sortOrder: 'desc'
     })
     setCurrentPage(1)
-  }
+  }, [])
 
-  const toggleSession = (sessionId: string) => {
+  const toggleSession = useCallback((sessionId: string) => {
     const newExpanded = new Set(expandedSessions)
     if (newExpanded.has(sessionId)) {
       newExpanded.delete(sessionId)
@@ -202,18 +204,18 @@ export default function ConversationsPage() {
       newExpanded.add(sessionId)
     }
     setExpandedSessions(newExpanded)
-  }
+  }, [expandedSessions])
 
-  const getActiveFiltersCount = () => {
+  const getActiveFiltersCount = useMemo(() => {
     let count = 0
     if (filters.search) count++
     if (filters.dateRange.from || filters.dateRange.to) count++
     if (filters.minMessages > 0) count++
     if (filters.sender !== 'all') count++
     return count
-  }
+  }, [filters])
 
-  const formatDateRange = (range: DateRange) => {
+  const formatDateRange = useCallback((range: DateRange) => {
     if (!range.from && !range.to) return ''
     if (range.from && range.to) {
       return `${range.from.toLocaleDateString('it-IT')} - ${range.to.toLocaleDateString('it-IT')}`
@@ -221,9 +223,9 @@ export default function ConversationsPage() {
     if (range.from) return `Dal ${range.from.toLocaleDateString('it-IT')}`
     if (range.to) return `Fino al ${range.to.toLocaleDateString('it-IT')}`
     return ''
-  }
+  }, [])
 
-  const formatTime = (dateString: string) => {
+  const formatTime = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleString('it-IT', {
       day: '2-digit',
       month: '2-digit',
@@ -231,7 +233,7 @@ export default function ConversationsPage() {
       hour: '2-digit',
       minute: '2-digit'
     })
-  }
+  }, [])
 
   if (isLoading) {
     return (

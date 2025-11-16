@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
 import Pagination from '@/app/components/Pagination'
+import { useDebounce } from '@/app/lib/useDebounce'
 import {
   performFullSync,
   getConversationsFromSupabase,
@@ -65,6 +66,8 @@ export default function AICallsPage() {
   })
   const router = useRouter()
 
+  const debouncedSearch = useDebounce(filters.search, 500)
+
   useEffect(() => {
     const checkToken = async () => {
       try {
@@ -99,11 +102,11 @@ export default function AICallsPage() {
     setSyncStatus(status)
   }
 
-  const loadCalls = async (userId: string) => {
+  const loadCalls = useCallback(async (userId: string) => {
     try {
       setIsLoading(true)
       const { data, count } = await getConversationsFromSupabase(userId, {
-        search: filters.search,
+        search: debouncedSearch,
         dateFrom: filters.dateRange.from || undefined,
         dateTo: filters.dateRange.to || undefined,
         outcome: filters.outcome,
@@ -123,9 +126,9 @@ export default function AICallsPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [debouncedSearch, filters, currentPage, itemsPerPage])
 
-  const handleSync = async () => {
+  const handleSync = useCallback(async () => {
     if (!user || isSyncing) return
 
     try {
@@ -151,12 +154,12 @@ export default function AICallsPage() {
     } finally {
       setIsSyncing(false)
     }
-  }
+  }, [user, isSyncing])
 
-  const updateFilter = (key: keyof Filters, value: any) => {
+  const updateFilter = useCallback((key: keyof Filters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }))
     setCurrentPage(1)
-  }
+  }, [])
 
   useEffect(() => {
     if (user && hasToken && !isLoading) {
@@ -164,7 +167,7 @@ export default function AICallsPage() {
     }
   }, [filters, currentPage, itemsPerPage])
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setFilters({
       search: '',
       dateRange: { from: null, to: null },
@@ -176,14 +179,14 @@ export default function AICallsPage() {
       sortOrder: 'desc'
     })
     setCurrentPage(1)
-  }
+  }, [])
 
-  const exportAllCSV = async () => {
+  const exportAllCSV = useCallback(async () => {
     if (!user) return
 
     try {
       const { data: allCalls } = await getConversationsFromSupabase(user.id, {
-        search: filters.search,
+        search: debouncedSearch,
         dateFrom: filters.dateRange.from || undefined,
         dateTo: filters.dateRange.to || undefined,
         outcome: filters.outcome,
@@ -210,9 +213,9 @@ export default function AICallsPage() {
     } catch (error) {
       console.error('Error exporting CSV:', error)
     }
-  }
+  }, [user, debouncedSearch, filters])
 
-  const getActiveFiltersCount = () => {
+  const getActiveFiltersCount = useMemo(() => {
     let count = 0
     if (filters.search) count++
     if (filters.dateRange.from || filters.dateRange.to) count++
@@ -221,9 +224,9 @@ export default function AICallsPage() {
     if (filters.minDuration > 0) count++
     if (filters.maxDuration > 0) count++
     return count
-  }
+  }, [filters])
 
-  const formatDateRange = (range: DateRange) => {
+  const formatDateRange = useCallback((range: DateRange) => {
     if (!range.from && !range.to) return ''
     if (range.from && range.to) {
       return `${range.from.toLocaleDateString('it-IT')} - ${range.to.toLocaleDateString('it-IT')}`
@@ -231,15 +234,15 @@ export default function AICallsPage() {
     if (range.from) return `Dal ${range.from.toLocaleDateString('it-IT')}`
     if (range.to) return `Fino al ${range.to.toLocaleDateString('it-IT')}`
     return ''
-  }
+  }, [])
 
-  const formatDuration = (seconds: number) => {
+  const formatDuration = useCallback((seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${mins}m ${secs}s`
-  }
+  }, [])
 
-  const getOutcomeBadgeColor = (outcome: string) => {
+  const getOutcomeBadgeColor = useCallback((outcome: string) => {
     switch (outcome) {
       case 'successful':
         return 'bg-green-50 text-green-700 border border-green-200'
@@ -248,9 +251,9 @@ export default function AICallsPage() {
       default:
         return 'bg-slate-50 text-slate-600 border border-slate-200'
     }
-  }
+  }, [])
 
-  const getOutcomeLabel = (outcome: string) => {
+  const getOutcomeLabel = useCallback((outcome: string) => {
     switch (outcome) {
       case 'successful':
         return 'Successo'
@@ -261,7 +264,7 @@ export default function AICallsPage() {
       default:
         return outcome
     }
-  }
+  }, [])
 
   if (isLoading && !user) {
     return (

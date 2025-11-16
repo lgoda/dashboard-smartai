@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
 import Link from 'next/link'
 import DateRangePicker from '@/app/components/DateRangePicker'
@@ -48,15 +48,12 @@ export default function Dashboard() {
   })
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const initUser = async () => {
       try {
         const { data: session } = await supabase.auth.getUser()
         const user = session?.user
         if (!user) return
-
         setUserId(user.id)
-
-        if (!dateRange.from || !dateRange.to) return
 
         const { data: servicesData } = await supabase
           .from('user_services')
@@ -67,78 +64,92 @@ export default function Dashboard() {
         if (servicesData) {
           setUserServices(servicesData)
         }
-
-        const [leadsRes, convsRes] = await Promise.all([
-          supabase.from('leads')
-            .select('created_at')
-            .gte('created_at', dateRange.from.toISOString())
-            .lte('created_at', dateRange.to.toISOString())
-            .eq('user_id', user.id),
-          supabase.from('conversations')
-            .select('created_at')
-            .gte('created_at', dateRange.from.toISOString())
-            .lte('created_at', dateRange.to.toISOString())
-            .eq('user_id', user.id)
-        ])
-
-        if (leadsRes.error || convsRes.error) {
-          console.error(leadsRes.error || convsRes.error)
-          return
-        }
-
-        // Genera range di date
-        const format = (date: Date) => date.toISOString().slice(0, 10)
-        const range: Stats[] = []
-        const current = new Date(dateRange.from)
-        
-        while (current <= dateRange.to) {
-          range.push({ date: format(current), leads: 0, conversations: 0 })
-          current.setDate(current.getDate() + 1)
-        }
-
-        const countByDay = (arr: any[]) => {
-          return arr.reduce((acc, curr) => {
-            const d = format(new Date(curr.created_at))
-            acc[d] = (acc[d] || 0) + 1
-            return acc
-          }, {} as Record<string, number>)
-        }
-
-        const leadCount = countByDay(leadsRes.data || [])
-        const convCount = countByDay(convsRes.data || [])
-
-        const updated = range.map(day => ({
-          date: day.date,
-          leads: leadCount[day.date] || 0,
-          conversations: convCount[day.date] || 0,
-        }))
-
-        setStats(updated)
-        setTotalLeads(leadsRes.data?.length || 0)
-        setTotalConvs(convsRes.data?.length || 0)
       } catch (error) {
-        console.error('Errore nel caricamento delle statistiche:', error)
-      } finally {
-        setIsLoading(false)
+        console.error('Error initializing user:', error)
       }
     }
+    initUser()
+  }, [])
 
-    fetchStats()
-  }, [dateRange])
+  const fetchStats = useCallback(async () => {
+    if (!userId || !dateRange.from || !dateRange.to) return
 
-  const formatDate = (dateString: string) => {
+    try {
+      setIsLoading(true)
+
+      const [leadsRes, convsRes] = await Promise.all([
+        supabase.from('leads')
+          .select('created_at', { count: 'exact' })
+          .gte('created_at', dateRange.from.toISOString())
+          .lte('created_at', dateRange.to.toISOString())
+          .eq('user_id', userId),
+        supabase.from('conversations')
+          .select('created_at', { count: 'exact' })
+          .gte('created_at', dateRange.from.toISOString())
+          .lte('created_at', dateRange.to.toISOString())
+          .eq('user_id', userId)
+      ])
+
+      if (leadsRes.error || convsRes.error) {
+        console.error(leadsRes.error || convsRes.error)
+        return
+      }
+
+      const format = (date: Date) => date.toISOString().slice(0, 10)
+      const range: Stats[] = []
+      const current = new Date(dateRange.from)
+
+      while (current <= dateRange.to) {
+        range.push({ date: format(current), leads: 0, conversations: 0 })
+        current.setDate(current.getDate() + 1)
+      }
+
+      const countByDay = (arr: any[]) => {
+        return arr.reduce((acc, curr) => {
+          const d = format(new Date(curr.created_at))
+          acc[d] = (acc[d] || 0) + 1
+          return acc
+        }, {} as Record<string, number>)
+      }
+
+      const leadCount = countByDay(leadsRes.data || [])
+      const convCount = countByDay(convsRes.data || [])
+
+      const updated = range.map(day => ({
+        date: day.date,
+        leads: leadCount[day.date] || 0,
+        conversations: convCount[day.date] || 0,
+      }))
+
+      setStats(updated)
+      setTotalLeads(leadsRes.count || 0)
+      setTotalConvs(convsRes.count || 0)
+    } catch (error) {
+      console.error('Error loading stats:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [userId, dateRange])
+
+  useEffect(() => {
+    if (userId) {
+      fetchStats()
+    }
+  }, [fetchStats, userId])
+
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString('it-IT', { 
-      weekday: 'short', 
-      day: 'numeric', 
-      month: 'short' 
+    return date.toLocaleDateString('it-IT', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short'
     })
-  }
+  }, [])
 
-  const formatDateRange = () => {
+  const formatDateRange = useMemo(() => {
     if (!dateRange.from || !dateRange.to) return 'Seleziona periodo'
     return `${dateRange.from.toLocaleDateString('it-IT')} - ${dateRange.to.toLocaleDateString('it-IT')}`
-  }
+  }, [dateRange])
 
   if (isLoading) {
     return (
@@ -161,7 +172,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-orange-500 rounded-xl flex items-center justify-center">
@@ -173,7 +183,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Filtro Data */}
         <div className="sm:w-80">
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Periodo di analisi
@@ -185,7 +194,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Service Filter */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <div className="flex items-center space-x-4">
           <label className="text-sm font-medium text-slate-700">Filtra per servizio:</label>
@@ -228,7 +236,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {(serviceFilter === 'all' || serviceFilter === 'chatbot') && userServices.has_chatbot && (
           <>
@@ -237,7 +244,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Totale Lead</p>
                   <p className="text-3xl font-bold text-slate-900 mt-2">{totalLeads}</p>
-                  <p className="text-sm text-slate-500 mt-1">{formatDateRange()}</p>
+                  <p className="text-sm text-slate-500 mt-1">{formatDateRange}</p>
                 </div>
                 <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center">
                   <span className="text-pink-600 text-xl">📇</span>
@@ -250,7 +257,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Conversazioni</p>
                   <p className="text-3xl font-bold text-slate-900 mt-2">{totalConvs}</p>
-                  <p className="text-sm text-slate-500 mt-1">{formatDateRange()}</p>
+                  <p className="text-sm text-slate-500 mt-1">{formatDateRange}</p>
                 </div>
                 <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center">
                   <span className="text-slate-600 text-xl">💬</span>
@@ -323,14 +330,13 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Weekly Stats */}
       {(serviceFilter === 'all' || serviceFilter === 'chatbot') && userServices.has_chatbot && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-200">
             <h2 className="text-lg font-semibold text-slate-900">Attività per periodo - Chatbot</h2>
-            <p className="text-sm text-slate-600 mt-1">Riepilogo giornaliero di lead e conversazioni per {formatDateRange()}</p>
+            <p className="text-sm text-slate-600 mt-1">Riepilogo giornaliero di lead e conversazioni per {formatDateRange}</p>
           </div>
-        
+
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead className="bg-slate-50">
