@@ -262,7 +262,7 @@ export default function ConversationsPage() {
   const totalSessions = Object.keys(groupedConversations).length
   const totalMessages = Object.values(groupedConversations).reduce((acc, messages) => acc + messages.length, 0)
   const filteredMessages = filteredSessions.reduce((acc, [_, messages]) => acc + messages.length, 0)
-  const activeFiltersCount = getActiveFiltersCount()
+  const activeFiltersCount = getActiveFiltersCount
   const totalPages = Math.ceil(filteredSessions.length / itemsPerPage)
   const startItem = filteredSessions.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1
   const endItem = Math.min(currentPage * itemsPerPage, filteredSessions.length)

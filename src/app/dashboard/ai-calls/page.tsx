@@ -318,7 +318,7 @@ export default function AICallsPage() {
     )
   }
 
-  const activeFiltersCount = getActiveFiltersCount()
+  const activeFiltersCount = getActiveFiltersCount
   const totalPages = Math.ceil(totalCount / itemsPerPage)
   const successfulCalls = calls.filter(c => c.call_successful === 'successful').length
   const successRate = calls.length > 0 ? Math.round((successfulCalls / calls.length) * 100) : 0
