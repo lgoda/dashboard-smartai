@@ -36,10 +36,11 @@ export function Navigation() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-8">
             <Link href="/dashboard" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">S</span>
-              </div>
-              <span className="text-xl font-bold text-slate-900">SmartAI</span>
+              <img
+                src="/logo-smartservice.png"
+                alt="SmartService"
+                className="h-8 w-auto"
+              />
             </Link>
 
             <div className="hidden md:flex space-x-1">
@@ -47,8 +48,8 @@ export function Navigation() {
                 href="/dashboard"
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   pathname === '/dashboard'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'bg-pink-50 text-pink-600'
+                    : 'text-slate-600 hover:bg-orange-50 hover:text-orange-600'
                 }`}
               >
                 Dashboard
@@ -57,8 +58,8 @@ export function Navigation() {
                 href="/dashboard/leads"
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   pathname === '/dashboard/leads'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'bg-pink-50 text-pink-600'
+                    : 'text-slate-600 hover:bg-orange-50 hover:text-orange-600'
                 }`}
               >
                 Lead
@@ -67,8 +68,8 @@ export function Navigation() {
                 href="/dashboard/conversations"
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   pathname === '/dashboard/conversations'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'bg-pink-50 text-pink-600'
+                    : 'text-slate-600 hover:bg-orange-50 hover:text-orange-600'
                 }`}
               >
                 Conversazioni
@@ -77,8 +78,8 @@ export function Navigation() {
                 href="/dashboard/ai-calls"
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   pathname?.startsWith('/dashboard/ai-calls')
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'bg-pink-50 text-pink-600'
+                    : 'text-slate-600 hover:bg-orange-50 hover:text-orange-600'
                 }`}
               >
                 Chiamate IA
@@ -87,8 +88,8 @@ export function Navigation() {
                 href="/dashboard/settings"
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   pathname === '/dashboard/settings'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'bg-pink-50 text-pink-600'
+                    : 'text-slate-600 hover:bg-orange-50 hover:text-orange-600'
                 }`}
               >
                 Impostazioni
@@ -102,7 +103,7 @@ export function Navigation() {
             </div>
             <button
               onClick={signOut}
-              className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-pink-600 hover:bg-pink-50 rounded-lg transition-colors"
             >
               Logout
             </button>

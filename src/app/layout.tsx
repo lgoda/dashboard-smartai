@@ -4,8 +4,8 @@ import { Navigation } from './components/Navigation'
 import { ReactNode } from 'react'
 
 export const metadata = {
-  title: 'SmartBot Dashboard',
-  description: 'Dashboard per gestire lead e conversazioni',
+  title: 'Dashboard SmartService',
+  description: 'Dashboard per gestire lead, conversazioni e servizi AI',
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {

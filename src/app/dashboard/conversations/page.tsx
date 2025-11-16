@@ -269,7 +269,7 @@ export default function ConversationsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center">
           <span className="text-white text-lg">💬</span>
         </div>
         <div>

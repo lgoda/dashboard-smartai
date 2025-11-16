@@ -22,15 +22,19 @@ export default function LoginPage() {
   }, [router])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-white text-2xl">🧠</span>
+          <div className="flex items-center justify-center mx-auto mb-6">
+            <img
+              src="/logo-smartservice.png"
+              alt="SmartService"
+              className="h-20 w-auto"
+            />
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">SmartBot Dashboard</h1>
-          <p className="text-slate-600">Accedi per gestire i tuoi chatbot e visualizzare le statistiche</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Dashboard SmartService</h1>
+          <p className="text-slate-300">Accedi per gestire i tuoi servizi AI e visualizzare le statistiche</p>
         </div>
 
         {/* Auth Form */}
@@ -41,7 +45,7 @@ export default function LoginPage() {
               theme: ThemeSupa,
               style: {
                 button: {
-                  background: '#3b82f6',
+                  background: 'linear-gradient(135deg, #EC4899 0%, #F97316 100%)',
                   color: 'white',
                   borderRadius: '0.5rem',
                   border: 'none',
@@ -73,12 +77,12 @@ export default function LoginPage() {
               variables: {
                 default: {
                   colors: {
-                    brand: '#3b82f6',
-                    brandAccent: '#2563eb',
+                    brand: '#EC4899',
+                    brandAccent: '#F97316',
                     inputBackground: 'white',
                     inputBorder: '#d1d5db',
                     inputBorderHover: '#9ca3af',
-                    inputBorderFocus: '#3b82f6',
+                    inputBorderFocus: '#EC4899',
                   },
                   borderWidths: {
                     buttonBorderWidth: '0px',
@@ -139,8 +143,8 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-8 text-sm text-slate-500">
-          <p>Gestisci i tuoi chatbot AI in modo semplice e professionale</p>
+        <div className="text-center mt-8 text-sm text-slate-400">
+          <p>Gestisci i tuoi servizi AI in modo semplice e professionale</p>
         </div>
       </div>
     </div>

@@ -164,7 +164,7 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-orange-500 rounded-xl flex items-center justify-center">
             <span className="text-white text-lg">📊</span>
           </div>
           <div>
@@ -194,8 +194,8 @@ export default function Dashboard() {
               onClick={() => setServiceFilter('all')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 serviceFilter === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  ? 'bg-gradient-to-r from-pink-500 to-orange-500 text-white'
+                  : 'bg-slate-100 text-slate-700 hover:bg-orange-50 hover:text-orange-600'
               }`}
             >
               Tutti i Servizi
@@ -205,8 +205,8 @@ export default function Dashboard() {
                 onClick={() => setServiceFilter('chatbot')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   serviceFilter === 'chatbot'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    ? 'bg-gradient-to-r from-pink-500 to-orange-500 text-white'
+                    : 'bg-slate-100 text-slate-700 hover:bg-orange-50 hover:text-orange-600'
                 }`}
               >
                 Chatbot
@@ -217,8 +217,8 @@ export default function Dashboard() {
                 onClick={() => setServiceFilter('ai-calls')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   serviceFilter === 'ai-calls'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    ? 'bg-gradient-to-r from-pink-500 to-orange-500 text-white'
+                    : 'bg-slate-100 text-slate-700 hover:bg-orange-50 hover:text-orange-600'
                 }`}
               >
                 Chiamate IA
@@ -239,8 +239,8 @@ export default function Dashboard() {
                   <p className="text-3xl font-bold text-slate-900 mt-2">{totalLeads}</p>
                   <p className="text-sm text-slate-500 mt-1">{formatDateRange()}</p>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <span className="text-blue-600 text-xl">📇</span>
+                <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center">
+                  <span className="text-pink-600 text-xl">📇</span>
                 </div>
               </div>
             </div>
@@ -260,13 +260,13 @@ export default function Dashboard() {
 
             <Link
               href="/dashboard/leads"
-              className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white card-hover group"
+              className="bg-gradient-to-br from-pink-500 to-orange-500 rounded-xl p-6 text-white card-hover group"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-100 uppercase tracking-wide">Gestisci</p>
+                  <p className="text-sm font-medium text-pink-100 uppercase tracking-wide">Gestisci</p>
                   <p className="text-xl font-bold mt-2 group-hover:scale-105 transition-transform">I tuoi Lead</p>
-                  <p className="text-sm text-green-100 mt-1">Visualizza e esporta</p>
+                  <p className="text-sm text-pink-100 mt-1">Visualizza e esporta</p>
                 </div>
                 <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
                   <span className="text-2xl">📥</span>
@@ -276,7 +276,7 @@ export default function Dashboard() {
 
             <Link
               href="/dashboard/conversations"
-              className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-6 text-white card-hover group"
+              className="bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl p-6 text-white card-hover group"
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -295,13 +295,13 @@ export default function Dashboard() {
         {(serviceFilter === 'all' || serviceFilter === 'ai-calls') && userServices.has_ai_calls && (
           <Link
             href="/dashboard/ai-calls"
-            className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl p-6 text-white card-hover group"
+            className="bg-gradient-to-br from-amber-500 to-yellow-500 rounded-xl p-6 text-white card-hover group"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-teal-100 uppercase tracking-wide">Gestisci</p>
+                <p className="text-sm font-medium text-amber-100 uppercase tracking-wide">Gestisci</p>
                 <p className="text-xl font-bold mt-2 group-hover:scale-105 transition-transform">Chiamate IA</p>
-                <p className="text-sm text-teal-100 mt-1">ElevenLabs</p>
+                <p className="text-sm text-amber-100 mt-1">ElevenLabs</p>
               </div>
               <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
                 <span className="text-2xl">📞</span>
@@ -315,7 +315,7 @@ export default function Dashboard() {
             <p className="text-slate-600 mb-4">Nessun servizio attivo configurato</p>
             <Link
               href="/dashboard/settings"
-              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-pink-500 to-orange-500 text-white rounded-lg font-medium hover:from-pink-600 hover:to-orange-600 transition-colors shadow-lg"
             >
               Vai alle Impostazioni
             </Link>
@@ -362,7 +362,7 @@ export default function Dashboard() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
                         {stat.leads}
                       </span>
                     </div>
@@ -377,7 +377,7 @@ export default function Dashboard() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex space-x-1">
                       {stat.leads > 0 && (
-                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                        <div className="w-2 h-2 bg-pink-400 rounded-full"></div>
                       )}
                       {stat.conversations > 0 && (
                         <div className="w-2 h-2 bg-purple-400 rounded-full"></div>

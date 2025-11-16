@@ -225,7 +225,7 @@ export default function LeadsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-orange-500 rounded-xl flex items-center justify-center">
             <span className="text-white text-lg">📇</span>
           </div>
           <div>
@@ -233,7 +233,7 @@ export default function LeadsPage() {
             <p className="text-slate-600 mt-1">
               {filteredLeads.length} di {allLeads.length} lead
               {activeFiltersCount > 0 && (
-                <span className="text-blue-600 font-medium"> • {activeFiltersCount} filtri attivi</span>
+                <span className="text-pink-600 font-medium"> • {activeFiltersCount} filtri attivi</span>
               )}
             </p>
           </div>
@@ -276,7 +276,7 @@ export default function LeadsPage() {
                 placeholder="Cerca in nome, email, telefono, messaggio..."
                 value={filters.search}
                 onChange={(e) => updateFilter('search', e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
               />
               <svg className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -304,7 +304,7 @@ export default function LeadsPage() {
               id="source"
               value={filters.source}
               onChange={(e) => updateFilter('source', e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
             >
               <option value="">Tutte le fonti</option>
               {sources.map(source => (
@@ -324,7 +324,7 @@ export default function LeadsPage() {
               id="hasMessage"
               value={filters.hasMessage}
               onChange={(e) => updateFilter('hasMessage', e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
             >
               <option value="all">Tutti i lead</option>
               <option value="with">Con messaggio</option>
@@ -341,7 +341,7 @@ export default function LeadsPage() {
               id="sortBy"
               value={filters.sortBy}
               onChange={(e) => updateFilter('sortBy', e.target.value as 'date' | 'name' | 'source')}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
             >
               <option value="date">Data</option>
               <option value="name">Nome</option>
@@ -357,7 +357,7 @@ export default function LeadsPage() {
               id="sortOrder"
               value={filters.sortOrder}
               onChange={(e) => updateFilter('sortOrder', e.target.value as 'asc' | 'desc')}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
             >
               <option value="desc">Decrescente</option>
               <option value="asc">Crescente</option>
@@ -410,8 +410,8 @@ export default function LeadsPage() {
               <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Lead Visibili</p>
               <p className="text-2xl font-bold text-slate-900 mt-1">{filteredLeads.length}</p>
             </div>
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <span className="text-green-600">📇</span>
+            <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
+              <span className="text-pink-600">📇</span>
             </div>
           </div>
         </div>
@@ -424,8 +424,8 @@ export default function LeadsPage() {
                 {filteredLeads.filter(l => l.message && l.message.trim().length > 0).length}
               </p>
             </div>
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <span className="text-blue-600">💬</span>
+            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+              <span className="text-orange-600">💬</span>
             </div>
           </div>
         </div>
@@ -438,8 +438,8 @@ export default function LeadsPage() {
                 {new Set(filteredLeads.map(l => l.source)).size}
               </p>
             </div>
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <span className="text-purple-600">🎯</span>
+            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+              <span className="text-amber-600">🎯</span>
             </div>
           </div>
         </div>
@@ -452,8 +452,8 @@ export default function LeadsPage() {
                 {allLeads.length > 0 ? Math.round((filteredLeads.length / allLeads.length) * 100) : 0}%
               </p>
             </div>
-            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-              <span className="text-amber-600">📊</span>
+            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <span className="text-yellow-600">📊</span>
             </div>
           </div>
         </div>
@@ -503,7 +503,7 @@ export default function LeadsPage() {
                   <tr key={lead.id} className="table-row">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-500 rounded-full flex items-center justify-center mr-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-orange-400 rounded-full flex items-center justify-center mr-3">
                           <span className="text-white font-medium text-sm">
                             {lead.name.charAt(0).toUpperCase()}
                           </span>

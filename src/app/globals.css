@@ -3,6 +3,11 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --smartservice-pink: #EC4899;
+  --smartservice-coral: #F97316;
+  --smartservice-orange: #FB923C;
+  --smartservice-gold: #FBBF24;
+  --smartservice-yellow: #FCD34D;
 }
 
 @theme inline {
@@ -41,12 +46,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: linear-gradient(135deg, var(--smartservice-pink) 0%, var(--smartservice-orange) 100%);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: linear-gradient(135deg, #DB2777 0%, #EA580C 100%);
 }
 
 /* Card hover effects */
@@ -56,24 +61,24 @@ body {
 
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 10px 25px -5px rgba(236, 72, 153, 0.15), 0 10px 10px -5px rgba(249, 115, 22, 0.1);
 }
 
 /* Button animations */
 .btn-primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, var(--smartservice-pink) 0%, var(--smartservice-coral) 100%);
   transition: all 0.2s ease;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  background: linear-gradient(135deg, #DB2777 0%, #EA580C 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
 }
 
 /* Table improvements */
 .table-row:hover {
-  background-color: #f8fafc;
+  background-color: #fef2f2;
   transform: scale(1.001);
 }
 
@@ -97,6 +102,15 @@ select option {
   font-weight: 600;
   color: #0f172a;
   padding: 8px;
+}
+
+/* SmartService brand gradients */
+.gradient-smartservice {
+  background: linear-gradient(135deg, var(--smartservice-pink) 0%, var(--smartservice-coral) 50%, var(--smartservice-gold) 100%);
+}
+
+.gradient-smartservice-subtle {
+  background: linear-gradient(135deg, #FDF2F8 0%, #FFF7ED 100%);
 }
 
 /* Mobile responsive improvements */
