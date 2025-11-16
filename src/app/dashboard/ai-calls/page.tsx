@@ -29,6 +29,7 @@ type Filters = {
   search: string
   dateRange: DateRange
   outcome: string
+  agentId: string
   minDuration: number
   maxDuration: number
   sortBy: 'date' | 'duration' | 'messages'
@@ -38,16 +39,18 @@ type Filters = {
 export default function AICallsPage() {
   const [user, setUser] = useState<any>(null)
   const [hasToken, setHasToken] = useState(false)
-  const [allCalls, setAllCalls] = useState<AICall[]>([])
-  const [filteredCalls, setFilteredCalls] = useState<AICall[]>([])
+  const [currentPageCalls, setCurrentPageCalls] = useState<AICall[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(20)
+  const [nextCursor, setNextCursor] = useState<string | null>(null)
+  const [cursorHistory, setCursorHistory] = useState<string[]>([])
+  const [hasNextPage, setHasNextPage] = useState(false)
   const [filters, setFilters] = useState<Filters>({
     search: '',
     dateRange: { from: null, to: null },
     outcome: '',
+    agentId: '',
     minDuration: 0,
     maxDuration: 0,
     sortBy: 'date',
@@ -90,7 +93,7 @@ export default function AICallsPage() {
     return 'unknown'
   }
 
-  const fetchCalls = async (currentUser: any) => {
+  const fetchCalls = async (currentUser: any, cursor?: string, isBackNavigation: boolean = false) => {
     try {
       setIsRefreshing(true)
       const { data: sessionData } = await supabase.auth.getSession()
@@ -101,7 +104,21 @@ export default function AICallsPage() {
         return
       }
 
-      const response = await fetch('/api/elevenlabs/conversations?page_size=100', {
+      const params = new URLSearchParams({
+        page_size: '100'
+      })
+
+      if (cursor) params.set('cursor', cursor)
+      if (filters.outcome) params.set('call_successful', filters.outcome)
+      if (filters.agentId) params.set('agent_id', filters.agentId)
+      if (filters.dateRange.from) {
+        params.set('call_start_after_unix', Math.floor(filters.dateRange.from.getTime() / 1000).toString())
+      }
+      if (filters.dateRange.to) {
+        params.set('call_start_before_unix', Math.floor(filters.dateRange.to.getTime() / 1000).toString())
+      }
+
+      const response = await fetch(`/api/elevenlabs/conversations?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -116,7 +133,14 @@ export default function AICallsPage() {
         ...call,
         call_successful: normalizeOutcome(call.call_successful)
       }))
-      setAllCalls(normalizedCalls)
+
+      setCurrentPageCalls(normalizedCalls)
+      setNextCursor(data.cursor || null)
+      setHasNextPage(!!data.cursor)
+
+      if (!isBackNavigation && cursor) {
+        setCursorHistory(prev => [...prev, cursor])
+      }
     } catch (error) {
       console.error('Error fetching calls:', error)
     } finally {
@@ -125,12 +149,8 @@ export default function AICallsPage() {
     }
   }
 
-  useEffect(() => {
-    applyFilters()
-  }, [allCalls, filters])
-
-  const applyFilters = () => {
-    let filtered = [...allCalls]
+  const applyClientSideFilters = (calls: AICall[]) => {
+    let filtered = [...calls]
 
     if (filters.search) {
       const searchLower = filters.search.toLowerCase()
@@ -138,19 +158,6 @@ export default function AICallsPage() {
         call.conversation_id.toLowerCase().includes(searchLower) ||
         call.agent_id.toLowerCase().includes(searchLower)
       )
-    }
-
-    if (filters.dateRange.from || filters.dateRange.to) {
-      filtered = filtered.filter(call => {
-        const callDate = new Date(call.start_time_unix_secs * 1000)
-        if (filters.dateRange.from && callDate < filters.dateRange.from) return false
-        if (filters.dateRange.to && callDate > filters.dateRange.to) return false
-        return true
-      })
-    }
-
-    if (filters.outcome) {
-      filtered = filtered.filter(call => call.call_successful === filters.outcome)
     }
 
     if (filters.minDuration > 0) {
@@ -186,12 +193,23 @@ export default function AICallsPage() {
       return 0
     })
 
-    setFilteredCalls(filtered)
+    return filtered
   }
 
   const updateFilter = (key: keyof Filters, value: any) => {
+    const serverSideFilters = ['outcome', 'agentId', 'dateRange']
+    const isServerSideFilter = serverSideFilters.includes(key)
+
     setFilters(prev => ({ ...prev, [key]: value }))
-    setCurrentPage(1)
+
+    if (isServerSideFilter && user) {
+      setCurrentPage(1)
+      setCursorHistory([])
+      setNextCursor(null)
+      setTimeout(() => {
+        fetchCalls(user)
+      }, 100)
+    }
   }
 
   const clearAllFilters = () => {
@@ -199,12 +217,18 @@ export default function AICallsPage() {
       search: '',
       dateRange: { from: null, to: null },
       outcome: '',
+      agentId: '',
       minDuration: 0,
       maxDuration: 0,
       sortBy: 'date',
       sortOrder: 'desc'
     })
     setCurrentPage(1)
+    setCursorHistory([])
+    setNextCursor(null)
+    if (user) {
+      fetchCalls(user)
+    }
   }
 
   const handleRefresh = async () => {
@@ -214,7 +238,8 @@ export default function AICallsPage() {
   }
 
   const exportCSV = () => {
-    const csv = filteredCalls.map(c => {
+    const displayedCalls = applyClientSideFilters(currentPageCalls)
+    const csv = displayedCalls.map(c => {
       const date = new Date(c.start_time_unix_secs * 1000)
       return `"${c.conversation_id}","${c.agent_id}","${date.toLocaleString('it-IT')}","${c.call_duration_secs}","${c.message_count}","${c.call_successful}","${c.status}"`
     })
@@ -224,7 +249,7 @@ export default function AICallsPage() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `ai_calls_${new Date().toISOString().split('T')[0]}.csv`
+    link.download = `ai_calls_page_${currentPage}_${new Date().toISOString().split('T')[0]}.csv`
     link.click()
     URL.revokeObjectURL(url)
   }
@@ -234,6 +259,7 @@ export default function AICallsPage() {
     if (filters.search) count++
     if (filters.dateRange.from || filters.dateRange.to) count++
     if (filters.outcome) count++
+    if (filters.agentId) count++
     if (filters.minDuration > 0) count++
     if (filters.maxDuration > 0) count++
     return count
@@ -332,23 +358,31 @@ export default function AICallsPage() {
   }
 
   const activeFiltersCount = getActiveFiltersCount()
-  const totalDuration = allCalls.reduce((acc, call) => acc + call.call_duration_secs, 0)
-  const successfulCalls = allCalls.filter(c => c.call_successful === 'successful').length
-  const successRate = allCalls.length > 0 ? Math.round((successfulCalls / allCalls.length) * 100) : 0
+  const displayedCalls = applyClientSideFilters(currentPageCalls)
+  const successfulCalls = displayedCalls.filter(c => c.call_successful === 'successful').length
+  const successRate = displayedCalls.length > 0 ? Math.round((successfulCalls / displayedCalls.length) * 100) : 0
 
-  const totalPages = Math.ceil(filteredCalls.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const paginatedCalls = filteredCalls.slice(startIndex, endIndex)
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+  const handleNextPage = () => {
+    if (hasNextPage && nextCursor && user) {
+      setCurrentPage(prev => prev + 1)
+      fetchCalls(user, nextCursor, false)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }
 
-  const handleItemsPerPageChange = (newItemsPerPage: number) => {
-    setItemsPerPage(newItemsPerPage)
-    setCurrentPage(1)
+  const handlePrevPage = () => {
+    if (currentPage > 1 && user) {
+      const prevCursor = cursorHistory[cursorHistory.length - 2] || undefined
+      setCursorHistory(prev => prev.slice(0, -1))
+      setCurrentPage(prev => prev - 1)
+
+      if (currentPage === 2) {
+        fetchCalls(user, undefined, true)
+      } else {
+        fetchCalls(user, prevCursor, true)
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }
 
   return (
@@ -361,7 +395,7 @@ export default function AICallsPage() {
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Chiamate IA</h1>
             <p className="text-slate-600 mt-1">
-              {filteredCalls.length} di {allCalls.length} chiamate
+              Pagina {currentPage} • {displayedCalls.length} risultati
               {activeFiltersCount > 0 && (
                 <span className="text-blue-600 font-medium"> • {activeFiltersCount} filtri attivi</span>
               )}
@@ -379,11 +413,11 @@ export default function AICallsPage() {
           </button>
           <button
             onClick={exportCSV}
-            disabled={filteredCalls.length === 0}
+            disabled={displayedCalls.length === 0}
             className="btn-primary text-white px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-xl transition-shadow"
           >
             <span>📥</span>
-            <span>Esporta CSV ({filteredCalls.length})</span>
+            <span>Esporta Pagina ({displayedCalls.length})</span>
           </button>
         </div>
       </div>
@@ -553,15 +587,19 @@ export default function AICallsPage() {
         )}
       </div>
 
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <p className="text-sm text-blue-800">
+          📊 <strong>Statistiche Pagina Corrente</strong> - I dati mostrati si riferiscono solo ai {displayedCalls.length} risultati di questa pagina. Naviga tra le pagine per vedere più risultati.
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Chiamate Totali</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{allCalls.length}</p>
-              {activeFiltersCount > 0 && (
-                <p className="text-xs text-slate-500 mt-1">{filteredCalls.length} filtrate</p>
-              )}
+              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Chiamate in Pagina</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{displayedCalls.length}</p>
+              <p className="text-xs text-slate-500 mt-1">Pagina {currentPage}</p>
             </div>
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
               <span className="text-green-600">📞</span>
@@ -586,8 +624,8 @@ export default function AICallsPage() {
             <div>
               <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Durata Media</p>
               <p className="text-2xl font-bold text-slate-900 mt-1">
-                {filteredCalls.length > 0
-                  ? formatDuration(Math.round(filteredCalls.reduce((acc, c) => acc + c.call_duration_secs, 0) / filteredCalls.length))
+                {displayedCalls.length > 0
+                  ? formatDuration(Math.round(displayedCalls.reduce((acc, c) => acc + c.call_duration_secs, 0) / displayedCalls.length))
                   : '0m 0s'
                 }
               </p>
@@ -603,7 +641,7 @@ export default function AICallsPage() {
             <div>
               <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Totale Messaggi</p>
               <p className="text-2xl font-bold text-slate-900 mt-1">
-                {filteredCalls.reduce((acc, c) => acc + c.message_count, 0)}
+                {displayedCalls.reduce((acc, c) => acc + c.message_count, 0)}
               </p>
             </div>
             <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
@@ -614,7 +652,7 @@ export default function AICallsPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        {paginatedCalls.length === 0 ? (
+        {displayedCalls.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-slate-400 text-2xl">📞</span>
@@ -655,7 +693,7 @@ export default function AICallsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {paginatedCalls.map((call) => {
+                {displayedCalls.map((call) => {
                   const callDate = new Date(call.start_time_unix_secs * 1000)
                   return (
                     <tr key={call.conversation_id} className="table-row">
@@ -710,15 +748,30 @@ export default function AICallsPage() {
         )}
       </div>
 
-      {filteredCalls.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={filteredCalls.length}
-          itemsPerPage={itemsPerPage}
-          onPageChange={handlePageChange}
-          onItemsPerPageChange={handleItemsPerPageChange}
-        />
+      {displayedCalls.length > 0 && (
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-slate-600">
+              Visualizzati {displayedCalls.length} risultati - Pagina {currentPage}
+            </div>
+            <div className="flex space-x-3">
+              <button
+                onClick={handlePrevPage}
+                disabled={currentPage === 1}
+                className="px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ← Precedente
+              </button>
+              <button
+                onClick={handleNextPage}
+                disabled={!hasNextPage}
+                className="px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Successiva →
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
