@@ -52,7 +52,13 @@ export async function fetchAllConversationsFromAPI(
 
       const normalizedConversations = conversations.map((conv: any) => ({
         ...conv,
-        call_successful: normalizeOutcome(conv.call_successful)
+        call_successful: normalizeOutcome(conv.call_successful),
+        agent_name: conv.agent_name || null,
+        transcript_summary: conv.transcript_summary || null,
+        call_summary_title: conv.call_summary_title || null,
+        direction: conv.direction || null,
+        rating: conv.rating || null,
+        branch_id: conv.branch_id || null
       }))
 
       allConversations.push(...normalizedConversations)
@@ -105,11 +111,17 @@ export async function saveConversationsToSupabase(
     user_id: userId,
     conversation_id: conv.conversation_id,
     agent_id: conv.agent_id,
+    agent_name: conv.agent_name,
     start_time_unix_secs: conv.start_time_unix_secs,
     call_duration_secs: conv.call_duration_secs,
     message_count: conv.message_count,
     status: conv.status,
     call_successful: conv.call_successful,
+    transcript_summary: conv.transcript_summary,
+    call_summary_title: conv.call_summary_title,
+    direction: conv.direction,
+    rating: conv.rating,
+    branch_id: conv.branch_id,
     raw_data: conv
   }))
 
@@ -210,6 +222,8 @@ export async function getConversationsFromSupabase(
     dateTo?: Date
     outcome?: string
     agentId?: string
+    direction?: string
+    minRating?: number
     minDuration?: number
     maxDuration?: number
     sortBy?: 'date' | 'duration' | 'messages'
@@ -224,7 +238,7 @@ export async function getConversationsFromSupabase(
     .eq('user_id', userId)
 
   if (options.search) {
-    query = query.or(`conversation_id.ilike.%${options.search}%,agent_id.ilike.%${options.search}%`)
+    query = query.or(`conversation_id.ilike.%${options.search}%,agent_id.ilike.%${options.search}%,agent_name.ilike.%${options.search}%,transcript_summary.ilike.%${options.search}%,call_summary_title.ilike.%${options.search}%`)
   }
 
   if (options.dateFrom) {
@@ -243,6 +257,14 @@ export async function getConversationsFromSupabase(
 
   if (options.agentId) {
     query = query.eq('agent_id', options.agentId)
+  }
+
+  if (options.direction) {
+    query = query.eq('direction', options.direction)
+  }
+
+  if (options.minRating && options.minRating > 0) {
+    query = query.gte('rating', options.minRating)
   }
 
   if (options.minDuration && options.minDuration > 0) {

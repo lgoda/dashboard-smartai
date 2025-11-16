@@ -20,11 +20,17 @@ export const dynamic = 'force-dynamic'
 type AICall = {
   conversation_id: string
   agent_id: string
+  agent_name?: string
   start_time_unix_secs: number
   call_duration_secs: number
   message_count: number
   status: string
   call_successful: string
+  transcript_summary?: string
+  call_summary_title?: string
+  direction?: string
+  rating?: number
+  branch_id?: string
 }
 
 type DateRange = {
@@ -37,6 +43,8 @@ type Filters = {
   dateRange: DateRange
   outcome: string
   agentId: string
+  direction: string
+  minRating: number
   minDuration: number
   maxDuration: number
   sortBy: 'date' | 'duration' | 'messages'
@@ -54,11 +62,16 @@ export default function AICallsPage() {
   const [syncStatus, setSyncStatus] = useState<any>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(100)
+  const [expandedRow, setExpandedRow] = useState<string | null>(null)
+  const [loadingAudio, setLoadingAudio] = useState<Record<string, boolean>>({})
+  const [audioUrls, setAudioUrls] = useState<Record<string, string>>({})
   const [filters, setFilters] = useState<Filters>({
     search: '',
     dateRange: { from: null, to: null },
     outcome: '',
     agentId: '',
+    direction: '',
+    minRating: 0,
     minDuration: 0,
     maxDuration: 0,
     sortBy: 'date',
@@ -111,6 +124,8 @@ export default function AICallsPage() {
         dateTo: filters.dateRange.to || undefined,
         outcome: filters.outcome,
         agentId: filters.agentId,
+        direction: filters.direction,
+        minRating: filters.minRating,
         minDuration: filters.minDuration,
         maxDuration: filters.maxDuration,
         sortBy: filters.sortBy,
@@ -173,6 +188,8 @@ export default function AICallsPage() {
       dateRange: { from: null, to: null },
       outcome: '',
       agentId: '',
+      direction: '',
+      minRating: 0,
       minDuration: 0,
       maxDuration: 0,
       sortBy: 'date',
@@ -191,6 +208,8 @@ export default function AICallsPage() {
         dateTo: filters.dateRange.to || undefined,
         outcome: filters.outcome,
         agentId: filters.agentId,
+        direction: filters.direction,
+        minRating: filters.minRating,
         minDuration: filters.minDuration,
         maxDuration: filters.maxDuration,
         sortBy: filters.sortBy,
@@ -199,9 +218,12 @@ export default function AICallsPage() {
 
       const csv = allCalls.map(c => {
         const date = new Date(c.start_time_unix_secs * 1000)
-        return `"${c.conversation_id}","${c.agent_id}","${date.toLocaleString('it-IT')}","${c.call_duration_secs}","${c.message_count}","${c.call_successful}","${c.status}"`
+        const agentName = (c.agent_name || 'N/A').replace(/"/g, '""')
+        const title = (c.call_summary_title || 'N/A').replace(/"/g, '""')
+        const summary = (c.transcript_summary || 'N/A').replace(/"/g, '""').replace(/\n/g, ' ')
+        return `"${agentName}","${title}","${summary}","${date.toLocaleString('it-IT')}","${c.call_duration_secs}","${c.direction || 'N/A'}","${c.rating || 'N/A'}","${c.call_successful}"`
       })
-      const header = 'ID Conversazione,Agent ID,Data e Ora,Durata (sec),Messaggi,Outcome,Status\n'
+      const header = 'Agent,Titolo,Summary,Data e Ora,Durata (sec),Direzione,Rating,Outcome\n'
       const csvString = header + csv.join('\n')
       const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
@@ -221,6 +243,8 @@ export default function AICallsPage() {
     if (filters.dateRange.from || filters.dateRange.to) count++
     if (filters.outcome) count++
     if (filters.agentId) count++
+    if (filters.direction) count++
+    if (filters.minRating > 0) count++
     if (filters.minDuration > 0) count++
     if (filters.maxDuration > 0) count++
     return count
@@ -264,6 +288,69 @@ export default function AICallsPage() {
       default:
         return outcome
     }
+  }, [])
+
+  const toggleRowExpansion = useCallback((conversationId: string) => {
+    setExpandedRow(prev => prev === conversationId ? null : conversationId)
+  }, [])
+
+  const loadAudio = useCallback(async (conversationId: string) => {
+    if (audioUrls[conversationId] || loadingAudio[conversationId]) return
+
+    setLoadingAudio(prev => ({ ...prev, [conversationId]: true }))
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
+
+      if (!token) {
+        console.error('No access token available')
+        return
+      }
+
+      const response = await fetch(`/api/elevenlabs/audio/${conversationId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch audio')
+      }
+
+      const audioBlob = await response.blob()
+      const url = URL.createObjectURL(audioBlob)
+      setAudioUrls(prev => ({ ...prev, [conversationId]: url }))
+    } catch (error) {
+      console.error('Error loading audio:', error)
+    } finally {
+      setLoadingAudio(prev => ({ ...prev, [conversationId]: false }))
+    }
+  }, [audioUrls, loadingAudio])
+
+  const getDirectionBadge = useCallback((direction?: string) => {
+    if (!direction) return null
+
+    const isInbound = direction === 'inbound'
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+        isInbound
+          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+          : 'bg-amber-50 text-amber-700 border border-amber-200'
+      }`}>
+        {isInbound ? '📥 In' : '📤 Out'}
+      </span>
+    )
+  }, [])
+
+  const renderRating = useCallback((rating?: number) => {
+    if (!rating) return <span className="text-slate-400 text-xs">N/A</span>
+
+    return (
+      <div className="flex items-center space-x-1">
+        <span className="text-yellow-500">★</span>
+        <span className="text-sm font-medium text-slate-700">{rating.toFixed(1)}</span>
+      </div>
+    )
   }, [])
 
   if (isLoading && !user) {
@@ -420,7 +507,7 @@ export default function AICallsPage() {
               <input
                 id="search"
                 type="text"
-                placeholder="Cerca per ID conversazione o agent..."
+                placeholder="Cerca per agent, titolo, summary..."
                 value={filters.search}
                 onChange={(e) => updateFilter('search', e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
@@ -459,7 +546,38 @@ export default function AICallsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+          <div>
+            <label htmlFor="direction" className="block text-sm font-medium text-slate-700 mb-2">
+              Direzione
+            </label>
+            <select
+              id="direction"
+              value={filters.direction}
+              onChange={(e) => updateFilter('direction', e.target.value)}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            >
+              <option value="">Tutte le direzioni</option>
+              <option value="inbound">Inbound</option>
+              <option value="outbound">Outbound</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="minRating" className="block text-sm font-medium text-slate-700 mb-2">
+              Rating minimo
+            </label>
+            <input
+              id="minRating"
+              type="number"
+              min="0"
+              max="5"
+              step="0.1"
+              value={filters.minRating}
+              onChange={(e) => updateFilter('minRating', parseFloat(e.target.value) || 0)}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
+          </div>
           <div>
             <label htmlFor="minDuration" className="block text-sm font-medium text-slate-700 mb-2">
               Durata minima (sec)
@@ -542,6 +660,20 @@ export default function AICallsPage() {
                   label="Outcome"
                   value={getOutcomeLabel(filters.outcome)}
                   onRemove={() => updateFilter('outcome', '')}
+                />
+              )}
+              {filters.direction && (
+                <FilterBadge
+                  label="Direzione"
+                  value={filters.direction === 'inbound' ? 'Inbound' : 'Outbound'}
+                  onRemove={() => updateFilter('direction', '')}
+                />
+              )}
+              {filters.minRating > 0 && (
+                <FilterBadge
+                  label="Rating min"
+                  value={`★ ${filters.minRating}`}
+                  onRemove={() => updateFilter('minRating', 0)}
                 />
               )}
               {filters.minDuration > 0 && (
@@ -654,7 +786,10 @@ export default function AICallsPage() {
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    ID Conversazione
+                    Titolo & Summary
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Agent
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Data e Ora
@@ -663,64 +798,144 @@ export default function AICallsPage() {
                     Durata
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Messaggi
+                    Direzione
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Rating
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Outcome
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Azioni
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-10">
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-slate-200">
+              <tbody className="bg-white">
                 {calls.map((call) => {
                   const callDate = new Date(call.start_time_unix_secs * 1000)
+                  const isExpanded = expandedRow === call.conversation_id
+
                   return (
-                    <tr key={call.conversation_id} className="table-row">
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-slate-900 font-mono">
-                          {call.conversation_id.substring(0, 8)}...
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          Agent: {call.agent_id.substring(0, 8)}...
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-slate-900">
-                          {callDate.toLocaleDateString('it-IT')}
-                        </div>
-                        <div className="text-sm text-slate-500">
-                          {callDate.toLocaleTimeString('it-IT', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-slate-900">
-                          {formatDuration(call.call_duration_secs)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                          {call.message_count}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getOutcomeBadgeColor(call.call_successful)}`}>
-                          {getOutcomeLabel(call.call_successful)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Link
-                          href={`/dashboard/ai-calls/${call.conversation_id}`}
-                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                        >
-                          Dettagli →
-                        </Link>
-                      </td>
-                    </tr>
+                    <>
+                      <tr
+                        key={call.conversation_id}
+                        className="border-b border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+                        onClick={() => toggleRowExpansion(call.conversation_id)}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-semibold text-slate-900 mb-1">
+                            {call.call_summary_title || 'Chiamata senza titolo'}
+                          </div>
+                          <div className="text-xs text-slate-600 line-clamp-2">
+                            {call.transcript_summary || 'Nessun summary disponibile'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-slate-900 font-medium">
+                            {call.agent_name || 'Agent sconosciuto'}
+                          </div>
+                          <div className="text-xs text-slate-500 font-mono">
+                            {call.agent_id.substring(0, 8)}...
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-slate-900">
+                            {callDate.toLocaleDateString('it-IT')}
+                          </div>
+                          <div className="text-sm text-slate-500">
+                            {callDate.toLocaleTimeString('it-IT', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-slate-900">
+                            {formatDuration(call.call_duration_secs)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getDirectionBadge(call.direction)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {renderRating(call.rating)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getOutcomeBadgeColor(call.call_successful)}`}>
+                            {getOutcomeLabel(call.call_successful)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <span className={`text-slate-400 transition-transform duration-200 inline-block ${isExpanded ? 'rotate-180' : ''}`}>
+                            ▼
+                          </span>
+                        </td>
+                      </tr>
+
+                      {isExpanded && (
+                        <tr key={`${call.conversation_id}-expanded`}>
+                          <td colSpan={8} className="px-6 py-6 bg-slate-50 border-b border-slate-200">
+                            <div className="space-y-4">
+                              <div>
+                                <h4 className="text-sm font-semibold text-slate-900 mb-2">Transcript Summary Completo</h4>
+                                <p className="text-sm text-slate-700 leading-relaxed">
+                                  {call.transcript_summary || 'Nessun summary disponibile per questa chiamata.'}
+                                </p>
+                              </div>
+
+                              <div className="flex flex-wrap gap-3 pt-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    loadAudio(call.conversation_id)
+                                  }}
+                                  disabled={loadingAudio[call.conversation_id]}
+                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                                >
+                                  <span>🔊</span>
+                                  <span>{loadingAudio[call.conversation_id] ? 'Caricamento...' : 'Ascolta Audio'}</span>
+                                </button>
+
+                                <Link
+                                  href={`/dashboard/ai-calls/${call.conversation_id}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="px-4 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors flex items-center space-x-2"
+                                >
+                                  <span>📄</span>
+                                  <span>Transcript Completo</span>
+                                </Link>
+
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (call.transcript_summary) {
+                                      navigator.clipboard.writeText(call.transcript_summary)
+                                    }
+                                  }}
+                                  className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-300 transition-colors flex items-center space-x-2"
+                                >
+                                  <span>📋</span>
+                                  <span>Copia Summary</span>
+                                </button>
+                              </div>
+
+                              {audioUrls[call.conversation_id] && (
+                                <div className="pt-3">
+                                  <audio
+                                    controls
+                                    className="w-full max-w-2xl"
+                                    src={audioUrls[call.conversation_id]}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    Il tuo browser non supporta l&apos;elemento audio.
+                                  </audio>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   )
                 })}
               </tbody>
