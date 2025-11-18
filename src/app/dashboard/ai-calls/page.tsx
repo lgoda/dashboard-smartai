@@ -1,19 +1,13 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
-import Pagination from '@/app/components/Pagination'
 import { useDebounce } from '@/app/lib/useDebounce'
-import {
-  triggerSync,
-  getPaginatedConversations,
-  PaginatedConversation,
-  SyncStatus
-} from '@/app/lib/syncApi'
+import { getConversationsFromAPI, AICall } from '@/app/lib/conversationsApi'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,19 +32,15 @@ type Filters = {
 export default function AICallsPage() {
   const [user, setUser] = useState<any>(null)
   const [hasToken, setHasToken] = useState(false)
-  const [calls, setCalls] = useState<PaginatedConversation[]>([])
+  const [calls, setCalls] = useState<AICall[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(0)
-  const [totalItems, setTotalItems] = useState(0)
-  const [itemsPerPage, setItemsPerPage] = useState(100)
+  const [nextCursor, setNextCursor] = useState<string | undefined>(undefined)
+  const [hasMore, setHasMore] = useState(false)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
   const [loadingAudio, setLoadingAudio] = useState<Record<string, boolean>>({})
   const [audioUrls, setAudioUrls] = useState<Record<string, string>>({})
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
-  const [syncProgress, setSyncProgress] = useState<string>('')
   const [filters, setFilters] = useState<Filters>({
     search: '',
     dateRange: { from: null, to: null },
@@ -64,6 +54,7 @@ export default function AICallsPage() {
     sortOrder: 'desc'
   })
   const router = useRouter()
+  const observerTarget = useRef<HTMLDivElement>(null)
 
   const debouncedSearch = useDebounce(filters.search, 500)
 
@@ -94,24 +85,6 @@ export default function AICallsPage() {
     checkToken()
   }, [router])
 
-  const loadSyncStatus = useCallback(async () => {
-    if (!user) return
-
-    try {
-      const { data } = await supabase
-        .from('elevenlabs_sync_status')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (data) {
-        setSyncStatus(data as SyncStatus)
-      }
-    } catch (error) {
-      console.error('Error loading sync status:', error)
-    }
-  }, [user])
-
   const getValidSession = useCallback(async () => {
     try {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
@@ -131,49 +104,17 @@ export default function AICallsPage() {
     }
   }, [])
 
-  const performSync = useCallback(async () => {
-    if (!user || isSyncing) return
+  const loadCalls = useCallback(async (reset: boolean = false) => {
+    if (!user || !hasToken) return
 
     try {
-      setIsSyncing(true)
-      setSyncProgress('Sincronizzazione in corso...')
-      setError(null)
-
-      const session = await getValidSession()
-      const token = session?.access_token
-
-      if (!token) {
-        throw new Error('No access token available')
-      }
-
-      const result = await triggerSync(token)
-
-      if (result.success) {
-        setSyncProgress(`Sincronizzate ${result.fetched} chiamate (${result.upserted} nuove/aggiornate)`)
-        await loadSyncStatus()
-        await loadCalls()
-
-        setTimeout(() => {
-          setSyncProgress('')
-        }, 5000)
-      } else if (result.inProgress) {
-        setSyncProgress('Sincronizzazione già in corso...')
+      if (reset) {
+        setIsLoading(true)
+        setCalls([])
+        setNextCursor(undefined)
       } else {
-        throw new Error(result.message || 'Sync failed')
+        setIsLoadingMore(true)
       }
-    } catch (error) {
-      console.error('Sync error:', error)
-      setError(error instanceof Error ? error.message : 'Errore durante la sincronizzazione')
-    } finally {
-      setIsSyncing(false)
-    }
-  }, [user, isSyncing, getValidSession, loadSyncStatus])
-
-  const loadCalls = useCallback(async () => {
-    if (!user) return
-
-    try {
-      setIsLoading(true)
       setError(null)
 
       const session = await getValidSession()
@@ -183,9 +124,9 @@ export default function AICallsPage() {
         throw new Error('No access token available')
       }
 
-      const response = await getPaginatedConversations(token, {
-        page: currentPage,
-        pageSize: itemsPerPage,
+      const response = await getConversationsFromAPI(token, {
+        cursor: reset ? undefined : nextCursor,
+        pageSize: 100,
         search: debouncedSearch,
         dateFrom: filters.dateRange.from || undefined,
         dateTo: filters.dateRange.to || undefined,
@@ -199,51 +140,52 @@ export default function AICallsPage() {
         sortOrder: filters.sortOrder
       })
 
-      setCalls(response.conversations)
-      setTotalPages(response.pagination.totalPages)
-      setTotalItems(response.pagination.totalItems)
+      if (reset) {
+        setCalls(response.conversations)
+      } else {
+        setCalls(prev => [...prev, ...response.conversations])
+      }
+
+      setNextCursor(response.cursor)
+      setHasMore(response.hasMore)
     } catch (error) {
       console.error('Error loading calls:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to load calls'
       setError(errorMessage)
-      setCalls([])
+      if (reset) {
+        setCalls([])
+      }
     } finally {
       setIsLoading(false)
+      setIsLoadingMore(false)
     }
-  }, [user, currentPage, itemsPerPage, debouncedSearch, filters, getValidSession])
+  }, [user, hasToken, nextCursor, debouncedSearch, filters, getValidSession])
 
   useEffect(() => {
     if (user && hasToken) {
-      loadSyncStatus()
-      loadCalls()
+      loadCalls(true)
     }
-  }, [user, hasToken, currentPage, itemsPerPage, debouncedSearch, filters, loadSyncStatus, loadCalls])
+  }, [user, hasToken, debouncedSearch, filters.dateRange, filters.outcome, filters.agentId, filters.direction, filters.minRating, filters.minDuration, filters.maxDuration, filters.sortBy, filters.sortOrder])
 
   useEffect(() => {
-    if (user && hasToken && syncStatus) {
-      const lastSyncTime = syncStatus.last_sync_at ? new Date(syncStatus.last_sync_at).getTime() : 0
-      const now = Date.now()
-      const fiveMinutes = 5 * 60 * 1000
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isLoading) {
+          loadCalls(false)
+        }
+      },
+      { threshold: 0.1 }
+    )
 
-      if (!lastSyncTime || (now - lastSyncTime > fiveMinutes)) {
-        performSync()
-      }
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current)
     }
-  }, [user, hasToken, syncStatus, performSync])
 
-  const handlePageChange = useCallback((newPage: number) => {
-    setCurrentPage(newPage)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [])
-
-  const handleItemsPerPageChange = useCallback((newItemsPerPage: number) => {
-    setItemsPerPage(newItemsPerPage)
-    setCurrentPage(1)
-  }, [])
+    return () => observer.disconnect()
+  }, [hasMore, isLoadingMore, isLoading, loadCalls])
 
   const updateFilter = useCallback((key: keyof Filters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }))
-    setCurrentPage(1)
   }, [])
 
   const clearAllFilters = useCallback(() => {
@@ -259,7 +201,6 @@ export default function AICallsPage() {
       sortBy: 'date',
       sortOrder: 'desc'
     })
-    setCurrentPage(1)
   }, [])
 
   const getActiveFiltersCount = useMemo(() => {
@@ -446,39 +387,14 @@ export default function AICallsPage() {
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Chiamate IA</h1>
             <p className="text-slate-600 mt-1">
-              {totalItems} chiamate totali
+              {calls.length} chiamate caricate
               {activeFiltersCount > 0 && (
                 <span className="text-blue-600 font-medium"> • {activeFiltersCount} filtri attivi</span>
               )}
             </p>
-            {syncStatus?.last_sync_at && (
-              <p className="text-xs text-slate-500 mt-1">
-                Ultimo aggiornamento: {new Date(syncStatus.last_sync_at).toLocaleString('it-IT')}
-              </p>
-            )}
           </div>
-        </div>
-
-        <div className="flex space-x-3">
-          <button
-            onClick={performSync}
-            disabled={isSyncing}
-            className="px-4 py-3 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-          >
-            <span>🔄</span>
-            <span>{isSyncing ? 'Sincronizzazione...' : 'Sincronizza'}</span>
-          </button>
         </div>
       </div>
-
-      {syncProgress && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center space-x-2">
-            <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-sm text-blue-900">{syncProgress}</p>
-          </div>
-        </div>
-      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -493,7 +409,7 @@ export default function AICallsPage() {
                 <button
                   onClick={() => {
                     setError(null)
-                    loadCalls()
+                    loadCalls(true)
                   }}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
                 >
@@ -733,7 +649,7 @@ export default function AICallsPage() {
         <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Chiamate Pagina</p>
+              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Chiamate Caricate</p>
               <p className="text-2xl font-bold text-slate-900 mt-1">{calls.length}</p>
             </div>
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -747,7 +663,6 @@ export default function AICallsPage() {
             <div>
               <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Tasso Successo</p>
               <p className="text-2xl font-bold text-slate-900 mt-1">{successRate}%</p>
-              <p className="text-xs text-slate-500 mt-1">Pagina corrente</p>
             </div>
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
               <span className="text-blue-600">✓</span>
@@ -765,7 +680,6 @@ export default function AICallsPage() {
                   : '0m 0s'
                 }
               </p>
-              <p className="text-xs text-slate-500 mt-1">Pagina corrente</p>
             </div>
             <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
               <span className="text-amber-600">⏱️</span>
@@ -780,7 +694,6 @@ export default function AICallsPage() {
               <p className="text-2xl font-bold text-slate-900 mt-1">
                 {calls.reduce((acc, c) => acc + c.message_count, 0).toLocaleString('it-IT')}
               </p>
-              <p className="text-xs text-slate-500 mt-1">Pagina corrente</p>
             </div>
             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
               <span className="text-purple-600">💬</span>
@@ -790,7 +703,12 @@ export default function AICallsPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        {calls.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-600">Caricamento chiamate...</p>
+          </div>
+        ) : calls.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-slate-400 text-2xl">📞</span>
@@ -801,7 +719,7 @@ export default function AICallsPage() {
             <p className="text-slate-600 mb-4">
               {activeFiltersCount > 0
                 ? 'Prova a modificare i filtri di ricerca'
-                : 'Clicca su "Sincronizza" per caricare le chiamate da ElevenLabs'
+                : 'Non ci sono chiamate disponibili'
               }
             </p>
           </div>
@@ -967,18 +885,25 @@ export default function AICallsPage() {
             </table>
           </div>
         )}
-      </div>
 
-      {totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={totalItems}
-          itemsPerPage={itemsPerPage}
-          onPageChange={handlePageChange}
-          onItemsPerPageChange={handleItemsPerPageChange}
-        />
-      )}
+        {hasMore && !isLoading && (
+          <div ref={observerTarget} className="py-8 text-center border-t border-slate-200">
+            {isLoadingMore ? (
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-sm text-slate-600">Caricamento altre chiamate...</p>
+              </div>
+            ) : (
+              <button
+                onClick={() => loadCalls(false)}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Carica altre chiamate
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -44,13 +44,18 @@ const normalizeOutcome = (outcome: string): string => {
 }
 
 const normalizeConversation = (conv: any): AICall => ({
-  ...conv,
-  call_successful: normalizeOutcome(conv.call_successful),
-  agent_name: conv.agent_name || null,
-  transcript_summary: conv.transcript_summary || null,
-  call_summary_title: conv.call_summary_title || null,
-  direction: conv.direction || null,
-  rating: conv.rating || null,
+  conversation_id: conv.conversation_id,
+  agent_id: conv.agent_id,
+  agent_name: conv.metadata?.agent_name || conv.agent_name || null,
+  start_time_unix_secs: conv.start_time_unix_secs,
+  call_duration_secs: conv.call_duration_secs || 0,
+  message_count: conv.transcript?.length || 0,
+  status: conv.status || '',
+  call_successful: normalizeOutcome(conv.call_successful || conv.analysis?.call_successful || 'unknown'),
+  transcript_summary: conv.analysis?.transcript_summary || null,
+  call_summary_title: conv.analysis?.call_summary_title || null,
+  direction: conv.metadata?.direction || null,
+  rating: conv.analysis?.call_quality_rating || null,
   branch_id: conv.branch_id || null
 })
 

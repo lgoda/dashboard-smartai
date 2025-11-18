@@ -42,11 +42,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('[Auth Success]', {
-      userId: user.id,
-      timestamp: new Date().toISOString()
-    })
-
     const { token, error: tokenError } = await client.getActiveToken(user.id)
     if (tokenError || !token) {
       return NextResponse.json(
@@ -61,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const agentId = searchParams.get('agent_id')
-    const callSuccessful = searchParams.get('call_successful')
+    const outcome = searchParams.get('outcome')
     const callStartBefore = searchParams.get('call_start_before_unix')
     const callStartAfter = searchParams.get('call_start_after_unix')
     const pageSize = searchParams.get('page_size') || '100'
@@ -69,7 +64,7 @@ export async function GET(request: NextRequest) {
 
     const elevenLabsUrl = new URL('https://api.elevenlabs.io/v1/convai/conversations')
     if (agentId) elevenLabsUrl.searchParams.set('agent_id', agentId)
-    if (callSuccessful) elevenLabsUrl.searchParams.set('call_successful', callSuccessful)
+    if (outcome) elevenLabsUrl.searchParams.set('call_successful', outcome)
     if (callStartBefore) elevenLabsUrl.searchParams.set('call_start_before_unix', callStartBefore)
     if (callStartAfter) elevenLabsUrl.searchParams.set('call_start_after_unix', callStartAfter)
     elevenLabsUrl.searchParams.set('page_size', pageSize)
@@ -97,7 +92,7 @@ export async function GET(request: NextRequest) {
 
     const totalDuration = Date.now() - startTime
     const responseHeaders = new Headers()
-    responseHeaders.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=120')
+    responseHeaders.set('Cache-Control', 'private, no-cache')
     responseHeaders.set('X-Response-Time', `${totalDuration}ms`)
     responseHeaders.set('X-API-Duration', `${metrics.duration}ms`)
 
@@ -106,6 +101,8 @@ export async function GET(request: NextRequest) {
       duration: metrics.duration,
       totalDuration,
       conversationCount: data?.conversations?.length || 0,
+      hasMore: data?.has_more || false,
+      cursor: data?.cursor || null
     })
 
     return NextResponse.json(data, {
