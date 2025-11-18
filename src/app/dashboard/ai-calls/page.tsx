@@ -9,29 +9,13 @@ import FilterBadge from '@/app/components/FilterBadge'
 import Pagination from '@/app/components/Pagination'
 import { useDebounce } from '@/app/lib/useDebounce'
 import {
-  performFullSync,
-  getConversationsFromSupabase,
-  getSyncStatus,
-  SyncProgress
-} from '@/app/lib/conversationsSync'
+  AICall,
+  getConversationsFromAPI,
+  fetchAllConversationsForExport,
+  GetConversationsOptions
+} from '@/app/lib/conversationsApi'
 
 export const dynamic = 'force-dynamic'
-
-type AICall = {
-  conversation_id: string
-  agent_id: string
-  agent_name?: string
-  start_time_unix_secs: number
-  call_duration_secs: number
-  message_count: number
-  status: string
-  call_successful: string
-  transcript_summary?: string
-  call_summary_title?: string
-  direction?: string
-  rating?: number
-  branch_id?: string
-}
 
 type DateRange = {
   from: Date | null
@@ -55,16 +39,18 @@ export default function AICallsPage() {
   const [user, setUser] = useState<any>(null)
   const [hasToken, setHasToken] = useState(false)
   const [calls, setCalls] = useState<AICall[]>([])
-  const [totalCount, setTotalCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null)
-  const [syncStatus, setSyncStatus] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [cursors, setCursors] = useState<string[]>([])
+  const [currentCursor, setCurrentCursor] = useState<string | undefined>(undefined)
+  const [hasMore, setHasMore] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(100)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
   const [loadingAudio, setLoadingAudio] = useState<Record<string, boolean>>({})
   const [audioUrls, setAudioUrls] = useState<Record<string, string>>({})
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportProgress, setExportProgress] = useState(0)
   const [filters, setFilters] = useState<Filters>({
     search: '',
     dateRange: { from: null, to: null },
@@ -96,8 +82,7 @@ export default function AICallsPage() {
 
         if (tokenData?.is_active) {
           setHasToken(true)
-          await loadSyncStatus(userData.user.id)
-          await loadCalls(userData.user.id)
+          await loadCalls()
         } else {
           setIsLoading(false)
         }
@@ -110,15 +95,21 @@ export default function AICallsPage() {
     checkToken()
   }, [router])
 
-  const loadSyncStatus = async (userId: string) => {
-    const status = await getSyncStatus(userId)
-    setSyncStatus(status)
-  }
+  const loadCalls = useCallback(async () => {
+    if (!user) return
 
-  const loadCalls = useCallback(async (userId: string) => {
     try {
       setIsLoading(true)
-      const { data, count } = await getConversationsFromSupabase(userId, {
+      setError(null)
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
+
+      if (!token) {
+        throw new Error('No access token available')
+      }
+
+      const options: GetConversationsOptions = {
         search: debouncedSearch,
         dateFrom: filters.dateRange.from || undefined,
         dateTo: filters.dateRange.to || undefined,
@@ -130,57 +121,54 @@ export default function AICallsPage() {
         maxDuration: filters.maxDuration,
         sortBy: filters.sortBy,
         sortOrder: filters.sortOrder,
-        page: currentPage,
-        pageSize: itemsPerPage
-      })
+        pageSize: itemsPerPage,
+        cursor: currentCursor
+      }
 
-      setCalls(data)
-      setTotalCount(count)
+      const response = await getConversationsFromAPI(token, options)
+
+      setCalls(response.conversations)
+      setHasMore(response.hasMore)
+
+      if (response.cursor && response.hasMore) {
+        if (!cursors.includes(response.cursor)) {
+          setCursors(prev => [...prev, response.cursor!])
+        }
+      }
     } catch (error) {
       console.error('Error loading calls:', error)
+      setError(error instanceof Error ? error.message : 'Failed to load calls')
+      setCalls([])
     } finally {
       setIsLoading(false)
     }
-  }, [debouncedSearch, filters, currentPage, itemsPerPage])
+  }, [user, debouncedSearch, filters, currentCursor, itemsPerPage, cursors])
 
-  const handleSync = useCallback(async () => {
-    if (!user || isSyncing) return
-
-    try {
-      setIsSyncing(true)
-      setSyncProgress({ currentPage: 0, totalFetched: 0, isComplete: false })
-
-      const { data: sessionData } = await supabase.auth.getSession()
-      const token = sessionData?.session?.access_token
-
-      if (!token) {
-        console.error('No access token available')
-        return
-      }
-
-      await performFullSync(user.id, token, (progress) => {
-        setSyncProgress(progress)
-      })
-
-      await loadSyncStatus(user.id)
-      await loadCalls(user.id)
-    } catch (error) {
-      console.error('Error during sync:', error)
-    } finally {
-      setIsSyncing(false)
+  const handlePageChange = useCallback((newPage: number) => {
+    if (newPage < currentPage) {
+      const cursorIndex = newPage - 2
+      setCurrentCursor(cursorIndex >= 0 ? cursors[cursorIndex] : undefined)
+    } else if (newPage > currentPage) {
+      const cursorIndex = newPage - 2
+      setCurrentCursor(cursors[cursorIndex])
     }
-  }, [user, isSyncing])
+    setCurrentPage(newPage)
+  }, [currentPage, cursors])
 
   const updateFilter = useCallback((key: keyof Filters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }))
     setCurrentPage(1)
+    setCurrentCursor(undefined)
+    setCursors([])
   }, [])
 
   useEffect(() => {
-    if (user && hasToken && !isLoading) {
-      loadCalls(user.id)
+    if (user && hasToken) {
+      loadCalls()
     }
-  }, [filters, currentPage, itemsPerPage])
+  }, [debouncedSearch, filters.dateRange, filters.outcome, filters.agentId,
+      filters.direction, filters.minRating, filters.minDuration, filters.maxDuration,
+      filters.sortBy, filters.sortOrder, currentCursor, itemsPerPage])
 
   const clearAllFilters = useCallback(() => {
     setFilters({
@@ -196,13 +184,25 @@ export default function AICallsPage() {
       sortOrder: 'desc'
     })
     setCurrentPage(1)
+    setCurrentCursor(undefined)
+    setCursors([])
   }, [])
 
   const exportAllCSV = useCallback(async () => {
     if (!user) return
 
     try {
-      const { data: allCalls } = await getConversationsFromSupabase(user.id, {
+      setIsExporting(true)
+      setExportProgress(0)
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
+
+      if (!token) {
+        throw new Error('No access token available')
+      }
+
+      const options: GetConversationsOptions = {
         search: debouncedSearch,
         dateFrom: filters.dateRange.from || undefined,
         dateTo: filters.dateRange.to || undefined,
@@ -214,7 +214,13 @@ export default function AICallsPage() {
         maxDuration: filters.maxDuration,
         sortBy: filters.sortBy,
         sortOrder: filters.sortOrder
-      })
+      }
+
+      const allCalls = await fetchAllConversationsForExport(
+        token,
+        options,
+        (fetched) => setExportProgress(fetched)
+      )
 
       const csv = allCalls.map(c => {
         const date = new Date(c.start_time_unix_secs * 1000)
@@ -229,11 +235,15 @@ export default function AICallsPage() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `ai_calls_complete_${new Date().toISOString().split('T')[0]}.csv`
+      link.download = `ai_calls_export_${new Date().toISOString().split('T')[0]}.csv`
       link.click()
       URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Error exporting CSV:', error)
+      alert('Errore durante l\'esportazione. Riprova.')
+    } finally {
+      setIsExporting(false)
+      setExportProgress(0)
     }
   }, [user, debouncedSearch, filters])
 
@@ -406,7 +416,6 @@ export default function AICallsPage() {
   }
 
   const activeFiltersCount = getActiveFiltersCount
-  const totalPages = Math.ceil(totalCount / itemsPerPage)
   const successfulCalls = calls.filter(c => c.call_successful === 'successful').length
   const successRate = calls.length > 0 ? Math.round((successfulCalls / calls.length) * 100) : 0
 
@@ -420,7 +429,7 @@ export default function AICallsPage() {
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Chiamate IA</h1>
             <p className="text-slate-600 mt-1">
-              {totalCount.toLocaleString('it-IT')} chiamate totali
+              {calls.length} chiamate in questa pagina
               {activeFiltersCount > 0 && (
                 <span className="text-blue-600 font-medium"> • {activeFiltersCount} filtri attivi</span>
               )}
@@ -430,58 +439,21 @@ export default function AICallsPage() {
 
         <div className="flex space-x-3">
           <button
-            onClick={handleSync}
-            disabled={isSyncing}
-            className="px-4 py-2 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            {isSyncing ? 'Sincronizzazione...' : '🔄 Sincronizza Tutto'}
-          </button>
-          <button
             onClick={exportAllCSV}
-            disabled={totalCount === 0}
+            disabled={calls.length === 0 || isExporting}
             className="btn-primary text-white px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-xl transition-shadow"
           >
             <span>📥</span>
-            <span>Esporta Tutto ({totalCount})</span>
+            <span>{isExporting ? `Esportazione... (${exportProgress})` : 'Esporta Dati'}</span>
           </button>
         </div>
       </div>
 
-      {syncStatus && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800">
-            <strong>Ultimo aggiornamento:</strong>{' '}
-            {syncStatus.last_sync_at
-              ? new Date(syncStatus.last_sync_at).toLocaleString('it-IT')
-              : 'Mai sincronizzato'}
-            {syncStatus.total_conversations > 0 && (
-              <> • <strong>{syncStatus.total_conversations}</strong> conversazioni salvate</>
-            )}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-sm text-red-800">
+            <strong>Errore:</strong> {error}
           </p>
-        </div>
-      )}
-
-      {isSyncing && syncProgress && (
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-900">
-                Sincronizzazione in corso...
-              </h3>
-              <span className="text-sm text-slate-600">
-                Pagina {syncProgress.currentPage} • {syncProgress.totalFetched} conversazioni
-              </span>
-            </div>
-            <div className="w-full bg-slate-200 rounded-full h-2.5">
-              <div
-                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                style={{ width: syncProgress.isComplete ? '100%' : '50%' }}
-              ></div>
-            </div>
-            {syncProgress.error && (
-              <p className="text-sm text-red-600">Errore: {syncProgress.error}</p>
-            )}
-          </div>
         </div>
       )}
 
@@ -699,8 +671,8 @@ export default function AICallsPage() {
         <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Totale Chiamate</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{totalCount.toLocaleString('it-IT')}</p>
+              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Chiamate Pagina</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{calls.length}</p>
             </div>
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
               <span className="text-green-600">📞</span>
@@ -762,23 +734,14 @@ export default function AICallsPage() {
               <span className="text-slate-400 text-2xl">📞</span>
             </div>
             <h3 className="text-lg font-medium text-slate-900 mb-2">
-              {activeFiltersCount > 0 ? 'Nessun risultato trovato' : 'Nessuna chiamata ancora'}
+              {activeFiltersCount > 0 ? 'Nessun risultato trovato' : 'Nessuna chiamata disponibile'}
             </h3>
             <p className="text-slate-600 mb-4">
               {activeFiltersCount > 0
                 ? 'Prova a modificare i filtri di ricerca'
-                : 'Clicca su "Sincronizza Tutto" per scaricare le tue chiamate'
+                : 'Le chiamate verranno visualizzate automaticamente qui'
               }
             </p>
-            {!syncStatus?.last_sync_at && (
-              <button
-                onClick={handleSync}
-                disabled={isSyncing}
-                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
-              >
-                {isSyncing ? 'Sincronizzazione...' : '🔄 Sincronizza Adesso'}
-              </button>
-            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -945,17 +908,42 @@ export default function AICallsPage() {
       </div>
 
       {calls.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={totalCount}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={(newSize) => {
-            setItemsPerPage(newSize)
-            setCurrentPage(1)
-          }}
-        />
+        <div className="flex items-center justify-between bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Precedente
+            </button>
+            <span className="text-sm text-slate-600">
+              Pagina {currentPage}
+            </span>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={!hasMore}
+              className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Successiva
+            </button>
+          </div>
+          <div>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value))
+                setCurrentPage(1)
+                setCurrentCursor(undefined)
+                setCursors([])
+              }}
+              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            >
+              <option value={50}>50 per pagina</option>
+              <option value={100}>100 per pagina</option>
+            </select>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -4,6 +4,9 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
+export const runtime = 'edge'
+export const revalidate = 60
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization')
@@ -54,24 +57,47 @@ export async function GET(request: NextRequest) {
     elevenLabsUrl.searchParams.set('page_size', pageSize)
     if (cursor) elevenLabsUrl.searchParams.set('cursor', cursor)
 
-    const response = await fetch(elevenLabsUrl.toString(), {
-      method: 'GET',
-      headers: {
-        'xi-api-key': tokenData.api_token,
-      },
-    })
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('ElevenLabs API error:', errorText)
-      return NextResponse.json(
-        { error: 'Error fetching conversations from ElevenLabs', details: errorText },
-        { status: response.status }
-      )
+    try {
+      const response = await fetch(elevenLabsUrl.toString(), {
+        method: 'GET',
+        headers: {
+          'xi-api-key': tokenData.api_token,
+        },
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('ElevenLabs API error:', errorText)
+        return NextResponse.json(
+          { error: 'Error fetching conversations from ElevenLabs', details: errorText },
+          { status: response.status }
+        )
+      }
+
+      const data = await response.json()
+
+      const responseHeaders = new Headers()
+      responseHeaders.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=120')
+
+      return NextResponse.json(data, {
+        headers: responseHeaders
+      })
+    } catch (fetchError) {
+      clearTimeout(timeoutId)
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        return NextResponse.json(
+          { error: 'Request timeout' },
+          { status: 504 }
+        )
+      }
+      throw fetchError
     }
-
-    const data = await response.json()
-    return NextResponse.json(data)
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(
