@@ -148,6 +148,14 @@ export default function AICallsPage() {
 
       setNextCursor(response.cursor)
       setHasMore(response.hasMore)
+
+      console.log('[Pagination Debug]', {
+        loadedCount: response.conversations.length,
+        totalCallsNow: reset ? response.conversations.length : calls.length + response.conversations.length,
+        hasMore: response.hasMore,
+        cursor: response.cursor,
+        reset
+      })
     } catch (error) {
       console.error('Error loading calls:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to load calls'
@@ -168,6 +176,10 @@ export default function AICallsPage() {
   }, [user, hasToken, debouncedSearch, filters.dateRange, filters.outcome, filters.agentId, filters.direction, filters.minRating, filters.minDuration, filters.maxDuration, filters.sortBy, filters.sortOrder])
 
   useEffect(() => {
+    if (!hasMore || isLoadingMore || isLoading) {
+      return
+    }
+
     const observer = new IntersectionObserver(
       entries => {
         if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isLoading) {
@@ -177,11 +189,17 @@ export default function AICallsPage() {
       { threshold: 0.1 }
     )
 
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current)
+    const currentTarget = observerTarget.current
+    if (currentTarget) {
+      observer.observe(currentTarget)
     }
 
-    return () => observer.disconnect()
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget)
+      }
+      observer.disconnect()
+    }
   }, [hasMore, isLoadingMore, isLoading, loadCalls])
 
   const updateFilter = useCallback((key: keyof Filters, value: any) => {
@@ -889,20 +907,32 @@ export default function AICallsPage() {
           </div>
         )}
 
-        {hasMore && !isLoading && (
-          <div ref={observerTarget} className="py-8 text-center border-t border-slate-200">
-            {isLoadingMore ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-sm text-slate-600">Caricamento altre chiamate...</p>
+        {!isLoading && calls.length > 0 && (
+          <div className="py-8 text-center border-t border-slate-200">
+            {hasMore ? (
+              <div ref={observerTarget}>
+                {isLoadingMore ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-sm text-slate-600">Caricamento altre chiamate...</p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => loadCalls(false)}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    Carica altre chiamate
+                  </button>
+                )}
               </div>
             ) : (
-              <button
-                onClick={() => loadCalls(false)}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-              >
-                Carica altre chiamate
-              </button>
+              <div className="flex flex-col items-center space-y-2">
+                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center">
+                  <span className="text-slate-400 text-xl">✓</span>
+                </div>
+                <p className="text-sm font-medium text-slate-700">Tutte le chiamate sono state caricate</p>
+                <p className="text-xs text-slate-500">{calls.length} chiamate totali visualizzate</p>
+              </div>
             )}
           </div>
         )}
