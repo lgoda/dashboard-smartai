@@ -35,17 +35,25 @@ type Filters = {
   sortOrder: 'asc' | 'desc'
 }
 
+type PageCache = {
+  conversations: AICall[]
+  cursor?: string
+  hasMore: boolean
+}
+
 export default function AICallsPage() {
   const [user, setUser] = useState<any>(null)
   const [hasToken, setHasToken] = useState(false)
   const [calls, setCalls] = useState<AICall[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isPaginationLoading, setIsPaginationLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [cursors, setCursors] = useState<string[]>([])
   const [currentCursor, setCurrentCursor] = useState<string | undefined>(undefined)
   const [hasMore, setHasMore] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(100)
+  const [pageCache, setPageCache] = useState<Map<number, PageCache>>(new Map())
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
   const [loadingAudio, setLoadingAudio] = useState<Record<string, boolean>>({})
   const [audioUrls, setAudioUrls] = useState<Record<string, string>>({})
@@ -133,11 +141,15 @@ export default function AICallsPage() {
     }
   }, [])
 
-  const loadCalls = useCallback(async () => {
+  const loadCalls = useCallback(async (forPagination = false) => {
     if (!user) return
 
     try {
-      setIsLoading(true)
+      if (forPagination) {
+        setIsPaginationLoading(true)
+      } else {
+        setIsLoading(true)
+      }
       setError(null)
 
       const session = await getValidSession()
@@ -168,10 +180,32 @@ export default function AICallsPage() {
       setCalls(response.conversations)
       setHasMore(response.hasMore)
 
-      if (response.cursor && response.hasMore) {
-        if (!cursors.includes(response.cursor)) {
-          setCursors(prev => [...prev, response.cursor!])
+      setPageCache(prev => {
+        const newCache = new Map(prev)
+        newCache.set(currentPage, {
+          conversations: response.conversations,
+          cursor: response.cursor,
+          hasMore: response.hasMore
+        })
+
+        if (newCache.size > 10) {
+          const oldestKey = Array.from(newCache.keys())[0]
+          newCache.delete(oldestKey)
         }
+
+        return newCache
+      })
+
+      if (response.cursor && response.hasMore) {
+        setCursors(prev => {
+          const newCursors = [...prev]
+          if (currentPage - 1 < newCursors.length) {
+            newCursors[currentPage - 1] = response.cursor!
+          } else {
+            newCursors.push(response.cursor!)
+          }
+          return newCursors
+        })
       }
     } catch (error) {
       console.error('Error loading calls:', error)
@@ -185,11 +219,32 @@ export default function AICallsPage() {
 
       setCalls([])
     } finally {
-      setIsLoading(false)
+      if (forPagination) {
+        setIsPaginationLoading(false)
+      } else {
+        setIsLoading(false)
+      }
     }
-  }, [user, debouncedSearch, filters, currentCursor, itemsPerPage, cursors, getValidSession])
+  }, [user, debouncedSearch, filters, currentCursor, itemsPerPage, currentPage, getValidSession])
 
-  const handlePageChange = useCallback((newPage: number) => {
+  const handlePageChange = useCallback(async (newPage: number) => {
+    const cachedPage = pageCache.get(newPage)
+
+    if (cachedPage) {
+      setCalls(cachedPage.conversations)
+      setHasMore(cachedPage.hasMore)
+      setCurrentPage(newPage)
+
+      if (newPage < currentPage) {
+        const cursorIndex = newPage - 2
+        setCurrentCursor(cursorIndex >= 0 ? cursors[cursorIndex] : undefined)
+      } else if (newPage > currentPage) {
+        const cursorIndex = newPage - 2
+        setCurrentCursor(cursors[cursorIndex])
+      }
+      return
+    }
+
     if (newPage < currentPage) {
       const cursorIndex = newPage - 2
       setCurrentCursor(cursorIndex >= 0 ? cursors[cursorIndex] : undefined)
@@ -198,20 +253,30 @@ export default function AICallsPage() {
       setCurrentCursor(cursors[cursorIndex])
     }
     setCurrentPage(newPage)
-  }, [currentPage, cursors])
+  }, [currentPage, cursors, pageCache])
 
   const updateFilter = useCallback((key: keyof Filters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }))
     setCurrentPage(1)
     setCurrentCursor(undefined)
     setCursors([])
+    setPageCache(new Map())
   }, [])
 
   useEffect(() => {
-    if (user && hasToken) {
-      loadCalls()
+    if (user && hasToken && currentPage === 1) {
+      loadCalls(false)
     }
-  }, [user, hasToken, loadCalls])
+  }, [user, hasToken, debouncedSearch, filters, itemsPerPage])
+
+  useEffect(() => {
+    if (user && hasToken && currentPage > 1) {
+      const cachedPage = pageCache.get(currentPage)
+      if (!cachedPage) {
+        loadCalls(true)
+      }
+    }
+  }, [currentPage, user, hasToken])
 
   const clearAllFilters = useCallback(() => {
     setFilters({
@@ -229,6 +294,7 @@ export default function AICallsPage() {
     setCurrentPage(1)
     setCurrentCursor(undefined)
     setCursors([])
+    setPageCache(new Map())
   }, [])
 
   const exportAllCSV = useCallback(async () => {
@@ -498,13 +564,14 @@ export default function AICallsPage() {
           <button
             onClick={() => {
               setError(null)
-              loadCalls()
+              setPageCache(new Map())
+              loadCalls(false)
             }}
-            disabled={isLoading}
+            disabled={isLoading || isPaginationLoading}
             className="px-4 py-3 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
           >
             <span>🔄</span>
-            <span>{isLoading ? 'Aggiornamento...' : 'Aggiorna'}</span>
+            <span>{isLoading || isPaginationLoading ? 'Aggiornamento...' : 'Aggiorna'}</span>
           </button>
           <button
             onClick={exportAllCSV}
@@ -530,7 +597,8 @@ export default function AICallsPage() {
                 <button
                   onClick={() => {
                     setError(null)
-                    loadCalls()
+                    setPageCache(new Map())
+                    loadCalls(false)
                   }}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
                 >
@@ -1015,40 +1083,50 @@ export default function AICallsPage() {
       </div>
 
       {calls.length > 0 && (
-        <div className="flex items-center justify-between bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Precedente
-            </button>
-            <span className="text-sm text-slate-600">
-              Pagina {currentPage}
-            </span>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={!hasMore}
-              className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Successiva
-            </button>
-          </div>
-          <div>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(Number(e.target.value))
-                setCurrentPage(1)
-                setCurrentCursor(undefined)
-                setCursors([])
-              }}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            >
-              <option value={50}>50 per pagina</option>
-              <option value={100}>100 per pagina</option>
-            </select>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          {isPaginationLoading && (
+            <div className="mb-4 flex items-center justify-center space-x-2 text-blue-600">
+              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-sm font-medium">Caricamento pagina...</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1 || isPaginationLoading}
+                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Precedente
+              </button>
+              <span className="text-sm text-slate-600">
+                Pagina {currentPage} {pageCache.get(currentPage) && <span className="text-green-600 text-xs ml-1">(cache)</span>}
+              </span>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={!hasMore || isPaginationLoading}
+                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Successiva
+              </button>
+            </div>
+            <div>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1)
+                  setCurrentCursor(undefined)
+                  setCursors([])
+                  setPageCache(new Map())
+                }}
+                disabled={isPaginationLoading}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:opacity-50"
+              >
+                <option value={50}>50 per pagina</option>
+                <option value={100}>100 per pagina</option>
+              </select>
+            </div>
           </div>
         </div>
       )}
