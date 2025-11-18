@@ -1,72 +1,116 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+import { ElevenLabsAPIClient, createAPIErrorResponse } from '@/app/lib/elevenLabsApi'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const startTime = Date.now()
+
   try {
     const { id } = await params
 
+    if (!id || typeof id !== 'string') {
+      return NextResponse.json(
+        createAPIErrorResponse({
+          message: 'Invalid conversation ID',
+          status: 400,
+          code: 'INVALID_PARAMETER'
+        }),
+        { status: 400 }
+      )
+    }
+
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json(
+        createAPIErrorResponse({
+          message: 'Authorization header missing',
+          status: 401,
+          code: 'UNAUTHORIZED'
+        }),
+        { status: 401 }
+      )
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: authHeader,
-        },
-      },
-    })
+    const client = new ElevenLabsAPIClient(authHeader)
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { user, error: authError } = await client.authenticateUser()
+    if (authError || !user) {
+      return NextResponse.json(
+        createAPIErrorResponse({
+          message: 'User authentication failed',
+          status: 401,
+          code: 'UNAUTHORIZED'
+        }),
+        { status: 401 }
+      )
     }
 
-    const { data: tokenData, error: tokenError } = await supabase
-      .from('elevenlabs_tokens')
-      .select('api_token, is_active')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (tokenError) {
-      return NextResponse.json({ error: 'Error fetching token' }, { status: 500 })
-    }
-
-    if (!tokenData || !tokenData.is_active) {
-      return NextResponse.json({ error: 'No active ElevenLabs token found' }, { status: 404 })
+    const { token, error: tokenError } = await client.getActiveToken(user.id)
+    if (tokenError || !token) {
+      return NextResponse.json(
+        createAPIErrorResponse({
+          message: tokenError?.message || 'No active ElevenLabs token found',
+          status: tokenError ? 500 : 404,
+          code: tokenError ? 'TOKEN_FETCH_ERROR' : 'TOKEN_NOT_FOUND'
+        }),
+        { status: tokenError ? 500 : 404 }
+      )
     }
 
     const elevenLabsUrl = `https://api.elevenlabs.io/v1/convai/conversations/${id}`
 
-    const response = await fetch(elevenLabsUrl, {
-      method: 'GET',
-      headers: {
-        'xi-api-key': tokenData.api_token,
-      },
-    })
+    const { data, error: apiError, metrics } = await client.callElevenLabsAPI(
+      elevenLabsUrl,
+      token,
+      { timeout: 15000 }
+    )
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('ElevenLabs API error:', errorText)
+    if (apiError) {
+      console.error('[ElevenLabs API Error]', {
+        conversationId: id,
+        status: apiError.status,
+        message: apiError.message,
+        duration: metrics.duration,
+      })
+
       return NextResponse.json(
-        { error: 'Error fetching conversation from ElevenLabs', details: errorText },
-        { status: response.status }
+        createAPIErrorResponse(apiError),
+        { status: apiError.status }
       )
     }
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    const totalDuration = Date.now() - startTime
+    const responseHeaders = new Headers()
+    responseHeaders.set('X-Response-Time', `${totalDuration}ms`)
+    responseHeaders.set('X-API-Duration', `${metrics.duration}ms`)
+
+    console.log('[ElevenLabs API Success]', {
+      conversationId: id,
+      duration: metrics.duration,
+      totalDuration,
+    })
+
+    return NextResponse.json(data, {
+      headers: responseHeaders
+    })
   } catch (error) {
-    console.error('API error:', error)
+    const duration = Date.now() - startTime
+    console.error('[API Route Error]', {
+      endpoint: request.url,
+      duration,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    })
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      createAPIErrorResponse({
+        message: 'Internal server error',
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        details: error instanceof Error ? error.message : undefined,
+      }),
       { status: 500 }
     )
   }
