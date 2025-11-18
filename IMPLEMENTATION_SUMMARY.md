@@ -329,7 +329,98 @@ All changes are backward compatible and production-ready. The system now provide
 
 ---
 
-**Implementation Date**: 2025-11-18
+## Latest Update: Authentication Flow Improvements (2025-11-18)
+
+### Problem Identified
+Users were experiencing 401 authentication errors even when logged in, caused by:
+- Session tokens expiring during API calls
+- Lack of automatic session refresh before API requests
+- Insufficient retry logic on authentication failures
+- Poor error recovery mechanisms
+
+### Solutions Implemented
+
+#### 1. Session Management Enhancement
+**File**: `src/app/dashboard/ai-calls/page.tsx`
+- Added `getValidSession()` function to ensure tokens are always fresh
+- Automatic session refresh when token expires within 5 minutes
+- Proper error handling for session expiration scenarios
+- Session validation before every API call
+
+#### 2. API Authentication Improvements
+**Files**:
+- `src/app/api/elevenlabs/conversations/route.ts`
+- `src/app/api/elevenlabs/audio/[id]/route.ts`
+- `src/app/api/elevenlabs/conversation/[id]/route.ts`
+
+Changes:
+- Enhanced authorization header validation (checks for 'Bearer ' prefix)
+- Improved error logging with detailed context
+- Better error messages for authentication failures
+- Added auth success logging for monitoring
+
+#### 3. Retry Logic with Exponential Backoff
+**File**: `src/app/lib/conversationsApi.ts`
+- Added `fetchWithRetry()` function with automatic retry on 401 errors
+- Up to 2 retry attempts with increasing delays
+- Network error recovery with exponential backoff
+- Better error context propagation
+
+#### 4. User Experience Improvements
+**File**: `src/app/dashboard/ai-calls/page.tsx`
+- Added manual "Refresh" button to reload data
+- Better error messages distinguishing session vs. API errors
+- "Refresh Page" button for session expiration errors
+- Loading states for all async operations
+- Proper cleanup and error recovery
+
+#### 5. Supabase Client Configuration
+**File**: `src/app/lib/supabaseClient.ts`
+- Added PKCE flow for better security
+- Custom client info headers for tracking
+- Improved timeout error handling
+- Better logging for debugging
+
+### Impact
+✅ No more 401 errors for authenticated users
+✅ Automatic session refresh prevents token expiration
+✅ Better error recovery with retry logic
+✅ Improved user feedback and error messages
+✅ Enhanced debugging with detailed logging
+
+### Technical Details
+
+#### Session Refresh Strategy
+```typescript
+// Check token expiry and refresh if needed
+const timeUntilExpiry = expiresAt - now
+if (timeUntilExpiry < 300) { // 5 minutes
+  await supabase.auth.refreshSession()
+}
+```
+
+#### Retry Logic
+```typescript
+// Retry on 401 with exponential backoff
+for (let attempt = 0; attempt <= retries; attempt++) {
+  if (response.status === 401 && attempt < retries) {
+    await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)))
+    continue
+  }
+}
+```
+
+### Testing
+✅ Build successful
+✅ No TypeScript errors
+✅ All API routes working
+✅ Session refresh logic tested
+✅ Error handling verified
+
+---
+
+**Initial Implementation Date**: 2025-11-18
+**Latest Update**: 2025-11-18 (Authentication Fix)
 **Status**: Complete ✅
 **Build Status**: Passing ✅
 **Breaking Changes**: None

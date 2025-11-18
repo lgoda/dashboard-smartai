@@ -9,10 +9,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('[Auth Error] Invalid or missing authorization header')
       return NextResponse.json(
         createAPIErrorResponse({
-          message: 'Authorization header missing',
+          message: 'Authorization header missing or invalid',
           status: 401,
           code: 'UNAUTHORIZED'
         }),
@@ -26,12 +27,13 @@ export async function GET(request: NextRequest) {
     if (authError || !user) {
       console.error('[Auth Error]', {
         error: authError?.message,
+        errorType: authError?.name,
         hasAuthHeader: !!authHeader,
         timestamp: new Date().toISOString()
       })
       return NextResponse.json(
         createAPIErrorResponse({
-          message: 'Session expired or invalid. Please refresh the page and try again.',
+          message: 'Authentication failed. Your session may have expired.',
           status: 401,
           code: 'UNAUTHORIZED',
           details: authError?.message
@@ -39,6 +41,11 @@ export async function GET(request: NextRequest) {
         { status: 401 }
       )
     }
+
+    console.log('[Auth Success]', {
+      userId: user.id,
+      timestamp: new Date().toISOString()
+    })
 
     const { token, error: tokenError } = await client.getActiveToken(user.id)
     if (tokenError || !token) {

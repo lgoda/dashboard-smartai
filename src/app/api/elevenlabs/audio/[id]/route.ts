@@ -22,10 +22,11 @@ export async function GET(
     }
 
     const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('[Auth Error - Audio] Invalid or missing authorization header')
       return NextResponse.json(
         createAPIErrorResponse({
-          message: 'Authorization header missing',
+          message: 'Authorization header missing or invalid',
           status: 401,
           code: 'UNAUTHORIZED'
         }),
@@ -37,11 +38,17 @@ export async function GET(
 
     const { user, error: authError } = await client.authenticateUser()
     if (authError || !user) {
+      console.error('[Auth Error - Audio]', {
+        error: authError?.message,
+        conversationId: id,
+        timestamp: new Date().toISOString()
+      })
       return NextResponse.json(
         createAPIErrorResponse({
-          message: 'User authentication failed',
+          message: 'Authentication failed. Your session may have expired.',
           status: 401,
-          code: 'UNAUTHORIZED'
+          code: 'UNAUTHORIZED',
+          details: authError?.message
         }),
         { status: 401 }
       )

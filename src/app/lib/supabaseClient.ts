@@ -18,14 +18,22 @@ export const supabase = createClient(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       storageKey: 'smartbot-auth',
+      flowType: 'pkce',
     },
     global: {
+      headers: {
+        'X-Client-Info': 'smartbot-dashboard',
+      },
       fetch: (url, options = {}) => {
         return fetch(url, {
           ...options,
           signal: AbortSignal.timeout(30000),
         }).catch((error) => {
-          console.error('Supabase fetch error:', error)
+          if (error.name === 'AbortError') {
+            console.error('Supabase request timeout:', url)
+          } else {
+            console.error('Supabase fetch error:', error)
+          }
           throw error
         })
       },

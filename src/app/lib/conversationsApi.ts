@@ -54,6 +54,41 @@ const normalizeConversation = (conv: any): AICall => ({
   branch_id: conv.branch_id || null
 })
 
+async function fetchWithRetry(
+  url: string,
+  accessToken: string,
+  retries: number = 1
+): Promise<Response> {
+  let lastError: Error | null = null
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      })
+
+      if (response.status === 401 && attempt < retries) {
+        console.log(`Received 401 on attempt ${attempt + 1}, will retry...`)
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)))
+        continue
+      }
+
+      return response
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Unknown error')
+      if (attempt < retries) {
+        console.log(`Network error on attempt ${attempt + 1}, retrying...`)
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)))
+        continue
+      }
+    }
+  }
+
+  throw lastError || new Error('Failed after retries')
+}
+
 export async function getConversationsFromAPI(
   accessToken: string,
   options: GetConversationsOptions = {}
@@ -89,11 +124,8 @@ export async function getConversationsFromAPI(
     params.set('call_start_before_unix', String(unixTo))
   }
 
-  const response = await fetch(`/api/elevenlabs/conversations?${params.toString()}`, {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-    },
-  })
+  const url = `/api/elevenlabs/conversations?${params.toString()}`
+  const response = await fetchWithRetry(url, accessToken, 2)
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))

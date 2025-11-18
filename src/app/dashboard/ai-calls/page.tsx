@@ -94,6 +94,45 @@ export default function AICallsPage() {
     checkToken()
   }, [router])
 
+  const getValidSession = useCallback(async () => {
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+
+      if (sessionError || !sessionData?.session) {
+        console.log('Session error or no session, attempting refresh...')
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+
+        if (refreshError || !refreshData?.session) {
+          throw new Error('Session expired. Please refresh the page and log in again.')
+        }
+
+        return refreshData.session
+      }
+
+      const session = sessionData.session
+      const expiresAt = session.expires_at
+      const now = Math.floor(Date.now() / 1000)
+      const timeUntilExpiry = expiresAt ? expiresAt - now : 0
+
+      if (timeUntilExpiry < 300) {
+        console.log('Session expiring soon, refreshing...')
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+
+        if (refreshError || !refreshData?.session) {
+          console.warn('Failed to refresh session:', refreshError)
+          return session
+        }
+
+        return refreshData.session
+      }
+
+      return session
+    } catch (error) {
+      console.error('Error getting valid session:', error)
+      throw error
+    }
+  }, [])
+
   const loadCalls = useCallback(async () => {
     if (!user) return
 
@@ -101,17 +140,8 @@ export default function AICallsPage() {
       setIsLoading(true)
       setError(null)
 
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-
-      if (sessionError || !sessionData?.session?.access_token) {
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
-        if (refreshError || !refreshData?.session?.access_token) {
-          throw new Error('Unable to refresh session. Please log in again.')
-        }
-      }
-
-      const { data: finalSession } = await supabase.auth.getSession()
-      const token = finalSession?.session?.access_token
+      const session = await getValidSession()
+      const token = session?.access_token
 
       if (!token) {
         throw new Error('No access token available')
@@ -145,12 +175,19 @@ export default function AICallsPage() {
       }
     } catch (error) {
       console.error('Error loading calls:', error)
-      setError(error instanceof Error ? error.message : 'Failed to load calls')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load calls'
+
+      if (errorMessage.includes('401') || errorMessage.includes('Session expired')) {
+        setError('Your session has expired. Please refresh the page to log in again.')
+      } else {
+        setError(errorMessage)
+      }
+
       setCalls([])
     } finally {
       setIsLoading(false)
     }
-  }, [user, debouncedSearch, filters, currentCursor, itemsPerPage, cursors])
+  }, [user, debouncedSearch, filters, currentCursor, itemsPerPage, cursors, getValidSession])
 
   const handlePageChange = useCallback((newPage: number) => {
     if (newPage < currentPage) {
@@ -201,14 +238,8 @@ export default function AICallsPage() {
       setIsExporting(true)
       setExportProgress(0)
 
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-
-      if (sessionError || !sessionData?.session?.access_token) {
-        await supabase.auth.refreshSession()
-      }
-
-      const { data: finalSession } = await supabase.auth.getSession()
-      const token = finalSession?.session?.access_token
+      const session = await getValidSession()
+      const token = session?.access_token
 
       if (!token) {
         throw new Error('No access token available')
@@ -252,12 +283,18 @@ export default function AICallsPage() {
       URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Error exporting CSV:', error)
-      alert('Errore durante l\'esportazione. Riprova.')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+      if (errorMessage.includes('Session expired')) {
+        alert('La tua sessione è scaduta. Aggiorna la pagina e riprova.')
+      } else {
+        alert('Errore durante l\'esportazione. Riprova.')
+      }
     } finally {
       setIsExporting(false)
       setExportProgress(0)
     }
-  }, [user, debouncedSearch, filters])
+  }, [user, debouncedSearch, filters, getValidSession])
 
   const getActiveFiltersCount = useMemo(() => {
     let count = 0
@@ -321,14 +358,8 @@ export default function AICallsPage() {
 
     setLoadingAudio(prev => ({ ...prev, [conversationId]: true }))
     try {
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-
-      if (sessionError || !sessionData?.session?.access_token) {
-        await supabase.auth.refreshSession()
-      }
-
-      const { data: finalSession } = await supabase.auth.getSession()
-      const token = finalSession?.session?.access_token
+      const session = await getValidSession()
+      const token = session?.access_token
 
       if (!token) {
         console.error('No access token available')
@@ -351,11 +382,17 @@ export default function AICallsPage() {
       setAudioUrls(prev => ({ ...prev, [conversationId]: url }))
     } catch (error) {
       console.error('Error loading audio:', error)
-      setError('Failed to load audio. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+      if (errorMessage.includes('Session expired')) {
+        setError('Your session has expired. Please refresh the page.')
+      } else {
+        setError('Failed to load audio. Please try again.')
+      }
     } finally {
       setLoadingAudio(prev => ({ ...prev, [conversationId]: false }))
     }
-  }, [audioUrls, loadingAudio])
+  }, [audioUrls, loadingAudio, getValidSession])
 
   const getDirectionBadge = useCallback((direction?: string) => {
     if (!direction) return null
@@ -459,6 +496,17 @@ export default function AICallsPage() {
 
         <div className="flex space-x-3">
           <button
+            onClick={() => {
+              setError(null)
+              loadCalls()
+            }}
+            disabled={isLoading}
+            className="px-4 py-3 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          >
+            <span>🔄</span>
+            <span>{isLoading ? 'Aggiornamento...' : 'Aggiorna'}</span>
+          </button>
+          <button
             onClick={exportAllCSV}
             disabled={calls.length === 0 || isExporting}
             className="btn-primary text-white px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-xl transition-shadow"
@@ -478,7 +526,7 @@ export default function AICallsPage() {
                 <p className="text-sm font-semibold text-red-900">Errore nel caricamento</p>
               </div>
               <p className="text-sm text-red-800 mb-3">{error}</p>
-              <div className="flex space-x-3">
+              <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => {
                     setError(null)
@@ -488,6 +536,14 @@ export default function AICallsPage() {
                 >
                   Riprova
                 </button>
+                {error.includes('session') || error.includes('Session') ? (
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    Aggiorna Pagina
+                  </button>
+                ) : null}
                 <button
                   onClick={() => setError(null)}
                   className="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
