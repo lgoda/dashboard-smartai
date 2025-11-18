@@ -199,11 +199,11 @@ export default function AICallsPage() {
       if (response.cursor && response.hasMore) {
         setCursors(prev => {
           const newCursors = [...prev]
-          if (currentPage - 1 < newCursors.length) {
-            newCursors[currentPage - 1] = response.cursor!
-          } else {
-            newCursors.push(response.cursor!)
+          const cursorIndex = currentPage - 1
+          while (newCursors.length < cursorIndex) {
+            newCursors.push('')
           }
+          newCursors[cursorIndex] = response.cursor!
           return newCursors
         })
       }
@@ -245,13 +245,14 @@ export default function AICallsPage() {
       return
     }
 
-    if (newPage < currentPage) {
+    if (newPage > currentPage) {
+      const cursorIndex = currentPage - 1
+      setCurrentCursor(cursors[cursorIndex])
+    } else if (newPage < currentPage) {
       const cursorIndex = newPage - 2
       setCurrentCursor(cursorIndex >= 0 ? cursors[cursorIndex] : undefined)
-    } else if (newPage > currentPage) {
-      const cursorIndex = newPage - 2
-      setCurrentCursor(cursors[cursorIndex])
     }
+
     setCurrentPage(newPage)
   }, [currentPage, cursors, pageCache])
 
@@ -276,7 +277,7 @@ export default function AICallsPage() {
         loadCalls(true)
       }
     }
-  }, [currentPage, user, hasToken])
+  }, [currentPage, currentCursor, user, hasToken, pageCache])
 
   const clearAllFilters = useCallback(() => {
     setFilters({
