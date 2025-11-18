@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -34,13 +34,17 @@ export default function AICallDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [isLoadingAudio, setIsLoadingAudio] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
   useEffect(() => {
     const fetchConversation = async () => {
       try {
         const { data: userData } = await supabase.auth.getUser()
-        if (!userData?.user) return router.push('/')
+        if (!userData?.user) {
+          router.push('/')
+          return
+        }
         setUser(userData.user)
 
         const { data: sessionData } = await supabase.auth.getSession()
@@ -48,21 +52,39 @@ export default function AICallDetailPage() {
 
         if (!token) {
           console.error('No access token available')
+          setIsLoading(false)
           return
         }
 
-        const response = await fetch(`/api/elevenlabs/conversation/${id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        })
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000)
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch conversation')
+        try {
+          const response = await fetch(`/api/elevenlabs/conversation/${id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            signal: controller.signal,
+          })
+
+          clearTimeout(timeoutId)
+
+          if (!response.ok) {
+            throw new Error('Failed to fetch conversation')
+          }
+
+          const data = await response.json()
+
+          startTransition(() => {
+            setConversation(data)
+          })
+        } catch (fetchError) {
+          clearTimeout(timeoutId)
+          if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+            console.error('Request timeout')
+          }
+          throw fetchError
         }
-
-        const data = await response.json()
-        setConversation(data)
       } catch (error) {
         console.error('Error fetching conversation:', error)
       } finally {
@@ -88,21 +110,36 @@ export default function AICallDetailPage() {
         return
       }
 
-      const response = await fetch(`/api/elevenlabs/audio/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000)
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch audio')
+      try {
+        const response = await fetch(`/api/elevenlabs/audio/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch audio')
+        }
+
+        const audioBlob = await response.blob()
+        const url = URL.createObjectURL(audioBlob)
+        setAudioUrl(url)
+      } catch (fetchError) {
+        clearTimeout(timeoutId)
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          console.error('Audio request timeout')
+        }
+        throw fetchError
       }
-
-      const audioBlob = await response.blob()
-      const url = URL.createObjectURL(audioBlob)
-      setAudioUrl(url)
     } catch (error) {
       console.error('Error loading audio:', error)
+      alert('Errore nel caricamento dell\'audio. Riprova.')
     } finally {
       setIsLoadingAudio(false)
     }
@@ -206,7 +243,7 @@ export default function AICallDetailPage() {
           </div>
         </div>
         <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-slate-200">
-          <p className="text-slate-600">La chiamata richiesta non è stata trovata.</p>
+          <p className="text-slate-600">La chiamata richiesta non è stata trovata o si è verificato un timeout.</p>
           <Link
             href="/dashboard/ai-calls"
             className="inline-block mt-4 text-blue-600 hover:text-blue-800 font-medium"
@@ -224,6 +261,7 @@ export default function AICallDetailPage() {
         <div className="flex items-center space-x-3">
           <Link
             href="/dashboard/ai-calls"
+            prefetch={false}
             className="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center transition-colors"
           >
             <span className="text-slate-700">←</span>
@@ -271,11 +309,11 @@ export default function AICallDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <p className="text-sm font-medium text-slate-600 mb-1">ID Conversazione</p>
-            <p className="text-sm text-slate-900 font-mono bg-slate-50 p-2 rounded">{conversation.conversation_id}</p>
+            <p className="text-sm text-slate-900 font-mono bg-slate-50 p-2 rounded break-all">{conversation.conversation_id}</p>
           </div>
           <div>
             <p className="text-sm font-medium text-slate-600 mb-1">Agent ID</p>
-            <p className="text-sm text-slate-900 font-mono bg-slate-50 p-2 rounded">{conversation.agent_id}</p>
+            <p className="text-sm text-slate-900 font-mono bg-slate-50 p-2 rounded break-all">{conversation.agent_id}</p>
           </div>
           {conversation.metadata?.start_time_unix_secs && (
             <div>
@@ -304,7 +342,7 @@ export default function AICallDetailPage() {
             disabled={isLoadingAudio}
             className="w-full py-4 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-medium transition-colors disabled:opacity-50 border border-blue-200"
           >
-            {isLoadingAudio ? 'Caricamento audio...' : '🔊 Carica e riproduci audio'}
+            {isLoadingAudio ? '🔄 Caricamento audio...' : '🔊 Carica e riproduci audio'}
           </button>
         ) : (
           <div className="space-y-3">
@@ -318,7 +356,12 @@ export default function AICallDetailPage() {
 
       <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
         <h2 className="text-xl font-semibold text-slate-900 mb-4">Trascrizione Completa</h2>
-        {conversation.transcript && conversation.transcript.length > 0 ? (
+        {isPending ? (
+          <div className="text-center py-8">
+            <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-slate-600 mt-2">Caricamento trascrizione...</p>
+          </div>
+        ) : conversation.transcript && conversation.transcript.length > 0 ? (
           <div className="space-y-4 max-h-[600px] overflow-y-auto">
             {conversation.transcript.map((msg, index) => (
               <div
@@ -338,7 +381,7 @@ export default function AICallDetailPage() {
                       {formatDuration(msg.time_in_call_secs)}
                     </span>
                   </div>
-                  <p className="text-sm leading-relaxed">{msg.message}</p>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.message}</p>
                 </div>
               </div>
             ))}
@@ -353,6 +396,7 @@ export default function AICallDetailPage() {
       <div className="flex justify-center">
         <Link
           href="/dashboard/ai-calls"
+          prefetch={false}
           className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"
         >
           ← Torna alla lista

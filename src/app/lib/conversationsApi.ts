@@ -108,7 +108,7 @@ export async function getConversationsFromAPI(
   return {
     conversations,
     cursor: data.cursor,
-    hasMore: !!data.cursor
+    hasMore: data.has_more !== undefined ? data.has_more : !!data.cursor
   }
 }
 
