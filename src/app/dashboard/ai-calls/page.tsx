@@ -9,11 +9,11 @@ import FilterBadge from '@/app/components/FilterBadge'
 import Pagination from '@/app/components/Pagination'
 import { useDebounce } from '@/app/lib/useDebounce'
 import {
-  AICall,
-  getConversationsFromAPI,
-  fetchAllConversationsForExport,
-  GetConversationsOptions
-} from '@/app/lib/conversationsApi'
+  triggerSync,
+  getPaginatedConversations,
+  PaginatedConversation,
+  SyncStatus
+} from '@/app/lib/syncApi'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,30 +35,22 @@ type Filters = {
   sortOrder: 'asc' | 'desc'
 }
 
-type PageCache = {
-  conversations: AICall[]
-  cursor?: string
-  hasMore: boolean
-}
-
 export default function AICallsPage() {
   const [user, setUser] = useState<any>(null)
   const [hasToken, setHasToken] = useState(false)
-  const [calls, setCalls] = useState<AICall[]>([])
+  const [calls, setCalls] = useState<PaginatedConversation[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isPaginationLoading, setIsPaginationLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [cursors, setCursors] = useState<string[]>([])
-  const [currentCursor, setCurrentCursor] = useState<string | undefined>(undefined)
-  const [hasMore, setHasMore] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalItems, setTotalItems] = useState(0)
   const [itemsPerPage, setItemsPerPage] = useState(100)
-  const [pageCache, setPageCache] = useState<Map<number, PageCache>>(new Map())
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
   const [loadingAudio, setLoadingAudio] = useState<Record<string, boolean>>({})
   const [audioUrls, setAudioUrls] = useState<Record<string, string>>({})
-  const [isExporting, setIsExporting] = useState(false)
-  const [exportProgress, setExportProgress] = useState(0)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
+  const [syncProgress, setSyncProgress] = useState<string>('')
   const [filters, setFilters] = useState<Filters>({
     search: '',
     dateRange: { from: null, to: null },
@@ -102,54 +94,86 @@ export default function AICallsPage() {
     checkToken()
   }, [router])
 
+  const loadSyncStatus = useCallback(async () => {
+    if (!user) return
+
+    try {
+      const { data } = await supabase
+        .from('elevenlabs_sync_status')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (data) {
+        setSyncStatus(data as SyncStatus)
+      }
+    } catch (error) {
+      console.error('Error loading sync status:', error)
+    }
+  }, [user])
+
   const getValidSession = useCallback(async () => {
     try {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
 
       if (sessionError || !sessionData?.session) {
-        console.log('Session error or no session, attempting refresh...')
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
-
         if (refreshError || !refreshData?.session) {
-          throw new Error('Session expired. Please refresh the page and log in again.')
+          throw new Error('Session expired')
         }
-
         return refreshData.session
       }
 
-      const session = sessionData.session
-      const expiresAt = session.expires_at
-      const now = Math.floor(Date.now() / 1000)
-      const timeUntilExpiry = expiresAt ? expiresAt - now : 0
-
-      if (timeUntilExpiry < 300) {
-        console.log('Session expiring soon, refreshing...')
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
-
-        if (refreshError || !refreshData?.session) {
-          console.warn('Failed to refresh session:', refreshError)
-          return session
-        }
-
-        return refreshData.session
-      }
-
-      return session
+      return sessionData.session
     } catch (error) {
       console.error('Error getting valid session:', error)
       throw error
     }
   }, [])
 
-  const loadCalls = useCallback(async (forPagination = false) => {
+  const performSync = useCallback(async () => {
+    if (!user || isSyncing) return
+
+    try {
+      setIsSyncing(true)
+      setSyncProgress('Sincronizzazione in corso...')
+      setError(null)
+
+      const session = await getValidSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('No access token available')
+      }
+
+      const result = await triggerSync(token)
+
+      if (result.success) {
+        setSyncProgress(`Sincronizzate ${result.fetched} chiamate (${result.upserted} nuove/aggiornate)`)
+        await loadSyncStatus()
+        await loadCalls()
+
+        setTimeout(() => {
+          setSyncProgress('')
+        }, 5000)
+      } else if (result.inProgress) {
+        setSyncProgress('Sincronizzazione già in corso...')
+      } else {
+        throw new Error(result.message || 'Sync failed')
+      }
+    } catch (error) {
+      console.error('Sync error:', error)
+      setError(error instanceof Error ? error.message : 'Errore durante la sincronizzazione')
+    } finally {
+      setIsSyncing(false)
+    }
+  }, [user, isSyncing, getValidSession, loadSyncStatus])
+
+  const loadCalls = useCallback(async () => {
     if (!user) return
 
     try {
-      if (forPagination) {
-        setIsPaginationLoading(true)
-      } else {
-        setIsLoading(true)
-      }
+      setIsLoading(true)
       setError(null)
 
       const session = await getValidSession()
@@ -159,7 +183,9 @@ export default function AICallsPage() {
         throw new Error('No access token available')
       }
 
-      const options: GetConversationsOptions = {
+      const response = await getPaginatedConversations(token, {
+        page: currentPage,
+        pageSize: itemsPerPage,
         search: debouncedSearch,
         dateFrom: filters.dateRange.from || undefined,
         dateTo: filters.dateRange.to || undefined,
@@ -170,186 +196,55 @@ export default function AICallsPage() {
         minDuration: filters.minDuration,
         maxDuration: filters.maxDuration,
         sortBy: filters.sortBy,
-        sortOrder: filters.sortOrder,
-        pageSize: itemsPerPage,
-        cursor: currentCursor
-      }
-
-      const response = await getConversationsFromAPI(token, options)
-
-      console.log('Initial load API response:', {
-        conversationCount: response.conversations.length,
-        hasMore: response.hasMore,
-        cursor: response.cursor
+        sortOrder: filters.sortOrder
       })
 
       setCalls(response.conversations)
-      setHasMore(response.hasMore)
-
-      setPageCache(prev => {
-        const newCache = new Map(prev)
-        newCache.set(currentPage, {
-          conversations: response.conversations,
-          cursor: response.cursor,
-          hasMore: response.hasMore
-        })
-
-        if (newCache.size > 10) {
-          const oldestKey = Array.from(newCache.keys())[0]
-          newCache.delete(oldestKey)
-        }
-
-        return newCache
-      })
-
-      if (response.cursor && response.hasMore) {
-        setCursors(prev => {
-          const newCursors = [...prev]
-          const cursorIndex = currentPage - 1
-          while (newCursors.length < cursorIndex) {
-            newCursors.push('')
-          }
-          newCursors[cursorIndex] = response.cursor!
-          return newCursors
-        })
-      }
+      setTotalPages(response.pagination.totalPages)
+      setTotalItems(response.pagination.totalItems)
     } catch (error) {
       console.error('Error loading calls:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to load calls'
-
-      if (errorMessage.includes('401') || errorMessage.includes('Session expired')) {
-        setError('Your session has expired. Please refresh the page to log in again.')
-      } else {
-        setError(errorMessage)
-      }
-
+      setError(errorMessage)
       setCalls([])
     } finally {
-      if (forPagination) {
-        setIsPaginationLoading(false)
-      } else {
-        setIsLoading(false)
+      setIsLoading(false)
+    }
+  }, [user, currentPage, itemsPerPage, debouncedSearch, filters, getValidSession])
+
+  useEffect(() => {
+    if (user && hasToken) {
+      loadSyncStatus()
+      loadCalls()
+    }
+  }, [user, hasToken, currentPage, itemsPerPage, debouncedSearch, filters, loadSyncStatus, loadCalls])
+
+  useEffect(() => {
+    if (user && hasToken && syncStatus) {
+      const lastSyncTime = syncStatus.last_sync_at ? new Date(syncStatus.last_sync_at).getTime() : 0
+      const now = Date.now()
+      const fiveMinutes = 5 * 60 * 1000
+
+      if (!lastSyncTime || (now - lastSyncTime > fiveMinutes)) {
+        performSync()
       }
     }
-  }, [user, debouncedSearch, filters, currentCursor, itemsPerPage, currentPage, getValidSession])
+  }, [user, hasToken, syncStatus, performSync])
 
-  const handlePageChange = useCallback(async (newPage: number) => {
-    console.log('handlePageChange called with newPage:', newPage, 'currentPage:', currentPage)
+  const handlePageChange = useCallback((newPage: number) => {
+    setCurrentPage(newPage)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
 
-    const cachedPage = pageCache.get(newPage)
-
-    if (cachedPage) {
-      console.log('Using cached page:', newPage)
-      setCalls(cachedPage.conversations)
-      setHasMore(cachedPage.hasMore)
-      setCurrentPage(newPage)
-      return
-    }
-
-    if (!user) {
-      console.log('No user, returning')
-      return
-    }
-
-    const newCursor = newPage === 1 ? undefined : cursors[newPage - 2]
-    console.log('Fetching page:', newPage, 'with cursor:', newCursor, 'cursors array:', cursors)
-
-    try {
-      setIsPaginationLoading(true)
-      setError(null)
-
-      const session = await getValidSession()
-      const token = session?.access_token
-
-      if (!token) {
-        throw new Error('No access token available')
-      }
-
-      const options: GetConversationsOptions = {
-        search: debouncedSearch,
-        dateFrom: filters.dateRange.from || undefined,
-        dateTo: filters.dateRange.to || undefined,
-        outcome: filters.outcome,
-        agentId: filters.agentId,
-        direction: filters.direction,
-        minRating: filters.minRating,
-        minDuration: filters.minDuration,
-        maxDuration: filters.maxDuration,
-        sortBy: filters.sortBy,
-        sortOrder: filters.sortOrder,
-        pageSize: itemsPerPage,
-        cursor: newCursor
-      }
-
-      const response = await getConversationsFromAPI(token, options)
-
-      console.log('API response:', {
-        conversationCount: response.conversations.length,
-        hasMore: response.hasMore,
-        cursor: response.cursor
-      })
-
-      setCalls(response.conversations)
-      setHasMore(response.hasMore)
-      setCurrentPage(newPage)
-      setCurrentCursor(newCursor)
-
-      setPageCache(prev => {
-        const newCache = new Map(prev)
-        newCache.set(newPage, {
-          conversations: response.conversations,
-          cursor: response.cursor,
-          hasMore: response.hasMore
-        })
-
-        if (newCache.size > 10) {
-          const oldestKey = Array.from(newCache.keys())[0]
-          newCache.delete(oldestKey)
-        }
-
-        return newCache
-      })
-
-      if (response.cursor && response.hasMore) {
-        setCursors(prev => {
-          const newCursors = [...prev]
-          const cursorIndex = newPage - 1
-          while (newCursors.length < cursorIndex) {
-            newCursors.push('')
-          }
-          newCursors[cursorIndex] = response.cursor!
-          return newCursors
-        })
-      }
-    } catch (error) {
-      console.error('Error loading page:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load page'
-
-      if (errorMessage.includes('401') || errorMessage.includes('Session expired')) {
-        setError('Your session has expired. Please refresh the page to log in again.')
-      } else {
-        setError(errorMessage)
-      }
-
-      setCalls([])
-    } finally {
-      setIsPaginationLoading(false)
-    }
-  }, [user, cursors, pageCache, debouncedSearch, filters, itemsPerPage, getValidSession])
+  const handleItemsPerPageChange = useCallback((newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage)
+    setCurrentPage(1)
+  }, [])
 
   const updateFilter = useCallback((key: keyof Filters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }))
     setCurrentPage(1)
-    setCurrentCursor(undefined)
-    setCursors([])
-    setPageCache(new Map())
   }, [])
-
-  useEffect(() => {
-    if (user && hasToken) {
-      loadCalls(false)
-    }
-  }, [user, hasToken, debouncedSearch, filters, itemsPerPage, loadCalls])
 
   const clearAllFilters = useCallback(() => {
     setFilters({
@@ -365,75 +260,7 @@ export default function AICallsPage() {
       sortOrder: 'desc'
     })
     setCurrentPage(1)
-    setCurrentCursor(undefined)
-    setCursors([])
-    setPageCache(new Map())
   }, [])
-
-  const exportAllCSV = useCallback(async () => {
-    if (!user) return
-
-    try {
-      setIsExporting(true)
-      setExportProgress(0)
-
-      const session = await getValidSession()
-      const token = session?.access_token
-
-      if (!token) {
-        throw new Error('No access token available')
-      }
-
-      const options: GetConversationsOptions = {
-        search: debouncedSearch,
-        dateFrom: filters.dateRange.from || undefined,
-        dateTo: filters.dateRange.to || undefined,
-        outcome: filters.outcome,
-        agentId: filters.agentId,
-        direction: filters.direction,
-        minRating: filters.minRating,
-        minDuration: filters.minDuration,
-        maxDuration: filters.maxDuration,
-        sortBy: filters.sortBy,
-        sortOrder: filters.sortOrder
-      }
-
-      const allCalls = await fetchAllConversationsForExport(
-        token,
-        options,
-        (fetched) => setExportProgress(fetched)
-      )
-
-      const csv = allCalls.map(c => {
-        const date = new Date(c.start_time_unix_secs * 1000)
-        const agentName = (c.agent_name || 'N/A').replace(/"/g, '""')
-        const title = (c.call_summary_title || 'N/A').replace(/"/g, '""')
-        const summary = (c.transcript_summary || 'N/A').replace(/"/g, '""').replace(/\n/g, ' ')
-        return `"${agentName}","${title}","${summary}","${date.toLocaleString('it-IT')}","${c.call_duration_secs}","${c.direction || 'N/A'}","${c.rating || 'N/A'}","${c.call_successful}"`
-      })
-      const header = 'Agent,Titolo,Summary,Data e Ora,Durata (sec),Direzione,Rating,Outcome\n'
-      const csvString = header + csv.join('\n')
-      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `ai_calls_export_${new Date().toISOString().split('T')[0]}.csv`
-      link.click()
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Error exporting CSV:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-
-      if (errorMessage.includes('Session expired')) {
-        alert('La tua sessione è scaduta. Aggiorna la pagina e riprova.')
-      } else {
-        alert('Errore durante l\'esportazione. Riprova.')
-      }
-    } finally {
-      setIsExporting(false)
-      setExportProgress(0)
-    }
-  }, [user, debouncedSearch, filters, getValidSession])
 
   const getActiveFiltersCount = useMemo(() => {
     let count = 0
@@ -521,13 +348,7 @@ export default function AICallsPage() {
       setAudioUrls(prev => ({ ...prev, [conversationId]: url }))
     } catch (error) {
       console.error('Error loading audio:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-
-      if (errorMessage.includes('Session expired')) {
-        setError('Your session has expired. Please refresh the page.')
-      } else {
-        setError('Failed to load audio. Please try again.')
-      }
+      setError('Failed to load audio. Please try again.')
     } finally {
       setLoadingAudio(prev => ({ ...prev, [conversationId]: false }))
     }
@@ -548,7 +369,7 @@ export default function AICallsPage() {
     )
   }, [])
 
-  const renderRating = useCallback((rating?: number) => {
+  const renderRating = useCallback((rating?: number | null) => {
     if (!rating) return <span className="text-slate-400 text-xs">N/A</span>
 
     return (
@@ -625,37 +446,39 @@ export default function AICallsPage() {
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Chiamate IA</h1>
             <p className="text-slate-600 mt-1">
-              {calls.length} chiamate in questa pagina
+              {totalItems} chiamate totali
               {activeFiltersCount > 0 && (
                 <span className="text-blue-600 font-medium"> • {activeFiltersCount} filtri attivi</span>
               )}
             </p>
+            {syncStatus?.last_sync_at && (
+              <p className="text-xs text-slate-500 mt-1">
+                Ultimo aggiornamento: {new Date(syncStatus.last_sync_at).toLocaleString('it-IT')}
+              </p>
+            )}
           </div>
         </div>
 
         <div className="flex space-x-3">
           <button
-            onClick={() => {
-              setError(null)
-              setPageCache(new Map())
-              loadCalls(false)
-            }}
-            disabled={isLoading || isPaginationLoading}
+            onClick={performSync}
+            disabled={isSyncing}
             className="px-4 py-3 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
           >
             <span>🔄</span>
-            <span>{isLoading || isPaginationLoading ? 'Aggiornamento...' : 'Aggiorna'}</span>
-          </button>
-          <button
-            onClick={exportAllCSV}
-            disabled={calls.length === 0 || isExporting}
-            className="btn-primary text-white px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-xl transition-shadow"
-          >
-            <span>📥</span>
-            <span>{isExporting ? `Esportazione... (${exportProgress})` : 'Esporta Dati'}</span>
+            <span>{isSyncing ? 'Sincronizzazione...' : 'Sincronizza'}</span>
           </button>
         </div>
       </div>
+
+      {syncProgress && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center space-x-2">
+            <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-sm text-blue-900">{syncProgress}</p>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -670,21 +493,12 @@ export default function AICallsPage() {
                 <button
                   onClick={() => {
                     setError(null)
-                    setPageCache(new Map())
-                    loadCalls(false)
+                    loadCalls()
                   }}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
                 >
                   Riprova
                 </button>
-                {error.includes('session') || error.includes('Session') ? (
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                  >
-                    Aggiorna Pagina
-                  </button>
-                ) : null}
                 <button
                   onClick={() => setError(null)}
                   className="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
@@ -987,7 +801,7 @@ export default function AICallsPage() {
             <p className="text-slate-600 mb-4">
               {activeFiltersCount > 0
                 ? 'Prova a modificare i filtri di ricerca'
-                : 'Le chiamate verranno visualizzate automaticamente qui'
+                : 'Clicca su "Sincronizza" per caricare le chiamate da ElevenLabs'
               }
             </p>
           </div>
@@ -1155,56 +969,15 @@ export default function AICallsPage() {
         )}
       </div>
 
-      {calls.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-          {isPaginationLoading && (
-            <div className="mb-4 flex items-center justify-center space-x-2 text-blue-600">
-              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-              <span className="text-sm font-medium">Caricamento pagina...</span>
-            </div>
-          )}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1 || isPaginationLoading}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Precedente
-              </button>
-              <span className="text-sm text-slate-600">
-                Pagina {currentPage} {pageCache.get(currentPage) && <span className="text-green-600 text-xs ml-1">(cache)</span>}
-              </span>
-              <button
-                onClick={() => {
-                  console.log('Successiva clicked! hasMore:', hasMore, 'isPaginationLoading:', isPaginationLoading, 'currentPage:', currentPage)
-                  handlePageChange(currentPage + 1)
-                }}
-                disabled={!hasMore || isPaginationLoading}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Successiva {!hasMore && '(no more)'}
-              </button>
-            </div>
-            <div>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value))
-                  setCurrentPage(1)
-                  setCurrentCursor(undefined)
-                  setCursors([])
-                  setPageCache(new Map())
-                }}
-                disabled={isPaginationLoading}
-                className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:opacity-50"
-              >
-                <option value={50}>50 per pagina</option>
-                <option value={100}>100 per pagina</option>
-              </select>
-            </div>
-          </div>
-        </div>
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
       )}
     </div>
   )
