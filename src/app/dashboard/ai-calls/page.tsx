@@ -82,7 +82,6 @@ export default function AICallsPage() {
 
         if (tokenData?.is_active) {
           setHasToken(true)
-          await loadCalls()
         } else {
           setIsLoading(false)
         }
@@ -102,8 +101,17 @@ export default function AICallsPage() {
       setIsLoading(true)
       setError(null)
 
-      const { data: sessionData } = await supabase.auth.getSession()
-      const token = sessionData?.session?.access_token
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+
+      if (sessionError || !sessionData?.session?.access_token) {
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+        if (refreshError || !refreshData?.session?.access_token) {
+          throw new Error('Unable to refresh session. Please log in again.')
+        }
+      }
+
+      const { data: finalSession } = await supabase.auth.getSession()
+      const token = finalSession?.session?.access_token
 
       if (!token) {
         throw new Error('No access token available')
@@ -166,9 +174,7 @@ export default function AICallsPage() {
     if (user && hasToken) {
       loadCalls()
     }
-  }, [debouncedSearch, filters.dateRange, filters.outcome, filters.agentId,
-      filters.direction, filters.minRating, filters.minDuration, filters.maxDuration,
-      filters.sortBy, filters.sortOrder, currentCursor, itemsPerPage])
+  }, [user, hasToken, loadCalls])
 
   const clearAllFilters = useCallback(() => {
     setFilters({
@@ -195,8 +201,14 @@ export default function AICallsPage() {
       setIsExporting(true)
       setExportProgress(0)
 
-      const { data: sessionData } = await supabase.auth.getSession()
-      const token = sessionData?.session?.access_token
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+
+      if (sessionError || !sessionData?.session?.access_token) {
+        await supabase.auth.refreshSession()
+      }
+
+      const { data: finalSession } = await supabase.auth.getSession()
+      const token = finalSession?.session?.access_token
 
       if (!token) {
         throw new Error('No access token available')
@@ -309,11 +321,18 @@ export default function AICallsPage() {
 
     setLoadingAudio(prev => ({ ...prev, [conversationId]: true }))
     try {
-      const { data: sessionData } = await supabase.auth.getSession()
-      const token = sessionData?.session?.access_token
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+
+      if (sessionError || !sessionData?.session?.access_token) {
+        await supabase.auth.refreshSession()
+      }
+
+      const { data: finalSession } = await supabase.auth.getSession()
+      const token = finalSession?.session?.access_token
 
       if (!token) {
         console.error('No access token available')
+        setError('Session expired. Please refresh the page.')
         return
       }
 
@@ -332,6 +351,7 @@ export default function AICallsPage() {
       setAudioUrls(prev => ({ ...prev, [conversationId]: url }))
     } catch (error) {
       console.error('Error loading audio:', error)
+      setError('Failed to load audio. Please try again.')
     } finally {
       setLoadingAudio(prev => ({ ...prev, [conversationId]: false }))
     }
@@ -451,9 +471,40 @@ export default function AICallsPage() {
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-sm text-red-800">
-            <strong>Errore:</strong> {error}
-          </p>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center space-x-2 mb-2">
+                <span className="text-red-600 text-lg">⚠️</span>
+                <p className="text-sm font-semibold text-red-900">Errore nel caricamento</p>
+              </div>
+              <p className="text-sm text-red-800 mb-3">{error}</p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setError(null)
+                    loadCalls()
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+                >
+                  Riprova
+                </button>
+                <button
+                  onClick={() => setError(null)}
+                  className="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
+                >
+                  Chiudi
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              className="text-red-400 hover:text-red-600 ml-4"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
       )}
 

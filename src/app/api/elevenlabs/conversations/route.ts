@@ -24,11 +24,17 @@ export async function GET(request: NextRequest) {
 
     const { user, error: authError } = await client.authenticateUser()
     if (authError || !user) {
+      console.error('[Auth Error]', {
+        error: authError?.message,
+        hasAuthHeader: !!authHeader,
+        timestamp: new Date().toISOString()
+      })
       return NextResponse.json(
         createAPIErrorResponse({
-          message: 'User authentication failed',
+          message: 'Session expired or invalid. Please refresh the page and try again.',
           status: 401,
-          code: 'UNAUTHORIZED'
+          code: 'UNAUTHORIZED',
+          details: authError?.message
         }),
         { status: 401 }
       )

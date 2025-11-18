@@ -96,7 +96,9 @@ export async function getConversationsFromAPI(
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch conversations: ${response.statusText}`)
+    const errorData = await response.json().catch(() => ({}))
+    const errorMessage = errorData.error || errorData.message || response.statusText
+    throw new Error(`Failed to fetch conversations (${response.status}): ${errorMessage}`)
   }
 
   const data = await response.json()
