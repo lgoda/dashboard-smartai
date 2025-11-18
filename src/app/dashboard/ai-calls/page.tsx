@@ -234,27 +234,90 @@ export default function AICallsPage() {
       setCalls(cachedPage.conversations)
       setHasMore(cachedPage.hasMore)
       setCurrentPage(newPage)
-
-      if (newPage < currentPage) {
-        const cursorIndex = newPage - 2
-        setCurrentCursor(cursorIndex >= 0 ? cursors[cursorIndex] : undefined)
-      } else if (newPage > currentPage) {
-        const cursorIndex = newPage - 2
-        setCurrentCursor(cursors[cursorIndex])
-      }
       return
     }
 
-    if (newPage > currentPage) {
-      const cursorIndex = currentPage - 1
-      setCurrentCursor(cursors[cursorIndex])
-    } else if (newPage < currentPage) {
-      const cursorIndex = newPage - 2
-      setCurrentCursor(cursorIndex >= 0 ? cursors[cursorIndex] : undefined)
-    }
+    if (!user) return
+
+    const newCursor = newPage === 1 ? undefined : cursors[newPage - 2]
 
     setCurrentPage(newPage)
-  }, [currentPage, cursors, pageCache])
+    setCurrentCursor(newCursor)
+
+    try {
+      setIsPaginationLoading(true)
+      setError(null)
+
+      const session = await getValidSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('No access token available')
+      }
+
+      const options: GetConversationsOptions = {
+        search: debouncedSearch,
+        dateFrom: filters.dateRange.from || undefined,
+        dateTo: filters.dateRange.to || undefined,
+        outcome: filters.outcome,
+        agentId: filters.agentId,
+        direction: filters.direction,
+        minRating: filters.minRating,
+        minDuration: filters.minDuration,
+        maxDuration: filters.maxDuration,
+        sortBy: filters.sortBy,
+        sortOrder: filters.sortOrder,
+        pageSize: itemsPerPage,
+        cursor: newCursor
+      }
+
+      const response = await getConversationsFromAPI(token, options)
+
+      setCalls(response.conversations)
+      setHasMore(response.hasMore)
+
+      setPageCache(prev => {
+        const newCache = new Map(prev)
+        newCache.set(newPage, {
+          conversations: response.conversations,
+          cursor: response.cursor,
+          hasMore: response.hasMore
+        })
+
+        if (newCache.size > 10) {
+          const oldestKey = Array.from(newCache.keys())[0]
+          newCache.delete(oldestKey)
+        }
+
+        return newCache
+      })
+
+      if (response.cursor && response.hasMore) {
+        setCursors(prev => {
+          const newCursors = [...prev]
+          const cursorIndex = newPage - 1
+          while (newCursors.length < cursorIndex) {
+            newCursors.push('')
+          }
+          newCursors[cursorIndex] = response.cursor!
+          return newCursors
+        })
+      }
+    } catch (error) {
+      console.error('Error loading page:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load page'
+
+      if (errorMessage.includes('401') || errorMessage.includes('Session expired')) {
+        setError('Your session has expired. Please refresh the page to log in again.')
+      } else {
+        setError(errorMessage)
+      }
+
+      setCalls([])
+    } finally {
+      setIsPaginationLoading(false)
+    }
+  }, [user, cursors, pageCache, debouncedSearch, filters, itemsPerPage, getValidSession])
 
   const updateFilter = useCallback((key: keyof Filters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }))
@@ -265,19 +328,10 @@ export default function AICallsPage() {
   }, [])
 
   useEffect(() => {
-    if (user && hasToken && currentPage === 1) {
+    if (user && hasToken) {
       loadCalls(false)
     }
   }, [user, hasToken, debouncedSearch, filters, itemsPerPage])
-
-  useEffect(() => {
-    if (user && hasToken && currentPage > 1) {
-      const cachedPage = pageCache.get(currentPage)
-      if (!cachedPage) {
-        loadCalls(true)
-      }
-    }
-  }, [currentPage, currentCursor, user, hasToken, pageCache])
 
   const clearAllFilters = useCallback(() => {
     setFilters({
