@@ -241,9 +241,6 @@ export default function AICallsPage() {
 
     const newCursor = newPage === 1 ? undefined : cursors[newPage - 2]
 
-    setCurrentPage(newPage)
-    setCurrentCursor(newCursor)
-
     try {
       setIsPaginationLoading(true)
       setError(null)
@@ -275,6 +272,8 @@ export default function AICallsPage() {
 
       setCalls(response.conversations)
       setHasMore(response.hasMore)
+      setCurrentPage(newPage)
+      setCurrentCursor(newCursor)
 
       setPageCache(prev => {
         const newCache = new Map(prev)
