@@ -177,6 +177,12 @@ export default function AICallsPage() {
 
       const response = await getConversationsFromAPI(token, options)
 
+      console.log('Initial load API response:', {
+        conversationCount: response.conversations.length,
+        hasMore: response.hasMore,
+        cursor: response.cursor
+      })
+
       setCalls(response.conversations)
       setHasMore(response.hasMore)
 
@@ -228,18 +234,25 @@ export default function AICallsPage() {
   }, [user, debouncedSearch, filters, currentCursor, itemsPerPage, currentPage, getValidSession])
 
   const handlePageChange = useCallback(async (newPage: number) => {
+    console.log('handlePageChange called with newPage:', newPage, 'currentPage:', currentPage)
+
     const cachedPage = pageCache.get(newPage)
 
     if (cachedPage) {
+      console.log('Using cached page:', newPage)
       setCalls(cachedPage.conversations)
       setHasMore(cachedPage.hasMore)
       setCurrentPage(newPage)
       return
     }
 
-    if (!user) return
+    if (!user) {
+      console.log('No user, returning')
+      return
+    }
 
     const newCursor = newPage === 1 ? undefined : cursors[newPage - 2]
+    console.log('Fetching page:', newPage, 'with cursor:', newCursor, 'cursors array:', cursors)
 
     try {
       setIsPaginationLoading(true)
@@ -269,6 +282,12 @@ export default function AICallsPage() {
       }
 
       const response = await getConversationsFromAPI(token, options)
+
+      console.log('API response:', {
+        conversationCount: response.conversations.length,
+        hasMore: response.hasMore,
+        cursor: response.cursor
+      })
 
       setCalls(response.conversations)
       setHasMore(response.hasMore)
@@ -330,7 +349,7 @@ export default function AICallsPage() {
     if (user && hasToken) {
       loadCalls(false)
     }
-  }, [user, hasToken, debouncedSearch, filters, itemsPerPage])
+  }, [user, hasToken, debouncedSearch, filters, itemsPerPage, loadCalls])
 
   const clearAllFilters = useCallback(() => {
     setFilters({
@@ -1157,11 +1176,14 @@ export default function AICallsPage() {
                 Pagina {currentPage} {pageCache.get(currentPage) && <span className="text-green-600 text-xs ml-1">(cache)</span>}
               </span>
               <button
-                onClick={() => handlePageChange(currentPage + 1)}
+                onClick={() => {
+                  console.log('Successiva clicked! hasMore:', hasMore, 'isPaginationLoading:', isPaginationLoading, 'currentPage:', currentPage)
+                  handlePageChange(currentPage + 1)
+                }}
                 disabled={!hasMore || isPaginationLoading}
                 className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Successiva
+                Successiva {!hasMore && '(no more)'}
               </button>
             </div>
             <div>
