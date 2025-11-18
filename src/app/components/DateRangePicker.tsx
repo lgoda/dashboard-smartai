@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 type DateRange = {
   from: Date | null
@@ -19,6 +19,24 @@ type DateRangePickerProps = {
 export default function DateRangePicker({ value, onChange, presets }: DateRangePickerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [customMode, setCustomMode] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+        setCustomMode(false)
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen])
 
   const defaultPresets = [
     {
@@ -87,7 +105,6 @@ export default function DateRangePicker({ value, onChange, presets }: DateRangeP
     const range = preset.value()
     onChange(range)
     setCustomMode(false)
-    setIsOpen(false)
   }
 
   const handleCustomDateChange = (type: 'from' | 'to', dateString: string) => {
@@ -107,12 +124,11 @@ export default function DateRangePicker({ value, onChange, presets }: DateRangeP
 
   const clearFilter = () => {
     onChange({ from: null, to: null })
-    setIsOpen(false)
     setCustomMode(false)
   }
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-between w-full px-4 py-2 text-sm bg-white border border-slate-300 rounded-lg hover:border-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
@@ -153,7 +169,7 @@ export default function DateRangePicker({ value, onChange, presets }: DateRangeP
                 ))}
                 <button
                   onClick={() => setCustomMode(true)}
-                  className="w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                  className="w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-md transition-colors font-medium"
                 >
                   📅 Intervallo personalizzato
                 </button>
@@ -168,7 +184,7 @@ export default function DateRangePicker({ value, onChange, presets }: DateRangeP
                     type="date"
                     value={value.from ? value.from.toISOString().split('T')[0] : ''}
                     onChange={(e) => handleCustomDateChange('from', e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
                   />
                 </div>
                 <div>
@@ -179,7 +195,7 @@ export default function DateRangePicker({ value, onChange, presets }: DateRangeP
                     type="date"
                     value={value.to ? value.to.toISOString().split('T')[0] : ''}
                     onChange={(e) => handleCustomDateChange('to', e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
                   />
                 </div>
                 <div className="flex space-x-2">

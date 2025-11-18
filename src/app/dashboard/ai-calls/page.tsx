@@ -460,7 +460,7 @@ export default function AICallsPage() {
                 placeholder="Cerca per agent, titolo, summary..."
                 value={filters.search}
                 onChange={(e) => updateFilter('search', e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-slate-900 placeholder:text-slate-400"
               />
               <svg className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -486,7 +486,7 @@ export default function AICallsPage() {
               id="outcome"
               value={filters.outcome}
               onChange={(e) => updateFilter('outcome', e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-slate-900"
             >
               <option value="">Tutti gli outcome</option>
               <option value="successful">Successo</option>
@@ -505,7 +505,7 @@ export default function AICallsPage() {
               id="direction"
               value={filters.direction}
               onChange={(e) => updateFilter('direction', e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-slate-900"
             >
               <option value="">Tutte le direzioni</option>
               <option value="inbound">Inbound</option>
@@ -525,7 +525,8 @@ export default function AICallsPage() {
               step="0.1"
               value={filters.minRating}
               onChange={(e) => updateFilter('minRating', parseFloat(e.target.value) || 0)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-slate-900 placeholder:text-slate-400"
+              placeholder="0"
             />
           </div>
           <div>
@@ -538,7 +539,8 @@ export default function AICallsPage() {
               min="0"
               value={filters.minDuration}
               onChange={(e) => updateFilter('minDuration', parseInt(e.target.value) || 0)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-slate-900 placeholder:text-slate-400"
+              placeholder="0"
             />
           </div>
 
@@ -552,7 +554,8 @@ export default function AICallsPage() {
               min="0"
               value={filters.maxDuration}
               onChange={(e) => updateFilter('maxDuration', parseInt(e.target.value) || 0)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-slate-900 placeholder:text-slate-400"
+              placeholder="0"
             />
           </div>
 
@@ -564,7 +567,7 @@ export default function AICallsPage() {
               id="sortBy"
               value={filters.sortBy}
               onChange={(e) => updateFilter('sortBy', e.target.value as 'date' | 'duration' | 'messages')}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-slate-900"
             >
               <option value="date">Data</option>
               <option value="duration">Durata</option>
@@ -580,7 +583,7 @@ export default function AICallsPage() {
               id="sortOrder"
               value={filters.sortOrder}
               onChange={(e) => updateFilter('sortOrder', e.target.value as 'asc' | 'desc')}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-slate-900"
             >
               <option value="desc">Decrescente</option>
               <option value="asc">Crescente</option>

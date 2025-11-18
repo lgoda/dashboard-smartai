@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const agentId = searchParams.get('agent_id')
-    const outcome = searchParams.get('outcome')
+    const callSuccessful = searchParams.get('call_successful')
     const callStartBefore = searchParams.get('call_start_before_unix')
     const callStartAfter = searchParams.get('call_start_after_unix')
     const pageSize = searchParams.get('page_size') || '100'
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 
     const elevenLabsUrl = new URL('https://api.elevenlabs.io/v1/convai/conversations')
     if (agentId) elevenLabsUrl.searchParams.set('agent_id', agentId)
-    if (outcome) elevenLabsUrl.searchParams.set('call_successful', outcome)
+    if (callSuccessful) elevenLabsUrl.searchParams.set('call_successful', callSuccessful)
     if (callStartBefore) elevenLabsUrl.searchParams.set('call_start_before_unix', callStartBefore)
     if (callStartAfter) elevenLabsUrl.searchParams.set('call_start_after_unix', callStartAfter)
     elevenLabsUrl.searchParams.set('page_size', pageSize)
