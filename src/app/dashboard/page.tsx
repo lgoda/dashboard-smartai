@@ -5,8 +5,9 @@ import { supabase } from '@/app/lib/supabaseClient'
 import Link from 'next/link'
 import DateRangePicker from '@/app/components/DateRangePicker'
 
+export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-export const fetchCache = 'force-no-store'
+export const dynamicParams = true
 
 type Stats = {
   date: string
