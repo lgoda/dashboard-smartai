@@ -6,6 +6,7 @@ import Link from 'next/link'
 import DateRangePicker from '@/app/components/DateRangePicker'
 
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 type Stats = {
   date: string

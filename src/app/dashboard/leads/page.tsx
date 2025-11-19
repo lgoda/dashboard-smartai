@@ -9,6 +9,7 @@ import Pagination from '@/app/components/Pagination'
 import { useDebounce } from '@/app/lib/useDebounce'
 
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 type Lead = {
   id: string

@@ -10,6 +10,7 @@ import { useDebounce } from '@/app/lib/useDebounce'
 import { getConversationsFromAPI, AICall } from '@/app/lib/conversationsApi'
 
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 type DateRange = {
   from: Date | null

@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 type ConversationMessage = {
   role: string

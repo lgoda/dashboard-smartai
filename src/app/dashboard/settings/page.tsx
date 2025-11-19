@@ -5,6 +5,7 @@ import { supabase } from '@/app/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 type ServiceConfig = {
   has_chatbot: boolean
