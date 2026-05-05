@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/app/components/AuthProvider'
 import Link from 'next/link'
 import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
@@ -40,12 +41,13 @@ type Filters = {
 }
 
 export default function AICallsPage() {
-  const [user, setUser] = useState<any>(null)
+  const { user, loading: authLoading } = useAuth()
   const [hasElevenLabsToken, setHasElevenLabsToken] = useState(false)
   const [hasRetellToken, setHasRetellToken] = useState(false)
   const [provider, setProvider] = useState<Provider>('all')
   const [calls, setCalls] = useState<UnifiedAICall[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [dataLoading, setDataLoading] = useState(false)
+  const isLoading = authLoading || dataLoading
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [nextCursor, setNextCursor] = useState<string | undefined>(undefined)
@@ -103,39 +105,25 @@ export default function AICallsPage() {
   }, [nextPaginationKey])
 
   useEffect(() => {
+    if (!user?.id) return
     const checkTokens = async () => {
       try {
-        const { data: userData } = await supabase.auth.getUser()
-        if (!userData?.user) return router.push('/')
-        setUser(userData.user)
-
         const [elevenLabsTokenRes, retellTokenRes] = await Promise.all([
-          supabase
-            .from('elevenlabs_tokens')
-            .select('is_active')
-            .eq('user_id', userData.user.id)
-            .maybeSingle(),
-          supabase
-            .from('retell_tokens')
-            .select('is_active')
-            .eq('user_id', userData.user.id)
-            .maybeSingle()
+          supabase.from('elevenlabs_tokens').select('is_active').eq('user_id', user.id).maybeSingle(),
+          supabase.from('retell_tokens').select('is_active').eq('user_id', user.id).maybeSingle(),
         ])
-
         setHasElevenLabsToken(elevenLabsTokenRes.data?.is_active ?? false)
         setHasRetellToken(retellTokenRes.data?.is_active ?? false)
-
         if (!elevenLabsTokenRes.data?.is_active && !retellTokenRes.data?.is_active) {
-          setIsLoading(false)
+          setDataLoading(false)
         }
       } catch (error) {
         console.error('Error checking tokens:', error)
-        setIsLoading(false)
+        setDataLoading(false)
       }
     }
-
     checkTokens()
-  }, [router])
+  }, [user?.id])
 
   const getValidSession = useCallback(async () => {
     try {
@@ -162,7 +150,7 @@ export default function AICallsPage() {
     try {
       if (!skipStateUpdate) {
         if (reset) {
-          setIsLoading(true)
+          setDataLoading(true)
           setCalls([])
           setNextPaginationKey(undefined)
           setHasMore(true)
@@ -274,7 +262,7 @@ export default function AICallsPage() {
       return []
     } finally {
       if (!skipStateUpdate) {
-        setIsLoading(false)
+        setDataLoading(false)
         setIsLoadingMore(false)
       }
     }
@@ -286,7 +274,7 @@ export default function AICallsPage() {
     try {
       if (!skipStateUpdate) {
         if (reset) {
-          setIsLoading(true)
+          setDataLoading(true)
           setCalls([])
           setNextCursor(undefined)
           setHasMore(true)
@@ -357,7 +345,7 @@ export default function AICallsPage() {
       return []
     } finally {
       if (!skipStateUpdate) {
-        setIsLoading(false)
+        setDataLoading(false)
         setIsLoadingMore(false)
       }
     }
@@ -374,7 +362,7 @@ export default function AICallsPage() {
     } else if (provider === 'all') {
       // Load both providers in parallel
       if (reset) {
-        setIsLoading(true)
+        setDataLoading(true)
         setCalls([])
         setError(null)
       }
@@ -427,7 +415,7 @@ export default function AICallsPage() {
 
       if (reset) {
         setCalls(allCalls)
-        setIsLoading(false)
+        setDataLoading(false)
       } else {
         // Quando reset === false, aggiungiamo le nuove chiamate a quelle esistenti
         setCalls(prev => {

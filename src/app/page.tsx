@@ -3,25 +3,179 @@
 import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { supabase } from './lib/supabaseClient'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+
+const authAppearance = {
+  theme: ThemeSupa,
+  style: {
+    button: {
+      background: '#F0AD4E', color: '#1e293b', borderRadius: '0.5rem',
+      border: 'none', padding: '0.75rem 1rem', fontSize: '0.875rem',
+      fontWeight: '600', transition: 'all 0.2s ease',
+    },
+    input: {
+      borderRadius: '0.5rem', border: '1px solid #1F2124', background: '#1F2124',
+      color: 'white', padding: '0.75rem 1rem', fontSize: '0.875rem',
+      transition: 'all 0.2s ease',
+    },
+    label: { fontSize: '0.875rem', fontWeight: '500', color: '#d1d5db', marginBottom: '0.5rem' },
+    message: { borderRadius: '0.5rem', padding: '0.75rem', fontSize: '0.875rem', marginTop: '0.5rem' },
+  },
+  variables: {
+    default: {
+      colors: {
+        brand: '#F0AD4E', brandAccent: '#E09A3D', inputBackground: '#1F2124',
+        inputBorder: '#1F2124', inputBorderHover: '#3A3D42', inputBorderFocus: '#F0AD4E',
+        inputText: 'white', anchorTextColor: '#F0AD4E', anchorTextHoverColor: '#E09A3D',
+      },
+      borderWidths: { buttonBorderWidth: '0px', inputBorderWidth: '1px' },
+      radii: { borderRadiusButton: '0.5rem', buttonBorderRadius: '0.5rem', inputBorderRadius: '0.5rem' },
+    },
+  },
+}
+
+function SetPasswordForm({ accessToken, onSuccess }: { accessToken: string; onSuccess: () => void }) {
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    if (password.length < 6) { setError('La password deve avere almeno 6 caratteri.'); return }
+    if (password !== confirm) { setError('Le password non coincidono.'); return }
+
+    setLoading(true)
+    try {
+      // Use a plain fetch — no supabase client involved to avoid PKCE state conflicts
+      const res = await fetch('/api/auth/set-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ password }),
+        signal: AbortSignal.timeout(15000),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setError(json.error ?? 'Errore durante il salvataggio.')
+      } else {
+        onSuccess()
+      }
+    } catch (err) {
+      setError(err instanceof Error && err.name === 'AbortError'
+        ? 'Timeout — riprova tra qualche secondo.'
+        : 'Errore di connessione.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-1.5">Nuova password</label>
+        <input
+          type="password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          placeholder="Almeno 6 caratteri"
+          required
+          className="w-full px-4 py-3 rounded-lg bg-[#1F2124] border border-[#1F2124] text-white placeholder-gray-500 focus:outline-none focus:border-[#F0AD4E] transition-colors"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-1.5">Conferma password</label>
+        <input
+          type="password"
+          value={confirm}
+          onChange={e => setConfirm(e.target.value)}
+          placeholder="Ripeti la password"
+          required
+          className="w-full px-4 py-3 rounded-lg bg-[#1F2124] border border-[#1F2124] text-white placeholder-gray-500 focus:outline-none focus:border-[#F0AD4E] transition-colors"
+        />
+      </div>
+
+      {error && (
+        <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-sm">
+          {error}
+        </div>
+      )}
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full py-3 px-4 bg-[#F0AD4E] text-[#1e293b] rounded-lg font-semibold hover:bg-[#E09A3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {loading ? 'Salvataggio in corso...' : 'Imposta password'}
+      </button>
+    </form>
+  )
+}
 
 export default function LoginPage() {
   const router = useRouter()
   const [authView, setAuthView] = useState<'sign_in' | 'update_password'>('sign_in')
+  const needsPasswordRef = useRef(false)
+  const [sessionReady, setSessionReady] = useState(false)
+  const [inviteToken, setInviteToken] = useState<string | null>(null)
 
   useEffect(() => {
+    // Register listener FIRST so we don't miss SIGNED_IN fired by setSession()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
-        // Supabase ha elaborato il token e la sessione è pronta — ora il form può funzionare
+        needsPasswordRef.current = true
         setAuthView('update_password')
+        setSessionReady(true)
       } else if (event === 'SIGNED_IN' && session) {
-        router.push('/dashboard')
+        if (!needsPasswordRef.current) {
+          router.push('/dashboard')
+        } else {
+          setInviteToken(session.access_token)
+          setSessionReady(true)
+        }
       } else if (event === 'USER_UPDATED') {
-        // Password aggiornata con successo
         router.push('/dashboard')
       }
     })
+
+    // Parse hash and query params AFTER listener is set up
+    const hashParams = new URLSearchParams(window.location.hash.slice(1))
+    const searchParams = new URLSearchParams(window.location.search)
+    const type = hashParams.get('type') || searchParams.get('type')
+
+    if (type === 'invite' || type === 'recovery') {
+      needsPasswordRef.current = true
+      setAuthView('update_password')
+
+      const access_token = hashParams.get('access_token')
+      const refresh_token = hashParams.get('refresh_token')
+
+      if (access_token && refresh_token) {
+        // Store token immediately so form can use it even before setSession completes
+        setInviteToken(access_token)
+        supabase.auth.setSession({ access_token, refresh_token }).then(({ error }) => {
+          if (error) {
+            console.error('[invite] setSession error:', error.message)
+            setSessionReady(true) // show form anyway, API route will show the real error
+          }
+          // On success, SIGNED_IN fires → setInviteToken + setSessionReady(true)
+        })
+      } else {
+        // No hash tokens: try code exchange (PKCE) or check existing session
+        const code = searchParams.get('code')
+        if (code) {
+          supabase.auth.exchangeCodeForSession(code).catch(console.error)
+          // On success, SIGNED_IN fires
+        } else {
+          // Tokens may have been processed before our listener — check directly
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) setSessionReady(true)
+          })
+        }
+      }
+    }
 
     return () => subscription.unsubscribe()
   }, [router])
@@ -29,14 +183,9 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#2C2E31] flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mx-auto mb-6">
-            <img
-              src="/logo-smartservice.png"
-              alt="SmartService"
-              className="h-20 w-auto"
-            />
+            <img src="/logo-smartservice.png" alt="SmartService" className="h-20 w-auto" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Dashboard SmartService</h1>
           <p className="text-gray-300">Accedi per gestire i tuoi servizi AI e visualizzare le statistiche</p>
@@ -45,116 +194,50 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Auth Form */}
         <div className="bg-[#3A3D42] rounded-2xl shadow-xl border border-[#1F2124] p-8">
-          <Auth
-            supabaseClient={supabase}
-            view={authView}
-            showLinks={false}
-            appearance={{
-              theme: ThemeSupa,
-              style: {
-                button: {
-                  background: '#F0AD4E',
-                  color: '#1e293b',
-                  borderRadius: '0.5rem',
-                  border: 'none',
-                  padding: '0.75rem 1rem',
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
-                  transition: 'all 0.2s ease',
-                },
-                input: {
-                  borderRadius: '0.5rem',
-                  border: '1px solid #1F2124',
-                  background: '#1F2124',
-                  color: 'white',
-                  padding: '0.75rem 1rem',
-                  fontSize: '0.875rem',
-                  transition: 'all 0.2s ease',
-                },
-                label: {
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  color: '#d1d5db',
-                  marginBottom: '0.5rem',
-                },
-                message: {
-                  borderRadius: '0.5rem',
-                  padding: '0.75rem',
-                  fontSize: '0.875rem',
-                  marginTop: '0.5rem',
-                }
-              },
-              variables: {
-                default: {
-                  colors: {
-                    brand: '#F0AD4E',
-                    brandAccent: '#E09A3D',
-                    inputBackground: '#1F2124',
-                    inputBorder: '#1F2124',
-                    inputBorderHover: '#3A3D42',
-                    inputBorderFocus: '#F0AD4E',
-                    inputText: 'white',
-                    anchorTextColor: '#F0AD4E',
-                    anchorTextHoverColor: '#E09A3D',
+          {authView === 'update_password' ? (
+            <>
+              <h2 className="text-white font-semibold text-lg mb-1">Imposta la tua password</h2>
+              <p className="text-gray-400 text-sm mb-6">Scegli una password per accedere alla dashboard.</p>
+              {sessionReady && inviteToken ? (
+                <SetPasswordForm accessToken={inviteToken} onSuccess={() => router.push('/dashboard')} />
+              ) : (
+                <div className="flex items-center justify-center gap-3 py-6 text-gray-400 text-sm">
+                  <div className="w-4 h-4 border-2 border-[#F0AD4E] border-t-transparent rounded-full animate-spin" />
+                  Verifica del link in corso...
+                </div>
+              )}
+            </>
+          ) : (
+            <Auth
+              supabaseClient={supabase}
+              view="sign_in"
+              showLinks={false}
+              appearance={authAppearance}
+              providers={[]}
+              localization={{
+                variables: {
+                  sign_in: {
+                    email_label: 'Email',
+                    password_label: 'Password',
+                    button_label: 'Accedi',
+                    loading_button_label: 'Accesso in corso...',
+                    social_provider_text: 'Accedi con {{provider}}',
+                    link_text: 'Hai già un account? Accedi',
                   },
-                  borderWidths: {
-                    buttonBorderWidth: '0px',
-                    inputBorderWidth: '1px',
+                  forgotten_password: {
+                    email_label: 'Email',
+                    button_label: 'Invia istruzioni per il reset',
+                    loading_button_label: 'Invio in corso...',
+                    link_text: 'Password dimenticata?',
+                    confirmation_text: 'Controlla la tua email per il link di reset',
                   },
-                  radii: {
-                    borderRadiusButton: '0.5rem',
-                    buttonBorderRadius: '0.5rem',
-                    inputBorderRadius: '0.5rem',
-                  },
-                }
-              }
-            }}
-            providers={[]}
-            localization={{
-              variables: {
-                sign_in: {
-                  email_label: 'Email',
-                  password_label: 'Password',
-                  button_label: 'Accedi',
-                  loading_button_label: 'Accesso in corso...',
-                  social_provider_text: 'Accedi con {{provider}}',
-                  link_text: 'Hai già un account? Accedi',
                 },
-                sign_up: {
-                  email_label: 'Email',
-                  password_label: 'Password',
-                  button_label: 'Registrati',
-                  loading_button_label: 'Registrazione in corso...',
-                  social_provider_text: 'Registrati con {{provider}}',
-                  link_text: 'Non hai un account? Registrati',
-                },
-                forgotten_password: {
-                  email_label: 'Email',
-                  button_label: 'Invia istruzioni per il reset',
-                  loading_button_label: 'Invio in corso...',
-                  link_text: 'Password dimenticata?',
-                  confirmation_text: 'Controlla la tua email per il link di reset'
-                },
-                update_password: {
-                  password_label: 'Nuova password',
-                  button_label: 'Aggiorna password',
-                  loading_button_label: 'Aggiornamento in corso...'
-                },
-                verify_otp: {
-                  email_input_label: 'Email',
-                  phone_input_label: 'Numero di telefono',
-                  token_input_label: 'Token',
-                  button_label: 'Verifica token',
-                  loading_button_label: 'Verifica in corso...'
-                }
-              }
-            }}
-          />
+              }}
+            />
+          )}
         </div>
 
-        {/* Footer */}
         <div className="text-center mt-8 text-sm text-gray-400">
           <p>Gestisci i tuoi servizi AI in modo semplice e professionale</p>
         </div>

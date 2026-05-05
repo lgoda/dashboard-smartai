@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
 import { useAuth } from '@/app/components/AuthProvider'
+import { pageCache } from '@/app/lib/pageCache'
 import Link from 'next/link'
 import DateRangePicker from '@/app/components/DateRangePicker'
 
@@ -29,11 +30,12 @@ type UserServices = {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [stats, setStats] = useState<Stats[]>([])
   const [totalLeads, setTotalLeads] = useState(0)
   const [totalConvs, setTotalConvs] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
+  const [dataLoading, setDataLoading] = useState(false)
+  const isLoading = authLoading || dataLoading
   const [serviceFilter, setServiceFilter] = useState<ServiceFilter>('all')
   const [userServices, setUserServices] = useState<UserServices>({ has_chatbot: true, has_ai_calls: false })
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -63,8 +65,17 @@ export default function Dashboard() {
   const fetchStats = useCallback(async () => {
     if (!user?.id || !dateRange.from || !dateRange.to) return
 
+    const cacheKey = `dashboard:${user.id}:${dateRange.from.toISOString().slice(0,10)}:${dateRange.to.toISOString().slice(0,10)}`
+    const cached = pageCache.get<{ stats: Stats[]; totalLeads: number; totalConvs: number }>(cacheKey)
+    if (cached) {
+      setStats(cached.stats)
+      setTotalLeads(cached.totalLeads)
+      setTotalConvs(cached.totalConvs)
+      setDataLoading(false)
+    }
+
     try {
-      setIsLoading(true)
+      if (!cached) setDataLoading(true)
 
       const [leadsRes, convsRes] = await Promise.all([
         supabase.from('leads')
@@ -113,10 +124,11 @@ export default function Dashboard() {
       setStats(updated)
       setTotalLeads(leadsRes.count || 0)
       setTotalConvs(convsRes.count || 0)
+      pageCache.set(cacheKey, { stats: updated, totalLeads: leadsRes.count || 0, totalConvs: convsRes.count || 0 })
     } catch (error) {
       console.error('Error loading stats:', error)
     } finally {
-      setIsLoading(false)
+      setDataLoading(false)
     }
   }, [user?.id, dateRange])
 

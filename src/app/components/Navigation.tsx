@@ -90,7 +90,7 @@ export function Navigation() {
               </button>
 
               <button
-                onClick={signOut}
+                onClick={async () => { await signOut(); router.push('/') }}
                 className="px-3 py-1.5 text-sm font-medium text-white hover:text-[#F0AD4E] hover:bg-[#3A3D42] rounded-lg transition-colors"
               >
                 Logout

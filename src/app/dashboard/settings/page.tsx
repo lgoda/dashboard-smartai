@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
 import { useAuth } from '@/app/components/AuthProvider'
+import { pageCache } from '@/app/lib/pageCache'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -42,7 +43,7 @@ type OpenAITokenData = {
 }
 
 export default function SettingsPage() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [services, setServices] = useState<ServiceConfig | null>(null)
   const [tokenData, setTokenData] = useState<TokenData | null>(null)
   const [retellTokenData, setRetellTokenData] = useState<RetellTokenData | null>(null)
@@ -51,7 +52,8 @@ export default function SettingsPage() {
   const [ghlTokenData, setGhlTokenData] = useState<GHLTokenData | null>(null)
   const [ghlApiToken, setGhlApiToken] = useState('')
   const [ghlLocationId, setGhlLocationId] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
+  const [dataLoading, setDataLoading] = useState(false)
+  const isLoading = authLoading || dataLoading
   const [isSaving, setIsSaving] = useState(false)
   const [isSavingRetell, setIsSavingRetell] = useState(false)
   const [isSavingGhl, setIsSavingGhl] = useState(false)
@@ -67,37 +69,61 @@ export default function SettingsPage() {
   const [showToken, setShowToken] = useState(false)
   const [showRetellToken, setShowRetellToken] = useState(false)
   const [showGhlToken, setShowGhlToken] = useState(false)
+  type CachedSettings = {
+    services: ServiceConfig | null
+    tokenData: TokenData | null
+    retellTokenData: RetellTokenData | null
+    ghlTokenData: GHLTokenData | null
+    openaiTokenData: OpenAITokenData | null
+  }
+
+  const applySettings = useCallback((d: CachedSettings) => {
+    if (d.services) setServices(d.services)
+    if (d.tokenData) { setTokenData(d.tokenData); setApiToken(d.tokenData.api_token) }
+    if (d.retellTokenData) { setRetellTokenData(d.retellTokenData); setRetellApiToken(d.retellTokenData.api_token) }
+    if (d.ghlTokenData) { setGhlTokenData(d.ghlTokenData); setGhlApiToken(d.ghlTokenData.api_token); setGhlLocationId(d.ghlTokenData.location_id) }
+    if (d.openaiTokenData) { setOpenaiTokenData(d.openaiTokenData); setOpenaiApiToken(d.openaiTokenData.api_token) }
+  }, [])
+
+  const fetchSettings = useCallback(async (userId: string, showLoading: boolean) => {
+    if (showLoading) setDataLoading(true)
+    try {
+      const [servicesRes, tokenRes, retellTokenRes, ghlTokenRes, openaiTokenRes] = await Promise.all([
+        supabase.from('user_services').select('has_chatbot, has_ai_calls').eq('user_id', userId).maybeSingle(),
+        supabase.from('elevenlabs_tokens').select('api_token, is_active, last_verified_at, updated_at').eq('user_id', userId).maybeSingle(),
+        supabase.from('retell_tokens').select('api_token, is_active, last_verified_at, updated_at').eq('user_id', userId).maybeSingle(),
+        supabase.from('ghl_tokens').select('api_token, location_id, is_active, last_verified_at, updated_at').eq('user_id', userId).maybeSingle(),
+        supabase.from('openai_tokens').select('api_token, is_active, last_verified_at, updated_at').eq('user_id', userId).maybeSingle(),
+      ])
+      if (!servicesRes.data) {
+        await supabase.from('user_services').insert({ user_id: userId, has_chatbot: true, has_ai_calls: false })
+      }
+      const fresh: CachedSettings = {
+        services: servicesRes.data ?? { has_chatbot: true, has_ai_calls: false },
+        tokenData: tokenRes.data ?? null,
+        retellTokenData: retellTokenRes.data ?? null,
+        ghlTokenData: ghlTokenRes.data ?? null,
+        openaiTokenData: openaiTokenRes.data ?? null,
+      }
+      applySettings(fresh)
+      pageCache.set(`settings:${userId}`, fresh)
+    } catch (error) {
+      console.error('Error loading settings:', error)
+    } finally {
+      if (showLoading) setDataLoading(false)
+    }
+  }, [applySettings])
+
   useEffect(() => {
     if (!user?.id) return
-    const fetchData = async () => {
-      try {
-        const [servicesRes, tokenRes, retellTokenRes, ghlTokenRes, openaiTokenRes] = await Promise.all([
-          supabase.from('user_services').select('has_chatbot, has_ai_calls').eq('user_id', user.id).maybeSingle(),
-          supabase.from('elevenlabs_tokens').select('api_token, is_active, last_verified_at, updated_at').eq('user_id', user.id).maybeSingle(),
-          supabase.from('retell_tokens').select('api_token, is_active, last_verified_at, updated_at').eq('user_id', user.id).maybeSingle(),
-          supabase.from('ghl_tokens').select('api_token, location_id, is_active, last_verified_at, updated_at').eq('user_id', user.id).maybeSingle(),
-          supabase.from('openai_tokens').select('api_token, is_active, last_verified_at, updated_at').eq('user_id', user.id).maybeSingle()
-        ])
-
-        if (servicesRes.data) {
-          setServices(servicesRes.data)
-        } else {
-          await supabase.from('user_services').insert({ user_id: user.id, has_chatbot: true, has_ai_calls: false })
-          setServices({ has_chatbot: true, has_ai_calls: false })
-        }
-
-        if (tokenRes.data) { setTokenData(tokenRes.data); setApiToken(tokenRes.data.api_token) }
-        if (retellTokenRes.data) { setRetellTokenData(retellTokenRes.data); setRetellApiToken(retellTokenRes.data.api_token) }
-        if (ghlTokenRes.data) { setGhlTokenData(ghlTokenRes.data); setGhlApiToken(ghlTokenRes.data.api_token); setGhlLocationId(ghlTokenRes.data.location_id) }
-        if (openaiTokenRes.data) { setOpenaiTokenData(openaiTokenRes.data); setOpenaiApiToken(openaiTokenRes.data.api_token) }
-      } catch (error) {
-        console.error('Error loading settings:', error)
-      } finally {
-        setIsLoading(false)
-      }
+    const cached = pageCache.get<CachedSettings>(`settings:${user.id}`)
+    if (cached) {
+      applySettings(cached)
+      fetchSettings(user.id, false) // silent background refresh
+    } else {
+      fetchSettings(user.id, true)
     }
-    fetchData()
-  }, [user?.id])
+  }, [user?.id, applySettings, fetchSettings])
 
   const verifyToken = async (token: string) => {
     try {

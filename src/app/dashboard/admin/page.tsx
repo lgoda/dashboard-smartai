@@ -18,13 +18,16 @@ type UserRow = {
 }
 
 export default function AdminPage() {
-  const { profile, accessToken } = useAuth()
+  const { profile, accessToken, loading: authLoading } = useAuth()
   const router = useRouter()
   const [users, setUsers] = useState<UserRow[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [dataLoading, setDataLoading] = useState(false)
+  const isLoading = authLoading || dataLoading
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviting, setInviting] = useState(false)
   const [inviteMsg, setInviteMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [inviteLink, setInviteLink] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -33,12 +36,16 @@ export default function AdminPage() {
 
   const fetchUsers = useCallback(async () => {
     if (!accessToken) return
-    const res = await fetch('/api/admin/users', { headers: { Authorization: `Bearer ${accessToken}` } })
-    if (res.ok) {
-      const json = await res.json()
-      setUsers(json.users ?? [])
+    setDataLoading(true)
+    try {
+      const res = await fetch('/api/admin/users', { headers: { Authorization: `Bearer ${accessToken}` } })
+      if (res.ok) {
+        const json = await res.json()
+        setUsers(json.users ?? [])
+      }
+    } finally {
+      setDataLoading(false)
     }
-    setIsLoading(false)
   }, [accessToken])
 
   useEffect(() => { fetchUsers() }, [fetchUsers])
@@ -47,15 +54,29 @@ export default function AdminPage() {
     if (!inviteEmail.trim() || !accessToken) return
     setInviting(true)
     setInviteMsg(null)
+    setInviteLink(null)
+    setCopied(false)
     const res = await fetch('/api/admin/invite', {
       method: 'POST',
       headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: inviteEmail.trim() }),
     })
     const json = await res.json()
-    if (res.ok) { setInviteMsg({ type: 'ok', text: json.message }); setInviteEmail('') }
-    else setInviteMsg({ type: 'err', text: json.error })
+    if (res.ok) {
+      setInviteMsg({ type: 'ok', text: json.message })
+      setInviteLink(json.link ?? null)
+      setInviteEmail('')
+    } else {
+      setInviteMsg({ type: 'err', text: json.error })
+    }
     setInviting(false)
+  }
+
+  const copyLink = () => {
+    if (!inviteLink) return
+    navigator.clipboard.writeText(inviteLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const toggleActive = async (userId: string, currentValue: boolean) => {
@@ -105,6 +126,26 @@ export default function AdminPage() {
             {inviteMsg.text}
           </div>
         )}
+
+        {inviteLink && (
+          <div className="mb-4 p-3 bg-[#1F2124] border border-[#F0AD4E]/30 rounded-lg">
+            <p className="text-xs text-gray-400 mb-2">Copia e condividi questo link con l'utente (valido per 24h):</p>
+            <div className="flex gap-2 items-center">
+              <input
+                readOnly
+                value={inviteLink}
+                className="flex-1 text-xs text-[#F0AD4E] bg-transparent outline-none truncate"
+              />
+              <button
+                onClick={copyLink}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#F0AD4E]/10 border border-[#F0AD4E]/30 text-[#F0AD4E] hover:bg-[#F0AD4E]/20 transition-colors whitespace-nowrap"
+              >
+                {copied ? '✓ Copiato' : 'Copia link'}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-3">
           <input
             type="email"
@@ -119,10 +160,10 @@ export default function AdminPage() {
             disabled={inviting || !inviteEmail.includes('@')}
             className="px-5 py-2.5 bg-[#F0AD4E] text-[#1e293b] rounded-lg font-semibold hover:bg-[#E09A3D] transition-colors disabled:opacity-40"
           >
-            {inviting ? 'Invio...' : 'Invia invito'}
+            {inviting ? 'Generazione...' : 'Genera link'}
           </button>
         </div>
-        <p className="text-xs text-gray-500 mt-2">L'utente riceverà un'email con il link per accedere per la prima volta.</p>
+        <p className="text-xs text-gray-500 mt-2">Genera un link di accesso da condividere direttamente con l'utente — nessuna email inviata.</p>
       </div>
 
       {/* Users list */}

@@ -53,9 +53,10 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function CampaignsPage() {
   const router = useRouter()
-  const { accessToken } = useAuth()
+  const { accessToken, loading: authLoading } = useAuth()
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [dataLoading, setDataLoading] = useState(false)
+  const isLoading = authLoading || dataLoading
   const [showModal, setShowModal] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -68,16 +69,18 @@ export default function CampaignsPage() {
   const [formError, setFormError] = useState<string | null>(null)
 
   const fetchCampaigns = useCallback(async () => {
-    const token = accessToken
-    if (!token) { router.push('/'); return }
-    const res = await fetch('/api/campaigns', { headers: { Authorization: `Bearer ${token}` } })
-    if (res.ok) {
-      const json = await res.json()
-      // Filter out deleted campaigns
-      setCampaigns((json.campaigns ?? []).filter((c: Campaign) => c.status !== 'deleted'))
+    if (!accessToken) return
+    setDataLoading(true)
+    try {
+      const res = await fetch('/api/campaigns', { headers: { Authorization: `Bearer ${accessToken}` } })
+      if (res.ok) {
+        const json = await res.json()
+        setCampaigns((json.campaigns ?? []).filter((c: Campaign) => c.status !== 'deleted'))
+      }
+    } finally {
+      setDataLoading(false)
     }
-    setIsLoading(false)
-  }, [accessToken, router])
+  }, [accessToken])
 
   useEffect(() => { fetchCampaigns() }, [fetchCampaigns])
 

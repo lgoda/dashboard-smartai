@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
 import { useAuth } from '@/app/components/AuthProvider'
+import { pageCache } from '@/app/lib/pageCache'
 import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
 import Pagination from '@/app/components/Pagination'
@@ -34,11 +35,12 @@ type Filters = {
 }
 
 export default function ConversationsPage() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [groupedConversations, setGroupedConversations] = useState<Record<string, Conversation[]>>({})
   const [filteredSessions, setFilteredSessions] = useState<[string, Conversation[]][]>([])
   const [paginatedSessions, setPaginatedSessions] = useState<[string, Conversation[]][]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [dataLoading, setDataLoading] = useState(false)
+  const isLoading = authLoading || dataLoading
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set())
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(20)
@@ -55,23 +57,42 @@ export default function ConversationsPage() {
 
   useEffect(() => {
     if (!user?.id) return
-    setIsLoading(true)
-    supabase
-      .from('conversations')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: true })
-      .then(({ data: conv }) => {
-        if (!conv) return
-        const sessions: Record<string, Conversation[]> = {}
-        conv.forEach(c => {
-          if (!sessions[c.session_id]) sessions[c.session_id] = []
-          sessions[c.session_id].push(c)
-        })
-        setGroupedConversations(sessions)
+    const cacheKey = `conversations:${user.id}`
+
+    const applyGrouped = (conv: Conversation[]) => {
+      const sessions: Record<string, Conversation[]> = {}
+      conv.forEach(c => {
+        if (!sessions[c.session_id]) sessions[c.session_id] = []
+        sessions[c.session_id].push(c)
       })
-      .catch(err => console.error('Errore caricamento conversazioni:', err))
-      .finally(() => setIsLoading(false))
+      setGroupedConversations(sessions)
+    }
+
+    const cached = pageCache.get<Conversation[]>(cacheKey)
+    if (cached) {
+      applyGrouped(cached)
+      setDataLoading(false)
+    }
+
+    const load = async () => {
+      if (!cached) setDataLoading(true)
+      try {
+        const { data: conv } = await supabase
+          .from('conversations')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(100)
+        if (!conv) return
+        applyGrouped(conv)
+        pageCache.set(cacheKey, conv)
+      } catch (err) {
+        console.error('Errore caricamento conversazioni:', err)
+      } finally {
+        if (!cached) setDataLoading(false)
+      }
+    }
+    load()
   }, [user?.id])
 
   useEffect(() => {

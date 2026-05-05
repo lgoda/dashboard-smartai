@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
 import { useAuth } from '@/app/components/AuthProvider'
+import { pageCache } from '@/app/lib/pageCache'
 import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
 import Pagination from '@/app/components/Pagination'
@@ -36,10 +37,11 @@ type Filters = {
 }
 
 export default function LeadsPage() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [leads, setLeads] = useState<Lead[]>([])
   const [totalCount, setTotalCount] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
+  const [dataLoading, setDataLoading] = useState(false)
+  const isLoading = authLoading || dataLoading
   const [sources, setSources] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(20)
@@ -79,8 +81,16 @@ export default function LeadsPage() {
   const loadLeads = useCallback(async () => {
     if (!user) return
 
+    const cacheKey = `leads:${user.id}:${currentPage}:${itemsPerPage}:${filters.sortBy}:${filters.sortOrder}:${debouncedSearch}:${filters.source}:${filters.hasMessage}`
+    const cached = pageCache.get<{ leads: Lead[]; count: number }>(cacheKey)
+    if (cached) {
+      setLeads(cached.leads)
+      setTotalCount(cached.count)
+      setDataLoading(false)
+    }
+
     try {
-      setIsLoading(true)
+      if (!cached) setDataLoading(true)
 
       let query = supabase
         .from('leads')
@@ -124,11 +134,12 @@ export default function LeadsPage() {
       } else {
         setLeads(data || [])
         setTotalCount(count || 0)
+        pageCache.set(cacheKey, { leads: data || [], count: count || 0 })
       }
     } catch (error) {
       console.error('Error general:', error)
     } finally {
-      setIsLoading(false)
+      if (!cached) setDataLoading(false)
     }
   }, [user, debouncedSearch, filters, currentPage, itemsPerPage])
 
@@ -240,10 +251,6 @@ export default function LeadsPage() {
     [leads]
   )
 
-  const percentageOfTotal = useMemo(() =>
-    totalCount > 0 ? Math.round((leads.length / totalCount) * 100) : 0,
-    [leads.length, totalCount]
-  )
 
   const totalPages = Math.ceil(totalCount / itemsPerPage)
 

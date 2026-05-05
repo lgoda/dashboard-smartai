@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@/app/components/AuthProvider'
 import { useDebounce } from '@/app/lib/useDebounce'
 import {
@@ -113,9 +112,9 @@ function ConversationSkeleton() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function GHLConversationsPage() {
-  const router = useRouter()
-  const { accessToken } = useAuth()
-  const [isLoading, setIsLoading] = useState(true)
+  const { accessToken, user, loading: authLoading } = useAuth()
+  const [tokenChecked, setTokenChecked] = useState(false)
+  const isLoading = authLoading || !tokenChecked
   const [hasToken, setHasToken] = useState<boolean | null>(null)
   const [conversations, setConversations] = useState<GHLConversation[]>([])
   const [total, setTotal] = useState(0)
@@ -150,22 +149,18 @@ export default function GHLConversationsPage() {
 
   // Check token on mount
   useEffect(() => {
-    const init = async () => {
-      const { data: userData } = await supabase.auth.getUser()
-      if (!userData?.user) return router.push('/')
-
-      const { data: tokenData } = await supabase
-        .from('ghl_tokens')
-        .select('is_active')
-        .eq('user_id', userData.user.id)
-        .eq('is_active', true)
-        .maybeSingle()
-
-      setHasToken(!!tokenData)
-      setIsLoading(false)
-    }
-    init()
-  }, [router])
+    if (!user?.id) return
+    supabase
+      .from('ghl_tokens')
+      .select('is_active')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .maybeSingle()
+      .then(({ data }) => {
+        setHasToken(!!data)
+        setTokenChecked(true)
+      })
+  }, [user?.id])
 
   // Core fetch — accepts an explicit cursor (undefined = first page)
   const fetchConversations = useCallback(
@@ -239,8 +234,6 @@ export default function GHLConversationsPage() {
     setMessages([])
     setIsLoadingMessages(true)
     try {
-      const { data: sessionData } = await supabase.auth.getSession()
-      const accessToken = sessionData.session?.access_token
       if (!accessToken) return
 
       const res = await fetch(`/api/ghl/conversation/${conversation.id}/messages`, {
@@ -260,15 +253,13 @@ export default function GHLConversationsPage() {
     } finally {
       setIsLoadingMessages(false)
     }
-  }, [])
+  }, [accessToken])
 
   const handleAnalyze = useCallback(async () => {
     if (conversations.length === 0) return
     setIsAnalyzing(true)
     setAnalyzeError(null)
     try {
-      const { data: sessionData } = await supabase.auth.getSession()
-      const accessToken = sessionData.session?.access_token
       if (!accessToken) return
 
       const res = await fetch('/api/ghl/analyze', {
