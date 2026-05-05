@@ -58,23 +58,23 @@ export default function Pagination({
   if (totalPages <= 1) return null
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+    <div className="bg-[#3A3D42] rounded-xl p-4 shadow-sm border border-[#1F2124]">
       <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
         <div className="flex items-center space-x-4">
-          <div className="text-sm text-slate-600">
-            Mostrando <span className="font-semibold text-slate-900">{startItem}-{endItem}</span> di{' '}
-            <span className="font-semibold text-slate-900">{totalItems}</span> risultati
+          <div className="text-sm text-gray-300">
+            Mostrando <span className="font-semibold text-white">{startItem}-{endItem}</span> di{' '}
+            <span className="font-semibold text-white">{totalItems}</span> risultati
           </div>
 
           <div className="flex items-center space-x-2">
-            <label htmlFor="itemsPerPage" className="text-sm text-slate-600">
+            <label htmlFor="itemsPerPage" className="text-sm text-gray-300">
               Per pagina:
             </label>
             <select
               id="itemsPerPage"
               value={itemsPerPage}
               onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-              className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="px-3 py-1.5 border border-[#1F2124] bg-[#1F2124] rounded-lg text-sm font-medium text-white focus:ring-2 focus:ring-[#F0AD4E] focus:border-[#F0AD4E]"
             >
               <option value="10">10</option>
               <option value="20">20</option>
@@ -92,7 +92,7 @@ export default function Pagination({
           <button
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1.5 text-sm font-medium text-gray-300 bg-[#1F2124] border border-[#1F2124] rounded-lg hover:bg-[#2C2E31] hover:text-[#F0AD4E] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Precedente
           </button>
@@ -101,7 +101,7 @@ export default function Pagination({
             {getPageNumbers().map((page, index) => {
               if (page === '...') {
                 return (
-                  <span key={`ellipsis-${index}`} className="px-3 py-1.5 text-slate-400">
+                  <span key={`ellipsis-${index}`} className="px-3 py-1.5 text-gray-500">
                     ...
                   </span>
                 )
@@ -116,8 +116,8 @@ export default function Pagination({
                   onClick={() => onPageChange(pageNumber)}
                   className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                     isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-700 hover:bg-slate-100'
+                      ? 'bg-[#F0AD4E] text-[#1e293b]'
+                      : 'text-gray-300 hover:bg-[#1F2124] hover:text-[#F0AD4E]'
                   }`}
                 >
                   {pageNumber}
@@ -126,14 +126,14 @@ export default function Pagination({
             })}
           </div>
 
-          <div className="sm:hidden text-sm font-medium text-slate-700">
+          <div className="sm:hidden text-sm font-medium text-gray-300">
             Pagina {currentPage} di {totalPages}
           </div>
 
           <button
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1.5 text-sm font-medium text-gray-300 bg-[#1F2124] border border-[#1F2124] rounded-lg hover:bg-[#2C2E31] hover:text-[#F0AD4E] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Successivo
           </button>

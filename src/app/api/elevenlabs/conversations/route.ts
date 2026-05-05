@@ -101,8 +101,10 @@ export async function GET(request: NextRequest) {
       duration: metrics.duration,
       totalDuration,
       conversationCount: data?.conversations?.length || 0,
-      hasMore: data?.has_more || false,
-      cursor: data?.cursor || null
+      hasMore: data?.has_more ?? null,
+      cursor: data?.cursor || null,
+      nextCursor: data?.next_cursor || null,
+      responseKeys: data ? Object.keys(data) : []
     })
 
     return NextResponse.json(data, {

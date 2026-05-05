@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
-import { useRouter } from 'next/navigation'
+import { useAuth } from '@/app/components/AuthProvider'
 import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
 import Pagination from '@/app/components/Pagination'
@@ -34,8 +34,7 @@ type Filters = {
 }
 
 export default function ConversationsPage() {
-  const [user, setUser] = useState<any>(null)
-  const [allConversations, setAllConversations] = useState<Conversation[]>([])
+  const { user } = useAuth()
   const [groupedConversations, setGroupedConversations] = useState<Record<string, Conversation[]>>({})
   const [filteredSessions, setFilteredSessions] = useState<[string, Conversation[]][]>([])
   const [paginatedSessions, setPaginatedSessions] = useState<[string, Conversation[]][]>([])
@@ -51,43 +50,29 @@ export default function ConversationsPage() {
     sortBy: 'date',
     sortOrder: 'desc'
   })
-  const router = useRouter()
 
   const debouncedSearch = useDebounce(filters.search, 500)
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { data: userData } = await supabase.auth.getUser()
-        if (!userData?.user) return router.push('/')
-        setUser(userData.user)
-
-        const { data: conv } = await supabase
-          .from('conversations')
-          .select('*')
-          .eq('user_id', userData.user.id)
-          .order('created_at', { ascending: true })
-
+    if (!user?.id) return
+    setIsLoading(true)
+    supabase
+      .from('conversations')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true })
+      .then(({ data: conv }) => {
         if (!conv) return
-
-        setAllConversations(conv)
-
-        // Raggruppa per session_id
         const sessions: Record<string, Conversation[]> = {}
         conv.forEach(c => {
           if (!sessions[c.session_id]) sessions[c.session_id] = []
           sessions[c.session_id].push(c)
         })
         setGroupedConversations(sessions)
-      } catch (error) {
-        console.error('Errore nel caricamento delle conversazioni:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [router])
+      })
+      .catch(err => console.error('Errore caricamento conversazioni:', err))
+      .finally(() => setIsLoading(false))
+  }, [user?.id])
 
   useEffect(() => {
     applyFilters()
@@ -236,33 +221,8 @@ export default function ConversationsPage() {
     })
   }, [])
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-slate-200 rounded-lg loading"></div>
-          <div className="h-8 bg-slate-200 rounded w-48 loading"></div>
-        </div>
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-              <div className="h-6 bg-slate-200 rounded w-64 mb-4 loading"></div>
-              <div className="space-y-2">
-                <div className="h-4 bg-slate-100 rounded loading"></div>
-                <div className="h-4 bg-slate-100 rounded w-3/4 loading"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  if (!user) return <p className="text-center mt-10 text-slate-600">Caricamento...</p>
-
   const totalSessions = Object.keys(groupedConversations).length
-  const totalMessages = Object.values(groupedConversations).reduce((acc, messages) => acc + messages.length, 0)
-  const filteredMessages = filteredSessions.reduce((acc, [_, messages]) => acc + messages.length, 0)
+  const filteredMessages = filteredSessions.reduce((acc, [, messages]) => acc + messages.length, 0)
   const activeFiltersCount = getActiveFiltersCount
   const totalPages = Math.ceil(filteredSessions.length / itemsPerPage)
   const startItem = filteredSessions.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1
@@ -272,38 +232,54 @@ export default function ConversationsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center">
-          <span className="text-white text-lg">💬</span>
+        <div className="w-10 h-10 bg-[#F0AD4E] rounded-xl flex items-center justify-center">
+          <span className="text-[#1e293b] text-lg">💬</span>
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Conversazioni</h1>
-          <p className="text-slate-600 mt-1">
+          <h1 className="text-3xl font-bold text-white">Conversazioni</h1>
+          <p className="text-gray-300 mt-1">
             Mostrando {startItem}-{endItem} di {filteredSessions.length} sessioni ({totalSessions} totali) • {filteredMessages} messaggi
             {activeFiltersCount > 0 && (
-              <span className="text-blue-600 font-medium"> • {activeFiltersCount} filtri attivi</span>
+              <span className="text-[#F0AD4E] font-medium"> • {activeFiltersCount} filtri attivi</span>
             )}
           </p>
         </div>
       </div>
 
       {/* Filtri Avanzati */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-slate-900">Filtri e Ricerca</h3>
+      <div className="bg-gradient-to-br from-[#3A3D42] to-[#2C2E31] rounded-xl p-6 shadow-lg border border-[#1F2124] hover:border-[#F0AD4E]/20 transition-all duration-300">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#1F2124]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#F0AD4E]/10 rounded-lg flex items-center justify-center border border-[#F0AD4E]/20">
+              <svg className="w-5 h-5 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">Filtri e Ricerca</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Trova le conversazioni che stai cercando</p>
+            </div>
+          </div>
           {activeFiltersCount > 0 && (
             <button
               onClick={clearAllFilters}
-              className="text-sm text-slate-500 hover:text-slate-700 font-medium"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-[#F0AD4E] font-medium rounded-lg hover:bg-[#1F2124] transition-all duration-200"
             >
-              Cancella tutti i filtri
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Cancella tutti
             </button>
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-5">
           {/* Ricerca Full-Text */}
           <div className="lg:col-span-2">
-            <label htmlFor="search" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="search" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
+              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
               Ricerca
             </label>
             <div className="relative">
@@ -313,9 +289,9 @@ export default function ConversationsPage() {
                 placeholder="Cerca in ID sessione, messaggi o mittente..."
                 value={filters.search}
                 onChange={(e) => updateFilter('search', e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full pl-11 pr-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 text-white placeholder-gray-500 shadow-sm hover:shadow-md"
               />
-              <svg className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="absolute left-3.5 top-3 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -323,7 +299,10 @@ export default function ConversationsPage() {
 
           {/* Filtro Data */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
+              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
               Periodo
             </label>
             <DateRangePicker
@@ -334,14 +313,17 @@ export default function ConversationsPage() {
 
           {/* Filtro Mittente */}
           <div>
-            <label htmlFor="sender" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="sender" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
+              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
               Mittente
             </label>
             <select
               id="sender"
               value={filters.sender}
               onChange={(e) => updateFilter('sender', e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors font-medium text-slate-900"
+              className="w-full px-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 font-medium text-white shadow-sm hover:shadow-md"
             >
               <option value="all">Tutti i messaggi</option>
               <option value="user">Solo utente</option>
@@ -350,10 +332,13 @@ export default function ConversationsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-5 border-t border-[#1F2124]">
           {/* Filtro Numero Messaggi */}
           <div>
-            <label htmlFor="minMessages" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="minMessages" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
+              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+              </svg>
               Messaggi minimi per sessione
             </label>
             <input
@@ -362,20 +347,23 @@ export default function ConversationsPage() {
               min="0"
               value={filters.minMessages}
               onChange={(e) => updateFilter('minMessages', parseInt(e.target.value) || 0)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 text-white shadow-sm hover:shadow-md"
             />
           </div>
 
           {/* Ordinamento */}
           <div>
-            <label htmlFor="sortBy" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="sortBy" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
+              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+              </svg>
               Ordina per
             </label>
             <select
               id="sortBy"
               value={filters.sortBy}
               onChange={(e) => updateFilter('sortBy', e.target.value as 'date' | 'messages' | 'session')}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors font-medium text-slate-900"
+              className="w-full px-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 font-medium text-white shadow-sm hover:shadow-md"
             >
               <option value="date">Data ultima attività</option>
               <option value="messages">Numero messaggi</option>
@@ -384,14 +372,17 @@ export default function ConversationsPage() {
           </div>
 
           <div>
-            <label htmlFor="sortOrder" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="sortOrder" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
+              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
               Direzione
             </label>
             <select
               id="sortOrder"
               value={filters.sortOrder}
               onChange={(e) => updateFilter('sortOrder', e.target.value as 'asc' | 'desc')}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors font-medium text-slate-900"
+              className="w-full px-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 font-medium text-white shadow-sm hover:shadow-md"
             >
               <option value="desc">Decrescente</option>
               <option value="asc">Crescente</option>
@@ -401,7 +392,13 @@ export default function ConversationsPage() {
 
         {/* Filtri Attivi */}
         {activeFiltersCount > 0 && (
-          <div className="mt-4 pt-4 border-t border-slate-200">
+          <div className="mt-6 pt-5 border-t border-[#1F2124]">
+            <div className="flex items-center gap-2 mb-3">
+              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              <span className="text-sm font-semibold text-gray-300">Filtri attivi ({activeFiltersCount})</span>
+            </div>
             <div className="flex flex-wrap gap-2">
               {filters.search && (
                 <FilterBadge
@@ -438,54 +435,54 @@ export default function ConversationsPage() {
 
       {/* Statistiche Filtrate */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Sessioni Visibili</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{filteredSessions.length}</p>
+              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Sessioni Visibili</p>
+              <p className="text-2xl font-bold text-white mt-1">{filteredSessions.length}</p>
             </div>
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <span className="text-purple-600">🗂️</span>
+            <div className="w-10 h-10 bg-[#F0AD4E]/20 rounded-lg flex items-center justify-center">
+              <span className="text-[#F0AD4E]">🗂️</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Messaggi Visibili</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{filteredMessages}</p>
+              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Messaggi Visibili</p>
+              <p className="text-2xl font-bold text-white mt-1">{filteredMessages}</p>
             </div>
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <span className="text-blue-600">💭</span>
+            <div className="w-10 h-10 bg-[#5CB85C]/20 rounded-lg flex items-center justify-center">
+              <span className="text-[#5CB85C]">💭</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Media per Sessione</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">
+              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Media per Sessione</p>
+              <p className="text-2xl font-bold text-white mt-1">
                 {filteredSessions.length > 0 ? Math.round(filteredMessages / filteredSessions.length) : 0}
               </p>
             </div>
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <span className="text-green-600">📊</span>
+            <div className="w-10 h-10 bg-[#F0AD4E]/20 rounded-lg flex items-center justify-center">
+              <span className="text-[#F0AD4E]">📊</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">% del Totale</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">
+              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">% del Totale</p>
+              <p className="text-2xl font-bold text-white mt-1">
                 {totalSessions > 0 ? Math.round((filteredSessions.length / totalSessions) * 100) : 0}%
               </p>
             </div>
-            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-              <span className="text-amber-600">📈</span>
+            <div className="w-10 h-10 bg-[#3A3D42] rounded-lg flex items-center justify-center border border-[#1F2124]">
+              <span className="text-gray-300">📈</span>
             </div>
           </div>
         </div>
@@ -505,15 +502,23 @@ export default function ConversationsPage() {
 
       {/* Conversazioni */}
       <div className="space-y-4">
-        {paginatedSessions.length === 0 && filteredSessions.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-slate-200">
-            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-slate-400 text-2xl">💬</span>
+        {isLoading ? (
+          [...Array(3)].map((_, i) => (
+            <div key={i} className="bg-[#3A3D42] rounded-xl p-6 border border-[#1F2124]">
+              <div className="h-5 bg-[#1F2124] rounded w-64 mb-3 loading"></div>
+              <div className="h-4 bg-[#1F2124] rounded w-full mb-2 loading"></div>
+              <div className="h-4 bg-[#1F2124] rounded w-3/4 loading"></div>
             </div>
-            <h3 className="text-lg font-medium text-slate-900 mb-2">
+          ))
+        ) : paginatedSessions.length === 0 && filteredSessions.length === 0 ? (
+          <div className="bg-[#3A3D42] rounded-xl p-12 text-center shadow-sm border border-[#1F2124]">
+            <div className="w-16 h-16 bg-[#1F2124] rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-gray-500 text-2xl">💬</span>
+            </div>
+            <h3 className="text-lg font-medium text-white mb-2">
               {activeFiltersCount > 0 ? 'Nessun risultato trovato' : 'Nessuna conversazione ancora'}
             </h3>
-            <p className="text-slate-600">
+            <p className="text-gray-400">
               {activeFiltersCount > 0 
                 ? 'Prova a modificare i filtri di ricerca' 
                 : 'Le conversazioni con i tuoi chatbot appariranno qui'
@@ -521,14 +526,14 @@ export default function ConversationsPage() {
             </p>
           </div>
         ) : paginatedSessions.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-slate-200">
-            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-slate-400 text-2xl">📄</span>
+          <div className="bg-[#3A3D42] rounded-xl p-12 text-center shadow-sm border border-[#1F2124]">
+            <div className="w-16 h-16 bg-[#1F2124] rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-gray-500 text-2xl">📄</span>
             </div>
-            <h3 className="text-lg font-medium text-slate-900 mb-2">
+            <h3 className="text-lg font-medium text-white mb-2">
               Nessun risultato in questa pagina
             </h3>
-            <p className="text-slate-600">
+            <p className="text-gray-400">
               Prova a cambiare pagina o modificare i filtri
             </p>
           </div>
@@ -539,43 +544,43 @@ export default function ConversationsPage() {
             const isExpanded = expandedSessions.has(sessionId)
             
             return (
-              <div key={sessionId} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden card-hover">
+              <div key={sessionId} className="bg-[#3A3D42] rounded-xl shadow-sm border border-[#1F2124] overflow-hidden card-hover">
                 <div 
-                  className="p-6 cursor-pointer hover:bg-slate-50 transition-colors"
+                  className="p-6 cursor-pointer hover:bg-[#1F2124] transition-colors"
                   onClick={() => toggleSession(sessionId)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-500 rounded-lg flex items-center justify-center">
-                          <span className="text-white text-sm font-medium">
+                        <div className="w-8 h-8 bg-[#F0AD4E] rounded-lg flex items-center justify-center">
+                          <span className="text-[#1e293b] text-sm font-medium">
                             {sessionId.slice(-2).toUpperCase()}
                           </span>
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-slate-900">
+                          <h3 className="text-lg font-semibold text-white">
                             Sessione: {sessionId}
                           </h3>
-                          <p className="text-sm text-slate-500">
+                          <p className="text-sm text-gray-400">
                             {messages.length} messaggi • {formatTime(firstMsg.created_at)} - {formatTime(lastMsg.created_at)}
                           </p>
                         </div>
                       </div>
                       
-                      <div className="bg-slate-50 rounded-lg p-3 mt-3">
-                        <p className="text-sm text-slate-700">
-                          <span className="font-medium text-slate-900">{lastMsg.sender === 'user' ? 'Utente' : 'Bot'}:</span> {lastMsg.message}
+                      <div className="bg-[#1F2124] rounded-lg p-3 mt-3">
+                        <p className="text-sm text-gray-300">
+                          <span className="font-medium text-white">{lastMsg.sender === 'user' ? 'Utente' : 'Bot'}:</span> {lastMsg.message}
                         </p>
-                        <p className="text-xs text-slate-500 mt-1">{formatTime(lastMsg.created_at)}</p>
+                        <p className="text-xs text-gray-500 mt-1">{formatTime(lastMsg.created_at)}</p>
                       </div>
                     </div>
                     
                     <div className="ml-4 flex items-center space-x-3">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F0AD4E]/20 text-[#F0AD4E] border border-[#F0AD4E]/30">
                         {messages.length} msg
                       </span>
                       <div className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                        <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </div>
@@ -584,19 +589,19 @@ export default function ConversationsPage() {
                 </div>
 
                 {isExpanded && (
-                  <div className="border-t border-slate-200 bg-slate-50">
+                  <div className="border-t border-[#1F2124] bg-[#1F2124]">
                     <div className="p-6">
-                      <h4 className="text-sm font-medium text-slate-900 mb-4">Cronologia completa</h4>
+                      <h4 className="text-sm font-medium text-white mb-4">Cronologia completa</h4>
                       <div className="space-y-3 max-h-96 overflow-y-auto">
-                        {messages.map((msg, index) => (
+                        {messages.map((msg) => (
                           <div 
                             key={msg.id} 
                             className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                           >
                             <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                               msg.sender === 'user' 
-                                ? 'bg-blue-600 text-white' 
-                                : 'bg-white text-slate-900 border border-slate-200'
+                                ? 'bg-[#F0AD4E] text-[#1e293b]' 
+                                : 'bg-[#3A3D42] text-white border border-[#1F2124]'
                             }`}>
                               <div className="flex items-center space-x-2 mb-1">
                                 <span className="text-xs font-medium opacity-75">

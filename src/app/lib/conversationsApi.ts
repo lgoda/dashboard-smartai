@@ -157,10 +157,46 @@ export async function getConversationsFromAPI(
   conversations = filterConversationsClientSide(conversations, options)
   conversations = sortConversationsClientSide(conversations, options)
 
+  // Handle both 'cursor' and 'next_cursor' field names from API
+  const nextCursor = data.next_cursor || data.cursor || undefined
+  const apiHasMore = data.has_more
+  
+  // Determine hasMore based on API response
+  const apiConversationsCount = (data.conversations || []).length
+  let hasMore = false
+  
+  if (apiConversationsCount === 0) {
+    // Empty response means no more data (even if API says has_more=true)
+    hasMore = false
+  } else if (apiHasMore !== undefined) {
+    // Trust the API's has_more flag - if it says true, there's more data
+    // When has_more=true, the API should provide a cursor, but we trust the flag regardless
+    hasMore = Boolean(apiHasMore)
+    // Warn if has_more is true but no cursor (API inconsistency, but continue anyway)
+    if (hasMore && !nextCursor) {
+      console.warn('[ConversationsAPI] API says has_more=true but no cursor provided')
+    }
+  } else {
+    // If has_more not provided by API, infer from:
+    // - We got a full page (equal to requested pageSize) AND
+    // - There's a cursor for next page
+    const requestedPageSize = options.pageSize || 100
+    hasMore = apiConversationsCount >= requestedPageSize && !!nextCursor
+  }
+
+  console.log('[ConversationsAPI Debug]', {
+    apiHasMore,
+    nextCursor: nextCursor ? 'present' : 'missing',
+    apiConversationsCount,
+    finalHasMore: hasMore,
+    hasCursor: !!nextCursor,
+    rawDataKeys: Object.keys(data)
+  })
+
   return {
     conversations,
-    cursor: data.cursor,
-    hasMore: data.has_more !== undefined ? data.has_more : !!data.cursor
+    cursor: nextCursor,
+    hasMore
   }
 }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
-import { useRouter } from 'next/navigation'
+import { useAuth } from '@/app/components/AuthProvider'
 import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
 import Pagination from '@/app/components/Pagination'
@@ -36,7 +36,7 @@ type Filters = {
 }
 
 export default function LeadsPage() {
-  const [user, setUser] = useState<any>(null)
+  const { user } = useAuth()
   const [leads, setLeads] = useState<Lead[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
@@ -51,23 +51,13 @@ export default function LeadsPage() {
     sortBy: 'date',
     sortOrder: 'desc'
   })
-  const router = useRouter()
 
   const debouncedSearch = useDebounce(filters.search, 500)
 
   useEffect(() => {
-    const initUser = async () => {
-      try {
-        const { data: userData } = await supabase.auth.getUser()
-        if (!userData?.user) return router.push('/')
-        setUser(userData.user)
-        await loadSources(userData.user.id)
-      } catch (error) {
-        console.error('Error initializing user:', error)
-      }
-    }
-    initUser()
-  }, [router])
+    if (!user?.id) return
+    loadSources(user.id)
+  }, [user?.id])
 
   const loadSources = async (userId: string) => {
     try {
@@ -255,41 +245,21 @@ export default function LeadsPage() {
     [leads.length, totalCount]
   )
 
-  if (isLoading && !user) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-slate-200 rounded-lg loading"></div>
-          <div className="h-8 bg-slate-200 rounded w-48 loading"></div>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 bg-slate-100 rounded loading"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (!user) return <p className="text-center mt-10 text-slate-600">Caricamento...</p>
-
   const totalPages = Math.ceil(totalCount / itemsPerPage)
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-orange-500 rounded-xl flex items-center justify-center">
-            <span className="text-white text-lg">📇</span>
+          <div className="w-10 h-10 bg-[#F0AD4E] rounded-xl flex items-center justify-center">
+            <span className="text-[#1e293b] text-lg">📇</span>
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Lead Raccolti</h1>
-            <p className="text-slate-600 mt-1">
+            <h1 className="text-3xl font-bold text-white">Lead Raccolti</h1>
+            <p className="text-gray-300 mt-1">
               {totalCount} lead totali
               {getActiveFiltersCount > 0 && (
-                <span className="text-pink-600 font-medium"> • {getActiveFiltersCount} filtri attivi</span>
+                <span className="text-[#F0AD4E] font-medium"> • {getActiveFiltersCount} filtri attivi</span>
               )}
             </p>
           </div>
@@ -305,22 +275,38 @@ export default function LeadsPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-slate-900">Filtri e Ricerca</h3>
+      <div className="bg-gradient-to-br from-[#3A3D42] to-[#2C2E31] rounded-xl p-6 shadow-lg border border-[#1F2124] hover:border-[#F0AD4E]/20 transition-all duration-300">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#1F2124]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#F0AD4E]/10 rounded-lg flex items-center justify-center border border-[#F0AD4E]/20">
+              <svg className="w-5 h-5 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">Filtri e Ricerca</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Trova i lead che stai cercando</p>
+            </div>
+          </div>
           {getActiveFiltersCount > 0 && (
             <button
               onClick={clearAllFilters}
-              className="text-sm text-slate-500 hover:text-slate-700 font-medium"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-[#F0AD4E] font-medium rounded-lg hover:bg-[#1F2124] transition-all duration-200"
             >
-              Cancella tutti i filtri
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Cancella tutti
             </button>
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-5">
           <div className="lg:col-span-2">
-            <label htmlFor="search" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="search" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
+              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
               Ricerca
             </label>
             <div className="relative">
@@ -330,16 +316,19 @@ export default function LeadsPage() {
                 placeholder="Cerca in nome, email, telefono, messaggio..."
                 value={filters.search}
                 onChange={(e) => updateFilter('search', e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+                className="w-full pl-11 pr-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 text-white placeholder-gray-500 shadow-sm hover:shadow-md"
               />
-              <svg className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="absolute left-3.5 top-3 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
+              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
               Periodo
             </label>
             <DateRangePicker
@@ -349,14 +338,17 @@ export default function LeadsPage() {
           </div>
 
           <div>
-            <label htmlFor="source" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="source" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
+              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
               Fonte
             </label>
             <select
               id="source"
               value={filters.source}
               onChange={(e) => updateFilter('source', e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+              className="w-full px-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 text-white shadow-sm hover:shadow-md"
             >
               <option value="">Tutte le fonti</option>
               {sources.map(source => (
@@ -366,16 +358,19 @@ export default function LeadsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-5 border-t border-[#1F2124]">
           <div>
-            <label htmlFor="hasMessage" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="hasMessage" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
+              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
               Messaggio
             </label>
             <select
               id="hasMessage"
               value={filters.hasMessage}
               onChange={(e) => updateFilter('hasMessage', e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+              className="w-full px-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 text-white shadow-sm hover:shadow-md"
             >
               <option value="all">Tutti i lead</option>
               <option value="with">Con messaggio</option>
@@ -384,14 +379,17 @@ export default function LeadsPage() {
           </div>
 
           <div>
-            <label htmlFor="sortBy" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="sortBy" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
+              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+              </svg>
               Ordina per
             </label>
             <select
               id="sortBy"
               value={filters.sortBy}
               onChange={(e) => updateFilter('sortBy', e.target.value as 'date' | 'name' | 'source')}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+              className="w-full px-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 text-white shadow-sm hover:shadow-md"
             >
               <option value="date">Data</option>
               <option value="name">Nome</option>
@@ -400,14 +398,17 @@ export default function LeadsPage() {
           </div>
 
           <div>
-            <label htmlFor="sortOrder" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="sortOrder" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
+              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
               Direzione
             </label>
             <select
               id="sortOrder"
               value={filters.sortOrder}
               onChange={(e) => updateFilter('sortOrder', e.target.value as 'asc' | 'desc')}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+              className="w-full px-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 text-white shadow-sm hover:shadow-md"
             >
               <option value="desc">Decrescente</option>
               <option value="asc">Crescente</option>
@@ -416,7 +417,13 @@ export default function LeadsPage() {
         </div>
 
         {getActiveFiltersCount > 0 && (
-          <div className="mt-4 pt-4 border-t border-slate-200">
+          <div className="mt-6 pt-5 border-t border-[#1F2124]">
+            <div className="flex items-center gap-2 mb-3">
+              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              <span className="text-sm font-semibold text-gray-300">Filtri attivi ({getActiveFiltersCount})</span>
+            </div>
             <div className="flex flex-wrap gap-2">
               {filters.search && (
                 <FilterBadge
@@ -452,50 +459,50 @@ export default function LeadsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Lead Visibili</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{leads.length}</p>
+              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Lead Visibili</p>
+              <p className="text-2xl font-bold text-white mt-1">{leads.length}</p>
             </div>
-            <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
-              <span className="text-pink-600">📇</span>
+            <div className="w-10 h-10 bg-[#F0AD4E]/20 rounded-lg flex items-center justify-center">
+              <span className="text-[#F0AD4E]">📇</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Con Messaggio</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{leadsWithMessage}</p>
+              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Con Messaggio</p>
+              <p className="text-2xl font-bold text-white mt-1">{leadsWithMessage}</p>
             </div>
-            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-              <span className="text-orange-600">💬</span>
+            <div className="w-10 h-10 bg-[#5CB85C]/20 rounded-lg flex items-center justify-center">
+              <span className="text-[#5CB85C]">💬</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Fonti Uniche</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{uniqueSources}</p>
+              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Fonti Uniche</p>
+              <p className="text-2xl font-bold text-white mt-1">{uniqueSources}</p>
             </div>
-            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-              <span className="text-amber-600">🎯</span>
+            <div className="w-10 h-10 bg-[#F0AD4E]/20 rounded-lg flex items-center justify-center">
+              <span className="text-[#F0AD4E]">🎯</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">Totale</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{totalCount}</p>
+              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Totale</p>
+              <p className="text-2xl font-bold text-white mt-1">{totalCount}</p>
             </div>
-            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <span className="text-yellow-600">📊</span>
+            <div className="w-10 h-10 bg-[#3A3D42] rounded-lg flex items-center justify-center border border-[#1F2124]">
+              <span className="text-gray-300">📊</span>
             </div>
           </div>
         </div>
@@ -515,24 +522,24 @@ export default function LeadsPage() {
         />
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-[#3A3D42] rounded-xl shadow-sm border border-[#1F2124] overflow-hidden">
         {isLoading ? (
           <div className="p-6">
             <div className="space-y-4">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-16 bg-slate-100 rounded loading"></div>
+                <div key={i} className="h-16 bg-[#1F2124] rounded loading"></div>
               ))}
             </div>
           </div>
         ) : leads.length === 0 ? (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-slate-400 text-2xl">📇</span>
+            <div className="w-16 h-16 bg-[#1F2124] rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-gray-500 text-2xl">📇</span>
             </div>
-            <h3 className="text-lg font-medium text-slate-900 mb-2">
+            <h3 className="text-lg font-medium text-white mb-2">
               {getActiveFiltersCount > 0 ? 'Nessun risultato trovato' : 'Nessun lead ancora'}
             </h3>
-            <p className="text-slate-600">
+            <p className="text-gray-400">
               {getActiveFiltersCount > 0
                 ? 'Prova a modificare i filtri di ricerca'
                 : 'I lead raccolti dai tuoi chatbot appariranno qui'
@@ -542,69 +549,69 @@ export default function LeadsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full">
-              <thead className="bg-slate-50">
+              <thead className="bg-[#1F2124]">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Nome
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Contatti
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Messaggio
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Fonte
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Data
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-slate-200">
+              <tbody className="bg-[#3A3D42] divide-y divide-[#1F2124]">
                 {leads.map((lead) => (
                   <tr key={lead.id} className="table-row">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-orange-400 rounded-full flex items-center justify-center mr-3">
-                          <span className="text-white font-medium text-sm">
+                        <div className="w-10 h-10 bg-[#F0AD4E] rounded-full flex items-center justify-center mr-3">
+                          <span className="text-[#1e293b] font-medium text-sm">
                             {lead.name.charAt(0).toUpperCase()}
                           </span>
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-slate-900">{lead.name}</div>
+                          <div className="text-sm font-medium text-white">{lead.name}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-1">
-                        <div className="text-sm text-slate-900">{lead.email}</div>
+                        <div className="text-sm text-white">{lead.email}</div>
                         {lead.phone && (
-                          <div className="text-sm text-slate-600">{lead.phone}</div>
+                          <div className="text-sm text-gray-400">{lead.phone}</div>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-slate-900 max-w-xs">
+                      <div className="text-sm text-white max-w-xs">
                         {lead.message && lead.message.trim() ? (
                           <p className="truncate" title={lead.message}>
                             {lead.message}
                           </p>
                         ) : (
-                          <span className="text-slate-400 italic">Nessun messaggio</span>
+                          <span className="text-gray-500 italic">Nessun messaggio</span>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F0AD4E]/20 text-[#F0AD4E] border border-[#F0AD4E]/30">
                         {lead.source}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-slate-900">
+                      <div className="text-sm text-white">
                         {new Date(lead.created_at).toLocaleDateString('it-IT')}
                       </div>
-                      <div className="text-sm text-slate-500">
+                      <div className="text-sm text-gray-400">
                         {new Date(lead.created_at).toLocaleTimeString('it-IT', {
                           hour: '2-digit',
                           minute: '2-digit'
