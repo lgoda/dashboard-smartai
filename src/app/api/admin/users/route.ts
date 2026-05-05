@@ -3,14 +3,17 @@ import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-)
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 async function requireAdmin(authHeader: string | null) {
   if (!authHeader) return null
+  const supabaseAdmin = getSupabaseAdmin()
   const userClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -31,6 +34,7 @@ export async function GET(request: NextRequest) {
   const admin = await requireAdmin(request.headers.get('authorization'))
   if (!admin) return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
 
+  const supabaseAdmin = getSupabaseAdmin()
   const { data: profiles, error } = await supabaseAdmin
     .from('profiles')
     .select('id, full_name, phone, company, role, is_active, created_at')
@@ -51,6 +55,7 @@ export async function PATCH(request: NextRequest) {
   const admin = await requireAdmin(request.headers.get('authorization'))
   if (!admin) return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
 
+  const supabaseAdmin = getSupabaseAdmin()
   const { userId, is_active, role } = await request.json()
   if (!userId) return NextResponse.json({ error: 'userId richiesto' }, { status: 400 })
 

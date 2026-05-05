@@ -3,14 +3,17 @@ import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-)
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 async function requireAdmin(authHeader: string | null) {
   if (!authHeader) return null
+  const supabaseAdmin = getSupabaseAdmin()
   const userClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -37,6 +40,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Prova prima con l'invito (utente nuovo)
+  const supabaseAdmin = getSupabaseAdmin()
   const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email.trim())
 
   if (!inviteError) {
