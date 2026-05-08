@@ -13,6 +13,7 @@ services:
     environment:
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
       CRON_SECRET: ${CRON_SECRET}
+      N8N_CHAT_WEBHOOK_URL: ${N8N_CHAT_WEBHOOK_URL}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
       interval: 30s
