@@ -78,6 +78,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    // Safety net: force-unblock the UI after 8s regardless of what happens.
+    const loadingTimeout = setTimeout(() => setLoading(false), 8_000)
+
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
@@ -86,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('Error getting session:', error)
       } finally {
+        clearTimeout(loadingTimeout)
         setLoading(false)
       }
     }
