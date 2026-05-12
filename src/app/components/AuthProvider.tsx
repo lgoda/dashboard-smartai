@@ -60,6 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
     initFetchedIdRef.current = userId
+    // Reset the ref after 2s so future TOKEN_REFRESHED / SIGNED_IN events
+    // for the same user still re-fetch the profile when needed.
+    setTimeout(() => {
+      if (initFetchedIdRef.current === userId) initFetchedIdRef.current = null
+    }, 2000)
     const p = await fetchProfile(userId)
     if (p && !p.is_active) {
       await supabase.auth.signOut()
@@ -93,15 +98,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         // Skip duplicate fetch if initAuth already loaded this user's profile
         if (session.user.id === initFetchedIdRef.current) return
-        const p = await fetchProfile(session.user.id)
-        if (p && !p.is_active) {
-          await supabase.auth.signOut()
-          setUser(null)
-          setProfile(null)
-          setAccessToken(null)
-          return
+        try {
+          const p = await fetchProfile(session.user.id)
+          if (p && !p.is_active) {
+            await supabase.auth.signOut()
+            setUser(null)
+            setProfile(null)
+            setAccessToken(null)
+            return
+          }
+          setProfile(p)
+        } catch (err) {
+          console.error('Error fetching profile on auth state change:', err)
         }
-        setProfile(p)
       } else {
         setProfile(null)
       }
