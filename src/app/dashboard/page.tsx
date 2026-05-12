@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
 import { useAuth } from '@/app/components/AuthProvider'
 import { pageCache } from '@/app/lib/pageCache'
@@ -36,6 +36,14 @@ export default function Dashboard() {
   const [totalConvs, setTotalConvs] = useState(0)
   const [dataLoading, setDataLoading] = useState(false)
   const isLoading = authLoading || dataLoading
+  const fetchIdRef = useRef(0)
+
+  // Safety net: force dataLoading false after 12s to prevent infinite skeleton.
+  useEffect(() => {
+    if (!dataLoading) return
+    const t = setTimeout(() => setDataLoading(false), 12_000)
+    return () => clearTimeout(t)
+  }, [dataLoading])
   const [serviceFilter, setServiceFilter] = useState<ServiceFilter>('all')
   const [userServices, setUserServices] = useState<UserServices>({ has_chatbot: true, has_ai_calls: false })
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -65,6 +73,8 @@ export default function Dashboard() {
   const fetchStats = useCallback(async () => {
     if (!user?.id || !dateRange.from || !dateRange.to) return
 
+    const myId = ++fetchIdRef.current
+
     const cacheKey = `dashboard:${user.id}:${dateRange.from.toISOString().slice(0,10)}:${dateRange.to.toISOString().slice(0,10)}`
     const cached = pageCache.get<{ stats: Stats[]; totalLeads: number; totalConvs: number }>(cacheKey)
     if (cached) {
@@ -89,6 +99,9 @@ export default function Dashboard() {
           .lte('created_at', dateRange.to.toISOString())
           .eq('user_id', user.id)
       ])
+
+      // A newer fetch was started — discard these stale results.
+      if (fetchIdRef.current !== myId) return
 
       if (leadsRes.error || convsRes.error) {
         console.error(leadsRes.error || convsRes.error)
@@ -128,7 +141,7 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Error loading stats:', error)
     } finally {
-      setDataLoading(false)
+      if (fetchIdRef.current === myId) setDataLoading(false)
     }
   }, [user?.id, dateRange])
 
