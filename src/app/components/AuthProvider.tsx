@@ -48,70 +48,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  // Tracks which userId was already fetched by initAuth to avoid a duplicate
-  // profile request when onAuthStateChange fires immediately after subscription.
-  const initFetchedIdRef = useRef<string | null>(null)
-
-  const handleSession = useCallback(async (userId: string | null, token: string | null) => {
-    if (!userId) {
-      setUser(null)
-      setProfile(null)
-      setAccessToken(null)
-      return
-    }
-    initFetchedIdRef.current = userId
-    // Reset the ref after 2s so future TOKEN_REFRESHED / SIGNED_IN events
-    // for the same user still re-fetch the profile when needed.
-    setTimeout(() => {
-      if (initFetchedIdRef.current === userId) initFetchedIdRef.current = null
-    }, 2000)
-    const p = await fetchProfile(userId)
-    if (p && !p.is_active) {
-      await supabase.auth.signOut()
-      setUser(null)
-      setProfile(null)
-      setAccessToken(null)
-      return
-    }
-    setProfile(p)
-    setAccessToken(token)
-  }, [])
+  const profileFetchedForRef = useRef<string | null>(null)
 
   useEffect(() => {
-    // Safety net: force-unblock the UI after 8s regardless of what happens.
-    const loadingTimeout = setTimeout(() => setLoading(false), 8_000)
-
-    const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        setUser(session?.user ?? null)
-        await handleSession(session?.user?.id ?? null, session?.access_token ?? null)
-      } catch (error) {
-        console.error('Error getting session:', error)
-      } finally {
-        clearTimeout(loadingTimeout)
-        setLoading(false)
-      }
-    }
-
-    initAuth()
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null)
-      setAccessToken(session?.access_token ?? null)
+      if (event === 'INITIAL_SESSION') {
+        // Fires immediately from localStorage — no network wait.
+        // Set user right away so the dashboard renders without delay.
+        setUser(session?.user ?? null)
+        setAccessToken(session?.access_token ?? null)
 
-      if (!session) {
+        if (session?.user) {
+          profileFetchedForRef.current = session.user.id
+          try {
+            const p = await fetchProfile(session.user.id)
+            if (p && !p.is_active) {
+              await supabase.auth.signOut()
+              return
+            }
+            setProfile(p)
+          } catch (err) {
+            console.error('AuthProvider: profile fetch failed on INITIAL_SESSION', err)
+          }
+        } else {
+          setProfile(null)
+        }
+
+        setLoading(false)
+        return
+      }
+
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
         setProfile(null)
-        // Session expired or signed out: redirect to login if on a protected page.
-        if (event === 'SIGNED_OUT' && typeof window !== 'undefined' &&
-            window.location.pathname.startsWith('/dashboard')) {
+        setAccessToken(null)
+        if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard')) {
           window.location.href = '/'
         }
         return
       }
 
-      // Skip duplicate fetch if initAuth already loaded this user's profile
-      if (session.user.id === initFetchedIdRef.current) return
+      // SIGNED_IN, TOKEN_REFRESHED, USER_UPDATED
+      setUser(session?.user ?? null)
+      setAccessToken(session?.access_token ?? null)
+
+      if (!session?.user) {
+        setProfile(null)
+        return
+      }
+
+      // Skip profile re-fetch if we already loaded it for this user
+      if (session.user.id === profileFetchedForRef.current) return
+
+      profileFetchedForRef.current = session.user.id
       try {
         const p = await fetchProfile(session.user.id)
         if (p && !p.is_active) {
@@ -123,12 +112,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         setProfile(p)
       } catch (err) {
-        console.error('Error fetching profile on auth state change:', err)
+        console.error('AuthProvider: profile fetch failed', err)
       }
     })
 
     return () => subscription.unsubscribe()
-  }, [handleSession])
+  }, [])
 
   const signOut = async () => {
     await supabase.auth.signOut()
