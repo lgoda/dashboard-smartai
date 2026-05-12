@@ -1,1 +1,6 @@
-{}
+{
+  "functions": {
+    "src/app/api/campaigns/process/route.ts": { "maxDuration": 60 },
+    "src/app/api/ghl/analyze/route.ts": { "maxDuration": 60 }
+  }
+}
