@@ -96,27 +96,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initAuth()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null)
       setAccessToken(session?.access_token ?? null)
-      if (session?.user) {
-        // Skip duplicate fetch if initAuth already loaded this user's profile
-        if (session.user.id === initFetchedIdRef.current) return
-        try {
-          const p = await fetchProfile(session.user.id)
-          if (p && !p.is_active) {
-            await supabase.auth.signOut()
-            setUser(null)
-            setProfile(null)
-            setAccessToken(null)
-            return
-          }
-          setProfile(p)
-        } catch (err) {
-          console.error('Error fetching profile on auth state change:', err)
-        }
-      } else {
+
+      if (!session) {
         setProfile(null)
+        // Session expired or signed out: redirect to login if on a protected page.
+        if (event === 'SIGNED_OUT' && typeof window !== 'undefined' &&
+            window.location.pathname.startsWith('/dashboard')) {
+          window.location.href = '/'
+        }
+        return
+      }
+
+      // Skip duplicate fetch if initAuth already loaded this user's profile
+      if (session.user.id === initFetchedIdRef.current) return
+      try {
+        const p = await fetchProfile(session.user.id)
+        if (p && !p.is_active) {
+          await supabase.auth.signOut()
+          setUser(null)
+          setProfile(null)
+          setAccessToken(null)
+          return
+        }
+        setProfile(p)
+      } catch (err) {
+        console.error('Error fetching profile on auth state change:', err)
       }
     })
 
