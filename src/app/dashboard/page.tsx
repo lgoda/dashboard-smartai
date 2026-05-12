@@ -30,7 +30,7 @@ type UserServices = {
 }
 
 export default function Dashboard() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, accessToken } = useAuth()
   const [stats, setStats] = useState<Stats[]>([])
   const [totalLeads, setTotalLeads] = useState(0)
   const [totalConvs, setTotalConvs] = useState(0)
@@ -71,7 +71,7 @@ export default function Dashboard() {
   }, [user?.id])
 
   const fetchStats = useCallback(async () => {
-    if (!user?.id || !dateRange.from || !dateRange.to) return
+    if (!user?.id || !accessToken || !dateRange.from || !dateRange.to) return
 
     const myId = ++fetchIdRef.current
 
@@ -143,11 +143,11 @@ export default function Dashboard() {
     } finally {
       if (fetchIdRef.current === myId) setDataLoading(false)
     }
-  }, [user?.id, dateRange])
+  }, [user?.id, accessToken, dateRange])
 
   useEffect(() => {
-    if (user?.id) fetchStats()
-  }, [fetchStats, user?.id])
+    if (user?.id && accessToken) fetchStats()
+  }, [fetchStats, user?.id, accessToken])
 
   const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString)

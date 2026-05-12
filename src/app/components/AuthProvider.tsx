@@ -44,19 +44,23 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
 }
 
 // Reads the stored Supabase session from localStorage without any network call.
-// Supabase stores the full session JSON at the configured storageKey.
-// This lets us resolve auth state in < 1ms on page refresh, avoiding the
-// blocking token-refresh network request that caused the infinite skeleton.
-function getStoredSession(): { user: User; access_token: string } | null {
+// Returns the user immediately (so the page renders) but only returns the
+// access_token if it is NOT expired. An expired token causes Supabase RLS
+// to treat auth.uid() as null, silently returning empty rows — we must wait
+// for onAuthStateChange TOKEN_REFRESHED to provide a valid token instead.
+function getStoredSession(): { user: User; access_token: string | null } | null {
   if (typeof window === 'undefined') return null
   try {
     const raw = localStorage.getItem('smartbot-auth')
     if (!raw) return null
     const s = JSON.parse(raw)
-    if (s?.user?.id && s?.access_token) {
-      return { user: s.user as User, access_token: s.access_token as string }
+    if (!s?.user?.id || !s?.access_token) return null
+    // expires_at is seconds since epoch; give a 30s buffer
+    const isExpired = s.expires_at && (Date.now() / 1000) > (s.expires_at - 30)
+    return {
+      user: s.user as User,
+      access_token: isExpired ? null : (s.access_token as string),
     }
-    return null
   } catch {
     return null
   }
@@ -79,7 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const stored = getStoredSession()
     if (stored) {
       setUser(stored.user)
-      setAccessToken(stored.access_token)
+      // Only set token if it's still valid — expired token causes RLS to
+      // return empty rows. If null here, TOKEN_REFRESHED will set it shortly.
+      if (stored.access_token) setAccessToken(stored.access_token)
       setLoading(false)
       profileLoadedRef.current = stored.user.id
       // Non-blocking profile fetch
