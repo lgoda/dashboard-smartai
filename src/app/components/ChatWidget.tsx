@@ -129,7 +129,7 @@ export function ChatWidget() {
       {/* ── FAB button — nascosto su mobile quando chat è aperta ── */}
       <button
         onClick={open}
-        className={`fixed bottom-6 right-6 z-40 w-14 h-14 bg-[#F0AD4E] text-[#1e293b] rounded-full shadow-xl hover:bg-[#E09A3D] active:scale-95 transition-all flex items-center justify-center ${isOpen ? 'hidden sm:flex' : 'flex'}`}
+        className={`fixed bottom-6 right-6 z-40 w-14 h-14 bg-[#F59E0B] text-[#1e293b] rounded-full shadow-xl hover:bg-[#D97706] active:scale-95 transition-all flex items-center justify-center ${isOpen ? 'hidden sm:flex' : 'flex'}`}
         aria-label="Apri assistente"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -143,21 +143,21 @@ export function ChatWidget() {
         <div
           className={[
             // Mobile: full screen
-            'fixed inset-0 z-50 flex flex-col bg-[#2C2E31]',
+            'fixed inset-0 z-50 flex flex-col bg-[#18191C]',
             // Desktop: floating panel
             'sm:inset-auto sm:bottom-[88px] sm:right-6',
             'sm:w-[400px] sm:h-[580px]',
-            'sm:rounded-2xl sm:border sm:border-[#3A3D42] sm:shadow-2xl',
+            'sm:rounded-2xl sm:border sm:border-[#222428] sm:shadow-2xl',
           ].join(' ')}
         >
           {/* ── Header ── */}
-          <div className="flex items-center gap-3 px-4 bg-[#1F2124] border-b border-[#3A3D42] shrink-0"
+          <div className="flex items-center gap-3 px-4 bg-[#141517] border-b border-[#222428] shrink-0"
             style={{ paddingTop: 'max(12px, env(safe-area-inset-top))', paddingBottom: '12px' }}>
 
             {/* Back/close — freccia su mobile, X su desktop */}
             <button
               onClick={close}
-              className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-[#3A3D42] transition-colors shrink-0"
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-[#222428] transition-colors shrink-0"
               aria-label="Chiudi"
             >
               {/* Arrow on mobile */}
@@ -170,12 +170,12 @@ export function ChatWidget() {
               </svg>
             </button>
 
-            <div className="w-9 h-9 bg-[#F0AD4E] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-sm shrink-0">S</div>
+            <div className="w-9 h-9 bg-[#F59E0B] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-sm shrink-0">S</div>
 
             <div className="flex-1 min-w-0">
               <p className="text-white font-semibold text-sm leading-tight truncate">Assistente SmartService</p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#5CB85C]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
                 <p className="text-xs text-gray-400">Online</p>
               </div>
             </div>
@@ -186,12 +186,12 @@ export function ChatWidget() {
             {messages.map(msg => (
               <div key={msg.id} className={`flex items-end gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'assistant' && (
-                  <div className="w-7 h-7 bg-[#F0AD4E] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-xs shrink-0">S</div>
+                  <div className="w-7 h-7 bg-[#F59E0B] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-xs shrink-0">S</div>
                 )}
                 <div className={`max-w-[78%] rounded-2xl text-sm leading-relaxed overflow-hidden shadow-sm ${
                   msg.role === 'user'
-                    ? 'bg-[#F0AD4E] text-[#1e293b] font-medium rounded-br-sm'
-                    : 'bg-[#3A3D42] text-white rounded-bl-sm'
+                    ? 'bg-[#F59E0B] text-[#1e293b] font-medium rounded-br-sm'
+                    : 'bg-[#222428] text-white rounded-bl-sm'
                 }`}>
                   {msg.imagePreviewUrl && (
                     <img src={msg.imagePreviewUrl} alt="screenshot" className="w-full max-w-[260px] object-cover" />
@@ -206,7 +206,7 @@ export function ChatWidget() {
               <div className="flex flex-col gap-2 pl-9">
                 {QUICK_QUESTIONS.map(q => (
                   <button key={q} onClick={() => send(q)}
-                    className="text-left text-sm text-[#F0AD4E] border border-[#F0AD4E]/30 hover:border-[#F0AD4E] hover:bg-[#F0AD4E]/5 active:bg-[#F0AD4E]/10 px-4 py-3 rounded-xl transition-colors">
+                    className="text-left text-sm text-[#F59E0B] border border-[#F59E0B]/30 hover:border-[#F59E0B] hover:bg-[#F59E0B]/5 active:bg-[#F59E0B]/10 px-4 py-3 rounded-xl transition-colors">
                     {q}
                   </button>
                 ))}
@@ -216,8 +216,8 @@ export function ChatWidget() {
             {/* Typing indicator */}
             {isLoading && (
               <div className="flex items-end gap-2">
-                <div className="w-7 h-7 bg-[#F0AD4E] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-xs shrink-0">S</div>
-                <div className="bg-[#3A3D42] px-4 py-3.5 rounded-2xl rounded-bl-sm shadow-sm">
+                <div className="w-7 h-7 bg-[#F59E0B] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-xs shrink-0">S</div>
+                <div className="bg-[#222428] px-4 py-3.5 rounded-2xl rounded-bl-sm shadow-sm">
                   <div className="flex gap-1 items-center">
                     {[0, 150, 300].map(d => (
                       <div key={d} className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
@@ -232,14 +232,14 @@ export function ChatWidget() {
 
           {/* ── Input bar ── */}
           <div
-            className="shrink-0 bg-[#1F2124] border-t border-[#3A3D42]"
+            className="shrink-0 bg-[#141517] border-t border-[#222428]"
             style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
           >
             {/* Image preview */}
             {pendingImagePreview && (
               <div className="px-4 pt-3 flex items-center gap-3">
                 <div className="relative">
-                  <img src={pendingImagePreview} alt="preview" className="w-14 h-14 object-cover rounded-xl border border-[#3A3D42]" />
+                  <img src={pendingImagePreview} alt="preview" className="w-14 h-14 object-cover rounded-xl border border-[#222428]" />
                   <button onClick={() => { setPendingImage(null); setPendingImagePreview(null) }}
                     className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center font-bold">
                     ✕
@@ -256,7 +256,7 @@ export function ChatWidget() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isLoading}
-                className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-[#F0AD4E] active:text-[#F0AD4E] transition-colors disabled:opacity-40 shrink-0"
+                className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-[#F59E0B] active:text-[#F59E0B] transition-colors disabled:opacity-40 shrink-0"
                 aria-label="Allega immagine"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -273,14 +273,14 @@ export function ChatWidget() {
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) } }}
                 placeholder={pendingImage ? 'Descrizione...' : 'Scrivi un messaggio...'}
                 disabled={isLoading}
-                className="flex-1 bg-[#2C2E31] text-white text-sm px-4 py-3 rounded-2xl border border-[#3A3D42] placeholder-gray-500 focus:outline-none focus:border-[#F0AD4E] disabled:opacity-50 transition-colors"
+                className="flex-1 bg-[#18191C] text-white text-sm px-4 py-3 rounded-2xl border border-[#222428] placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] disabled:opacity-50 transition-colors"
               />
 
               {/* Send */}
               <button
                 onClick={() => send(input)}
                 disabled={(!input.trim() && !pendingImage) || isLoading}
-                className="w-10 h-10 bg-[#F0AD4E] text-[#1e293b] rounded-2xl flex items-center justify-center hover:bg-[#E09A3D] active:scale-95 transition-all disabled:opacity-40 shrink-0"
+                className="w-10 h-10 bg-[#F59E0B] text-[#1e293b] rounded-2xl flex items-center justify-center hover:bg-[#D97706] active:scale-95 transition-all disabled:opacity-40 shrink-0"
                 aria-label="Invia"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

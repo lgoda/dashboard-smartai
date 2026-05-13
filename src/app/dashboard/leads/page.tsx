@@ -258,7 +258,7 @@ export default function LeadsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-[#F0AD4E] rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-[#F59E0B] rounded-xl flex items-center justify-center">
             <span className="text-[#1e293b] text-lg">📇</span>
           </div>
           <div>
@@ -266,7 +266,7 @@ export default function LeadsPage() {
             <p className="text-gray-300 mt-1">
               {totalCount} lead totali
               {getActiveFiltersCount > 0 && (
-                <span className="text-[#F0AD4E] font-medium"> • {getActiveFiltersCount} filtri attivi</span>
+                <span className="text-[#F59E0B] font-medium"> • {getActiveFiltersCount} filtri attivi</span>
               )}
             </p>
           </div>
@@ -282,11 +282,11 @@ export default function LeadsPage() {
         </button>
       </div>
 
-      <div className="bg-gradient-to-br from-[#3A3D42] to-[#2C2E31] rounded-xl p-6 shadow-lg border border-[#1F2124] hover:border-[#F0AD4E]/20 transition-all duration-300">
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#1F2124]">
+      <div className="bg-gradient-to-br from-[#222428] to-[#18191C] rounded-xl p-6 shadow-lg border border-[#141517] hover:border-[#F59E0B]/20 transition-all duration-300">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#141517]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#F0AD4E]/10 rounded-lg flex items-center justify-center border border-[#F0AD4E]/20">
-              <svg className="w-5 h-5 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 bg-[#F59E0B]/10 rounded-lg flex items-center justify-center border border-[#F59E0B]/20">
+              <svg className="w-5 h-5 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
               </svg>
             </div>
@@ -298,7 +298,7 @@ export default function LeadsPage() {
           {getActiveFiltersCount > 0 && (
             <button
               onClick={clearAllFilters}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-[#F0AD4E] font-medium rounded-lg hover:bg-[#1F2124] transition-all duration-200"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-[#F59E0B] font-medium rounded-lg hover:bg-[#141517] transition-all duration-200"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -311,7 +311,7 @@ export default function LeadsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-5">
           <div className="lg:col-span-2">
             <label htmlFor="search" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               Ricerca
@@ -323,7 +323,7 @@ export default function LeadsPage() {
                 placeholder="Cerca in nome, email, telefono, messaggio..."
                 value={filters.search}
                 onChange={(e) => updateFilter('search', e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 text-white placeholder-gray-500 shadow-sm hover:shadow-md"
+                className="w-full pl-11 pr-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white placeholder-gray-500 shadow-sm hover:shadow-md"
               />
               <svg className="absolute left-3.5 top-3 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -333,7 +333,7 @@ export default function LeadsPage() {
 
           <div>
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               Periodo
@@ -346,7 +346,7 @@ export default function LeadsPage() {
 
           <div>
             <label htmlFor="source" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
               </svg>
               Fonte
@@ -355,7 +355,7 @@ export default function LeadsPage() {
               id="source"
               value={filters.source}
               onChange={(e) => updateFilter('source', e.target.value)}
-              className="w-full px-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 text-white shadow-sm hover:shadow-md"
+              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
             >
               <option value="">Tutte le fonti</option>
               {sources.map(source => (
@@ -365,10 +365,10 @@ export default function LeadsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-5 border-t border-[#1F2124]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-5 border-t border-[#141517]">
           <div>
             <label htmlFor="hasMessage" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
               Messaggio
@@ -377,7 +377,7 @@ export default function LeadsPage() {
               id="hasMessage"
               value={filters.hasMessage}
               onChange={(e) => updateFilter('hasMessage', e.target.value)}
-              className="w-full px-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 text-white shadow-sm hover:shadow-md"
+              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
             >
               <option value="all">Tutti i lead</option>
               <option value="with">Con messaggio</option>
@@ -387,7 +387,7 @@ export default function LeadsPage() {
 
           <div>
             <label htmlFor="sortBy" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
               </svg>
               Ordina per
@@ -396,7 +396,7 @@ export default function LeadsPage() {
               id="sortBy"
               value={filters.sortBy}
               onChange={(e) => updateFilter('sortBy', e.target.value as 'date' | 'name' | 'source')}
-              className="w-full px-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 text-white shadow-sm hover:shadow-md"
+              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
             >
               <option value="date">Data</option>
               <option value="name">Nome</option>
@@ -406,7 +406,7 @@ export default function LeadsPage() {
 
           <div>
             <label htmlFor="sortOrder" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
               Direzione
@@ -415,7 +415,7 @@ export default function LeadsPage() {
               id="sortOrder"
               value={filters.sortOrder}
               onChange={(e) => updateFilter('sortOrder', e.target.value as 'asc' | 'desc')}
-              className="w-full px-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 text-white shadow-sm hover:shadow-md"
+              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
             >
               <option value="desc">Decrescente</option>
               <option value="asc">Crescente</option>
@@ -424,9 +424,9 @@ export default function LeadsPage() {
         </div>
 
         {getActiveFiltersCount > 0 && (
-          <div className="mt-6 pt-5 border-t border-[#1F2124]">
+          <div className="mt-6 pt-5 border-t border-[#141517]">
             <div className="flex items-center gap-2 mb-3">
-              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
               </svg>
               <span className="text-sm font-semibold text-gray-300">Filtri attivi ({getActiveFiltersCount})</span>
@@ -466,49 +466,49 @@ export default function LeadsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
+        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Lead Visibili</p>
               <p className="text-2xl font-bold text-white mt-1">{leads.length}</p>
             </div>
-            <div className="w-10 h-10 bg-[#F0AD4E]/20 rounded-lg flex items-center justify-center">
-              <span className="text-[#F0AD4E]">📇</span>
+            <div className="w-10 h-10 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
+              <span className="text-[#F59E0B]">📇</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
+        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Con Messaggio</p>
               <p className="text-2xl font-bold text-white mt-1">{leadsWithMessage}</p>
             </div>
-            <div className="w-10 h-10 bg-[#5CB85C]/20 rounded-lg flex items-center justify-center">
-              <span className="text-[#5CB85C]">💬</span>
+            <div className="w-10 h-10 bg-[#22C55E]/20 rounded-lg flex items-center justify-center">
+              <span className="text-[#22C55E]">💬</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
+        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Fonti Uniche</p>
               <p className="text-2xl font-bold text-white mt-1">{uniqueSources}</p>
             </div>
-            <div className="w-10 h-10 bg-[#F0AD4E]/20 rounded-lg flex items-center justify-center">
-              <span className="text-[#F0AD4E]">🎯</span>
+            <div className="w-10 h-10 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
+              <span className="text-[#F59E0B]">🎯</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
+        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Totale</p>
               <p className="text-2xl font-bold text-white mt-1">{totalCount}</p>
             </div>
-            <div className="w-10 h-10 bg-[#3A3D42] rounded-lg flex items-center justify-center border border-[#1F2124]">
+            <div className="w-10 h-10 bg-[#222428] rounded-lg flex items-center justify-center border border-[#141517]">
               <span className="text-gray-300">📊</span>
             </div>
           </div>
@@ -529,18 +529,18 @@ export default function LeadsPage() {
         />
       )}
 
-      <div className="bg-[#3A3D42] rounded-xl shadow-sm border border-[#1F2124] overflow-hidden">
+      <div className="bg-[#222428] rounded-xl shadow-sm border border-[#141517] overflow-hidden">
         {isLoading ? (
           <div className="p-6">
             <div className="space-y-4">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-16 bg-[#1F2124] rounded loading"></div>
+                <div key={i} className="h-16 bg-[#141517] rounded loading"></div>
               ))}
             </div>
           </div>
         ) : leads.length === 0 ? (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-[#1F2124] rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-[#141517] rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-gray-500 text-2xl">📇</span>
             </div>
             <h3 className="text-lg font-medium text-white mb-2">
@@ -556,12 +556,12 @@ export default function LeadsPage() {
         ) : (
           <>
             {/* Mobile card view */}
-            <div className="md:hidden divide-y divide-[#1F2124]">
+            <div className="md:hidden divide-y divide-[#141517]">
               {leads.map((lead) => (
                 <div key={lead.id} className="p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-[#F0AD4E] rounded-full flex items-center justify-center shrink-0">
+                      <div className="w-9 h-9 bg-[#F59E0B] rounded-full flex items-center justify-center shrink-0">
                         <span className="text-[#1e293b] font-bold text-sm">{lead.name.charAt(0).toUpperCase()}</span>
                       </div>
                       <div>
@@ -569,14 +569,14 @@ export default function LeadsPage() {
                         <div className="text-xs text-gray-400">{new Date(lead.created_at).toLocaleDateString('it-IT')}</div>
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#F0AD4E]/20 text-[#F0AD4E] border border-[#F0AD4E]/30 shrink-0">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30 shrink-0">
                       {lead.source}
                     </span>
                   </div>
                   <div className="text-sm text-gray-300">{lead.email}</div>
                   {lead.phone && <div className="text-sm text-gray-400">{lead.phone}</div>}
                   {lead.message?.trim() && (
-                    <div className="text-xs text-gray-400 line-clamp-2 bg-[#1F2124] rounded p-2">{lead.message}</div>
+                    <div className="text-xs text-gray-400 line-clamp-2 bg-[#141517] rounded p-2">{lead.message}</div>
                   )}
                 </div>
               ))}
@@ -585,7 +585,7 @@ export default function LeadsPage() {
             {/* Desktop table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full">
-                <thead className="bg-[#1F2124]">
+                <thead className="bg-[#141517]">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Nome</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Contatti</th>
@@ -594,12 +594,12 @@ export default function LeadsPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Data</th>
                   </tr>
                 </thead>
-                <tbody className="bg-[#3A3D42] divide-y divide-[#1F2124]">
+                <tbody className="bg-[#222428] divide-y divide-[#141517]">
                   {leads.map((lead) => (
                     <tr key={lead.id} className="table-row">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <div className="w-10 h-10 bg-[#F0AD4E] rounded-full flex items-center justify-center mr-3">
+                          <div className="w-10 h-10 bg-[#F59E0B] rounded-full flex items-center justify-center mr-3">
                             <span className="text-[#1e293b] font-medium text-sm">{lead.name.charAt(0).toUpperCase()}</span>
                           </div>
                           <div className="text-sm font-medium text-white">{lead.name}</div>
@@ -621,7 +621,7 @@ export default function LeadsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F0AD4E]/20 text-[#F0AD4E] border border-[#F0AD4E]/30">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30">
                           {lead.source}
                         </span>
                       </td>

@@ -522,13 +522,13 @@ export default function SettingsPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-[#3A3D42] rounded-lg loading"></div>
-          <div className="h-8 bg-[#3A3D42] rounded w-48 loading"></div>
+          <div className="w-8 h-8 bg-[#222428] rounded-lg loading"></div>
+          <div className="h-8 bg-[#222428] rounded w-48 loading"></div>
         </div>
-        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
+        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-16 bg-[#1F2124] rounded loading"></div>
+              <div key={i} className="h-16 bg-[#141517] rounded loading"></div>
             ))}
           </div>
         </div>
@@ -541,7 +541,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 bg-[#F0AD4E] rounded-xl flex items-center justify-center">
+        <div className="w-10 h-10 bg-[#F59E0B] rounded-xl flex items-center justify-center">
           <span className="text-[#1e293b] text-lg">⚙️</span>
         </div>
         <div>
@@ -553,20 +553,20 @@ export default function SettingsPage() {
       {message && (
         <div className={`p-4 rounded-lg ${
           message.type === 'success' 
-            ? 'bg-[#5CB85C]/20 text-[#5CB85C] border border-[#5CB85C]/30' 
+            ? 'bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30' 
             : 'bg-red-500/20 text-red-400 border border-red-500/30'
         }`}>
           {message.text}
         </div>
       )}
 
-      <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
+      <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
         <h2 className="text-xl font-semibold text-white mb-4">Servizi Attivi</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex items-center justify-between p-4 bg-[#1F2124] rounded-lg">
+          <div className="flex items-center justify-between p-4 bg-[#141517] rounded-lg">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-[#F0AD4E]/20 rounded-lg flex items-center justify-center">
-                <span className="text-[#F0AD4E]">💬</span>
+              <div className="w-10 h-10 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
+                <span className="text-[#F59E0B]">💬</span>
               </div>
               <div>
                 <p className="font-medium text-white">Chatbot</p>
@@ -575,17 +575,17 @@ export default function SettingsPage() {
             </div>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
               services?.has_chatbot
-                ? 'bg-[#5CB85C]/20 text-[#5CB85C] border border-[#5CB85C]/30'
-                : 'bg-[#1F2124] text-gray-500 border border-[#1F2124]'
+                ? 'bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30'
+                : 'bg-[#141517] text-gray-500 border border-[#141517]'
             }`}>
               {services?.has_chatbot ? 'Attivo' : 'Disabilitato'}
             </span>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-[#1F2124] rounded-lg">
+          <div className="flex items-center justify-between p-4 bg-[#141517] rounded-lg">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-[#F0AD4E]/20 rounded-lg flex items-center justify-center">
-                <span className="text-[#F0AD4E]">📞</span>
+              <div className="w-10 h-10 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
+                <span className="text-[#F59E0B]">📞</span>
               </div>
               <div>
                 <p className="font-medium text-white">Chiamate IA</p>
@@ -594,8 +594,8 @@ export default function SettingsPage() {
             </div>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
               services?.has_ai_calls || tokenData || retellTokenData
-                ? 'bg-[#5CB85C]/20 text-[#5CB85C] border border-[#5CB85C]/30'
-                : 'bg-[#1F2124] text-gray-500 border border-[#1F2124]'
+                ? 'bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30'
+                : 'bg-[#141517] text-gray-500 border border-[#141517]'
             }`}>
               {services?.has_ai_calls || tokenData || retellTokenData ? 'Attivo' : 'Disabilitato'}
             </span>
@@ -603,14 +603,14 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
+      <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
         <h2 className="text-xl font-semibold text-white mb-4">Configurazione ElevenLabs</h2>
 
         {tokenData && (
-          <div className="mb-6 p-4 bg-[#F0AD4E]/20 border border-[#F0AD4E]/30 rounded-lg">
+          <div className="mb-6 p-4 bg-[#F59E0B]/20 border border-[#F59E0B]/30 rounded-lg">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-sm font-medium text-[#F0AD4E] mb-2">Token attivo</p>
+                <p className="text-sm font-medium text-[#F59E0B] mb-2">Token attivo</p>
                 <p className="text-xs text-gray-400">
                   Ultima verifica: {tokenData.last_verified_at ? formatDate(tokenData.last_verified_at) : 'Mai'}
                 </p>
@@ -619,7 +619,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div className="flex items-center space-x-2">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#5CB85C]/20 text-[#5CB85C] border border-[#5CB85C]/30">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30">
                   Verificato
                 </span>
               </div>
@@ -639,12 +639,12 @@ export default function SettingsPage() {
                 value={apiToken}
                 onChange={(e) => setApiToken(e.target.value)}
                 placeholder="Inserisci il tuo token ElevenLabs"
-                className="w-full px-4 py-2 pr-24 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E] focus:border-[#F0AD4E] transition-colors text-white placeholder-gray-500"
+                className="w-full px-4 py-2 pr-24 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] transition-colors text-white placeholder-gray-500"
               />
               <button
                 type="button"
                 onClick={() => setShowToken(!showToken)}
-                className="absolute right-2 top-2 px-3 py-1 text-xs text-gray-400 hover:text-[#F0AD4E]"
+                className="absolute right-2 top-2 px-3 py-1 text-xs text-gray-400 hover:text-[#F59E0B]"
               >
                 {showToken ? 'Nascondi' : 'Mostra'}
               </button>
@@ -655,7 +655,7 @@ export default function SettingsPage() {
                 href="https://elevenlabs.io/app/settings/api-keys"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#F0AD4E] hover:underline"
+                className="text-[#F59E0B] hover:underline"
               >
                 Developers di ElevenLabs
               </a>
@@ -666,7 +666,7 @@ export default function SettingsPage() {
             <button
               onClick={handleSaveToken}
               disabled={isSaving || isVerifying || !apiToken.trim()}
-              className="flex-1 bg-[#F0AD4E] text-[#1e293b] px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-shadow hover:bg-[#E09A3D]"
+              className="flex-1 bg-[#F59E0B] text-[#1e293b] px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-shadow hover:bg-[#D97706]"
             >
               {isSaving ? 'Salvataggio...' : isVerifying ? 'Verifica...' : tokenData ? 'Aggiorna Token' : 'Salva Token'}
             </button>
@@ -683,14 +683,14 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
+      <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
         <h2 className="text-xl font-semibold text-white mb-4">Configurazione Retell AI</h2>
 
         {retellTokenData && (
-          <div className="mb-6 p-4 bg-[#F0AD4E]/20 border border-[#F0AD4E]/30 rounded-lg">
+          <div className="mb-6 p-4 bg-[#F59E0B]/20 border border-[#F59E0B]/30 rounded-lg">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-sm font-medium text-[#F0AD4E] mb-2">Token attivo</p>
+                <p className="text-sm font-medium text-[#F59E0B] mb-2">Token attivo</p>
                 <p className="text-xs text-gray-400">
                   Ultima verifica: {retellTokenData.last_verified_at ? formatDate(retellTokenData.last_verified_at) : 'Mai'}
                 </p>
@@ -699,7 +699,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div className="flex items-center space-x-2">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#5CB85C]/20 text-[#5CB85C] border border-[#5CB85C]/30">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30">
                   Verificato
                 </span>
               </div>
@@ -719,12 +719,12 @@ export default function SettingsPage() {
                 value={retellApiToken}
                 onChange={(e) => setRetellApiToken(e.target.value)}
                 placeholder="Inserisci il tuo token Retell AI"
-                className="w-full px-4 py-2 pr-24 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E] focus:border-[#F0AD4E] transition-colors text-white placeholder-gray-500"
+                className="w-full px-4 py-2 pr-24 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] transition-colors text-white placeholder-gray-500"
               />
               <button
                 type="button"
                 onClick={() => setShowRetellToken(!showRetellToken)}
-                className="absolute right-2 top-2 px-3 py-1 text-xs text-gray-400 hover:text-[#F0AD4E]"
+                className="absolute right-2 top-2 px-3 py-1 text-xs text-gray-400 hover:text-[#F59E0B]"
               >
                 {showRetellToken ? 'Nascondi' : 'Mostra'}
               </button>
@@ -735,7 +735,7 @@ export default function SettingsPage() {
                 href="https://retellai.com/settings/api-keys"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#F0AD4E] hover:underline"
+                className="text-[#F59E0B] hover:underline"
               >
                 dashboard Retell AI
               </a>
@@ -746,7 +746,7 @@ export default function SettingsPage() {
             <button
               onClick={handleSaveRetellToken}
               disabled={isSavingRetell || isVerifyingRetell || !retellApiToken.trim()}
-              className="flex-1 bg-[#F0AD4E] text-[#1e293b] px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-shadow hover:bg-[#E09A3D]"
+              className="flex-1 bg-[#F59E0B] text-[#1e293b] px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-shadow hover:bg-[#D97706]"
             >
               {isSavingRetell ? 'Salvataggio...' : isVerifyingRetell ? 'Verifica...' : retellTokenData ? 'Aggiorna Token' : 'Salva Token'}
             </button>
@@ -763,14 +763,14 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
+      <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
         <h2 className="text-xl font-semibold text-white mb-4">Configurazione GoHighLevel (CRM)</h2>
 
         {ghlTokenData && (
-          <div className="mb-6 p-4 bg-[#F0AD4E]/20 border border-[#F0AD4E]/30 rounded-lg">
+          <div className="mb-6 p-4 bg-[#F59E0B]/20 border border-[#F59E0B]/30 rounded-lg">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-sm font-medium text-[#F0AD4E] mb-1">Connessione attiva</p>
+                <p className="text-sm font-medium text-[#F59E0B] mb-1">Connessione attiva</p>
                 <p className="text-xs text-gray-400">Location ID: {ghlTokenData.location_id}</p>
                 <p className="text-xs text-gray-400">
                   Ultima verifica: {ghlTokenData.last_verified_at ? formatDate(ghlTokenData.last_verified_at) : 'Mai'}
@@ -779,7 +779,7 @@ export default function SettingsPage() {
                   Ultimo aggiornamento: {formatDate(ghlTokenData.updated_at)}
                 </p>
               </div>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#5CB85C]/20 text-[#5CB85C] border border-[#5CB85C]/30">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30">
                 Connesso
               </span>
             </div>
@@ -798,12 +798,12 @@ export default function SettingsPage() {
                 value={ghlApiToken}
                 onChange={(e) => setGhlApiToken(e.target.value)}
                 placeholder="Inserisci il tuo token GHL"
-                className="w-full px-4 py-2 pr-24 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E] focus:border-[#F0AD4E] transition-colors text-white placeholder-gray-500"
+                className="w-full px-4 py-2 pr-24 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] transition-colors text-white placeholder-gray-500"
               />
               <button
                 type="button"
                 onClick={() => setShowGhlToken(!showGhlToken)}
-                className="absolute right-2 top-2 px-3 py-1 text-xs text-gray-400 hover:text-[#F0AD4E]"
+                className="absolute right-2 top-2 px-3 py-1 text-xs text-gray-400 hover:text-[#F59E0B]"
               >
                 {showGhlToken ? 'Nascondi' : 'Mostra'}
               </button>
@@ -820,7 +820,7 @@ export default function SettingsPage() {
               value={ghlLocationId}
               onChange={(e) => setGhlLocationId(e.target.value)}
               placeholder="Es. abc123xyz"
-              className="w-full px-4 py-2 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E] focus:border-[#F0AD4E] transition-colors text-white placeholder-gray-500"
+              className="w-full px-4 py-2 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] transition-colors text-white placeholder-gray-500"
             />
             <p className="text-xs text-gray-400 mt-2">
               Trovi il Location ID in GoHighLevel → Impostazioni → Business Info
@@ -831,7 +831,7 @@ export default function SettingsPage() {
             <button
               onClick={handleSaveGhlToken}
               disabled={isSavingGhl || isVerifyingGhl || !ghlApiToken.trim() || !ghlLocationId.trim()}
-              className="flex-1 bg-[#F0AD4E] text-[#1e293b] px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-shadow hover:bg-[#E09A3D]"
+              className="flex-1 bg-[#F59E0B] text-[#1e293b] px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-shadow hover:bg-[#D97706]"
             >
               {isSavingGhl ? 'Salvataggio...' : isVerifyingGhl ? 'Verifica...' : ghlTokenData ? 'Aggiorna Configurazione' : 'Salva e Connetti'}
             </button>
@@ -848,15 +848,15 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
+      <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
         <h2 className="text-xl font-semibold text-white mb-1">Configurazione OpenAI</h2>
         <p className="text-sm text-gray-400 mb-4">Necessario per l&apos;analisi automatica delle opportunità CRM</p>
 
         {openaiTokenData && (
-          <div className="mb-6 p-4 bg-[#F0AD4E]/20 border border-[#F0AD4E]/30 rounded-lg">
+          <div className="mb-6 p-4 bg-[#F59E0B]/20 border border-[#F59E0B]/30 rounded-lg">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-sm font-medium text-[#F0AD4E] mb-1">Token attivo</p>
+                <p className="text-sm font-medium text-[#F59E0B] mb-1">Token attivo</p>
                 <p className="text-xs text-gray-400">
                   Ultima verifica: {openaiTokenData.last_verified_at ? formatDate(openaiTokenData.last_verified_at) : 'Mai'}
                 </p>
@@ -864,7 +864,7 @@ export default function SettingsPage() {
                   Ultimo aggiornamento: {formatDate(openaiTokenData.updated_at)}
                 </p>
               </div>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#5CB85C]/20 text-[#5CB85C] border border-[#5CB85C]/30">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30">
                 Verificato
               </span>
             </div>
@@ -883,12 +883,12 @@ export default function SettingsPage() {
                 value={openaiApiToken}
                 onChange={(e) => setOpenaiApiToken(e.target.value)}
                 placeholder="sk-..."
-                className="w-full px-4 py-2 pr-24 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E] focus:border-[#F0AD4E] transition-colors text-white placeholder-gray-500"
+                className="w-full px-4 py-2 pr-24 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] transition-colors text-white placeholder-gray-500"
               />
               <button
                 type="button"
                 onClick={() => setShowOpenaiToken(!showOpenaiToken)}
-                className="absolute right-2 top-2 px-3 py-1 text-xs text-gray-400 hover:text-[#F0AD4E]"
+                className="absolute right-2 top-2 px-3 py-1 text-xs text-gray-400 hover:text-[#F59E0B]"
               >
                 {showOpenaiToken ? 'Nascondi' : 'Mostra'}
               </button>
@@ -899,7 +899,7 @@ export default function SettingsPage() {
                 href="https://platform.openai.com/api-keys"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#F0AD4E] hover:underline"
+                className="text-[#F59E0B] hover:underline"
               >
                 platform.openai.com/api-keys
               </a>
@@ -910,7 +910,7 @@ export default function SettingsPage() {
             <button
               onClick={handleSaveOpenaiToken}
               disabled={isSavingOpenai || isVerifyingOpenai || !openaiApiToken.trim()}
-              className="flex-1 bg-[#F0AD4E] text-[#1e293b] px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-shadow hover:bg-[#E09A3D]"
+              className="flex-1 bg-[#F59E0B] text-[#1e293b] px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-shadow hover:bg-[#D97706]"
             >
               {isSavingOpenai ? 'Salvataggio...' : isVerifyingOpenai ? 'Verifica...' : openaiTokenData ? 'Aggiorna Token' : 'Salva Token'}
             </button>
@@ -927,7 +927,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="bg-[#3A3D42] rounded-xl p-6 border border-[#1F2124]">
+      <div className="bg-[#222428] rounded-xl p-6 border border-[#141517]">
         <h3 className="text-lg font-semibold text-white mb-3">Come configurare ElevenLabs</h3>
         <ol className="space-y-2 text-sm text-gray-300">
           <li className="flex items-start">

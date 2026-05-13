@@ -37,7 +37,7 @@ export function NavigationProgress() {
     <>
       <div className="nav-progress-bar" />
       <div className="fixed inset-0 z-[9998] flex items-center justify-center pointer-events-none">
-        <div className="w-10 h-10 rounded-full border-4 border-[#3A3D42] border-t-[#F0AD4E] animate-spin" />
+        <div className="w-10 h-10 rounded-full border-4 border-[#222428] border-t-[#F59E0B] animate-spin" />
       </div>
     </>
   )

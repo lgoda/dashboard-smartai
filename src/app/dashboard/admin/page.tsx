@@ -104,7 +104,7 @@ export default function AdminPage() {
 
   if (isLoading) return (
     <div className="space-y-4">
-      {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-[#3A3D42] rounded-xl loading" />)}
+      {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-[#222428] rounded-xl loading" />)}
     </div>
   )
 
@@ -119,26 +119,26 @@ export default function AdminPage() {
       </div>
 
       {/* Invite */}
-      <div className="bg-[#3A3D42] rounded-xl border border-[#1F2124] p-6">
+      <div className="bg-[#222428] rounded-xl border border-[#141517] p-6">
         <h2 className="text-white font-semibold mb-4">Invita nuovo utente</h2>
         {inviteMsg && (
-          <div className={`p-3 rounded-lg text-sm mb-3 ${inviteMsg.type === 'ok' ? 'bg-[#5CB85C]/20 text-[#5CB85C] border border-[#5CB85C]/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+          <div className={`p-3 rounded-lg text-sm mb-3 ${inviteMsg.type === 'ok' ? 'bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
             {inviteMsg.text}
           </div>
         )}
 
         {inviteLink && (
-          <div className="mb-4 p-3 bg-[#1F2124] border border-[#F0AD4E]/30 rounded-lg">
+          <div className="mb-4 p-3 bg-[#141517] border border-[#F59E0B]/30 rounded-lg">
             <p className="text-xs text-gray-400 mb-2">Copia e condividi questo link con l'utente (valido per 24h):</p>
             <div className="flex gap-2 items-center">
               <input
                 readOnly
                 value={inviteLink}
-                className="flex-1 text-xs text-[#F0AD4E] bg-transparent outline-none truncate"
+                className="flex-1 text-xs text-[#F59E0B] bg-transparent outline-none truncate"
               />
               <button
                 onClick={copyLink}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#F0AD4E]/10 border border-[#F0AD4E]/30 text-[#F0AD4E] hover:bg-[#F0AD4E]/20 transition-colors whitespace-nowrap"
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/30 text-[#F59E0B] hover:bg-[#F59E0B]/20 transition-colors whitespace-nowrap"
               >
                 {copied ? '✓ Copiato' : 'Copia link'}
               </button>
@@ -153,12 +153,12 @@ export default function AdminPage() {
             onChange={e => setInviteEmail(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleInvite()}
             placeholder="email@esempio.com"
-            className="flex-1 px-4 py-2.5 bg-[#1F2124] border border-[#1F2124] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F0AD4E] transition-colors"
+            className="flex-1 px-4 py-2.5 bg-[#141517] border border-[#141517] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
           />
           <button
             onClick={handleInvite}
             disabled={inviting || !inviteEmail.includes('@')}
-            className="px-5 py-2.5 bg-[#F0AD4E] text-[#1e293b] rounded-lg font-semibold hover:bg-[#E09A3D] transition-colors disabled:opacity-40"
+            className="px-5 py-2.5 bg-[#F59E0B] text-[#1e293b] rounded-lg font-semibold hover:bg-[#D97706] transition-colors disabled:opacity-40"
           >
             {inviting ? 'Generazione...' : 'Genera link'}
           </button>
@@ -167,15 +167,15 @@ export default function AdminPage() {
       </div>
 
       {/* Users list */}
-      <div className="bg-[#3A3D42] rounded-xl border border-[#1F2124] overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#1F2124]">
+      <div className="bg-[#222428] rounded-xl border border-[#141517] overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#141517]">
           <h2 className="text-white font-semibold">Utenti registrati ({users.length})</h2>
         </div>
-        <div className="divide-y divide-[#1F2124]">
+        <div className="divide-y divide-[#141517]">
           {users.map(u => (
             <div key={u.id} className="flex items-center justify-between px-6 py-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#F0AD4E]/20 rounded-full flex items-center justify-center text-[#F0AD4E] font-bold text-xs">
+                <div className="w-9 h-9 bg-[#F59E0B]/20 rounded-full flex items-center justify-center text-[#F59E0B] font-bold text-xs">
                   {(u.full_name || u.email || '?').slice(0, 2).toUpperCase()}
                 </div>
                 <div>
@@ -189,14 +189,14 @@ export default function AdminPage() {
                 </span>
                 <button
                   onClick={() => toggleRole(u.id, u.role)}
-                  className="text-xs text-gray-400 hover:text-white px-2 py-1 hover:bg-[#1F2124] rounded transition-colors"
+                  className="text-xs text-gray-400 hover:text-white px-2 py-1 hover:bg-[#141517] rounded transition-colors"
                 >
                   {u.role === 'admin' ? '→ user' : '→ admin'}
                 </button>
                 <button
                   onClick={() => toggleActive(u.id, u.is_active)}
                   disabled={togglingId === u.id}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 ${u.is_active ? 'bg-[#5CB85C]/20 text-[#5CB85C] hover:bg-red-500/20 hover:text-red-400' : 'bg-red-500/20 text-red-400 hover:bg-[#5CB85C]/20 hover:text-[#5CB85C]'}`}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 ${u.is_active ? 'bg-[#22C55E]/20 text-[#22C55E] hover:bg-red-500/20 hover:text-red-400' : 'bg-red-500/20 text-red-400 hover:bg-[#22C55E]/20 hover:text-[#22C55E]'}`}
                 >
                   {u.is_active ? 'Attivo' : 'Revocato'}
                 </button>

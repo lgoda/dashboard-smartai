@@ -10,12 +10,12 @@ const authAppearance = {
   theme: ThemeSupa,
   style: {
     button: {
-      background: '#F0AD4E', color: '#1e293b', borderRadius: '0.5rem',
+      background: '#F59E0B', color: '#1e293b', borderRadius: '0.5rem',
       border: 'none', padding: '0.75rem 1rem', fontSize: '0.875rem',
       fontWeight: '600', transition: 'all 0.2s ease',
     },
     input: {
-      borderRadius: '0.5rem', border: '1px solid #1F2124', background: '#1F2124',
+      borderRadius: '0.5rem', border: '1px solid #141517', background: '#141517',
       color: 'white', padding: '0.75rem 1rem', fontSize: '0.875rem',
       transition: 'all 0.2s ease',
     },
@@ -25,9 +25,9 @@ const authAppearance = {
   variables: {
     default: {
       colors: {
-        brand: '#F0AD4E', brandAccent: '#E09A3D', inputBackground: '#1F2124',
-        inputBorder: '#1F2124', inputBorderHover: '#3A3D42', inputBorderFocus: '#F0AD4E',
-        inputText: 'white', anchorTextColor: '#F0AD4E', anchorTextHoverColor: '#E09A3D',
+        brand: '#F59E0B', brandAccent: '#D97706', inputBackground: '#141517',
+        inputBorder: '#141517', inputBorderHover: '#222428', inputBorderFocus: '#F59E0B',
+        inputText: 'white', anchorTextColor: '#F59E0B', anchorTextHoverColor: '#D97706',
       },
       borderWidths: { buttonBorderWidth: '0px', inputBorderWidth: '1px' },
       radii: { borderRadiusButton: '0.5rem', buttonBorderRadius: '0.5rem', inputBorderRadius: '0.5rem' },
@@ -82,7 +82,7 @@ function SetPasswordForm({ accessToken, onSuccess }: { accessToken: string; onSu
           onChange={e => setPassword(e.target.value)}
           placeholder="Almeno 6 caratteri"
           required
-          className="w-full px-4 py-3 rounded-lg bg-[#1F2124] border border-[#1F2124] text-white placeholder-gray-500 focus:outline-none focus:border-[#F0AD4E] transition-colors"
+          className="w-full px-4 py-3 rounded-lg bg-[#141517] border border-[#141517] text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
         />
       </div>
       <div>
@@ -93,7 +93,7 @@ function SetPasswordForm({ accessToken, onSuccess }: { accessToken: string; onSu
           onChange={e => setConfirm(e.target.value)}
           placeholder="Ripeti la password"
           required
-          className="w-full px-4 py-3 rounded-lg bg-[#1F2124] border border-[#1F2124] text-white placeholder-gray-500 focus:outline-none focus:border-[#F0AD4E] transition-colors"
+          className="w-full px-4 py-3 rounded-lg bg-[#141517] border border-[#141517] text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
         />
       </div>
 
@@ -106,7 +106,7 @@ function SetPasswordForm({ accessToken, onSuccess }: { accessToken: string; onSu
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3 px-4 bg-[#F0AD4E] text-[#1e293b] rounded-lg font-semibold hover:bg-[#E09A3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 px-4 bg-[#F59E0B] text-[#1e293b] rounded-lg font-semibold hover:bg-[#D97706] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? 'Salvataggio in corso...' : 'Imposta password'}
       </button>
@@ -181,7 +181,7 @@ export default function LoginPage() {
   }, [router])
 
   return (
-    <div className="min-h-screen bg-[#2C2E31] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#18191C] flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mx-auto mb-6">
@@ -189,12 +189,12 @@ export default function LoginPage() {
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Dashboard SmartService</h1>
           <p className="text-gray-300">Accedi per gestire i tuoi servizi AI e visualizzare le statistiche</p>
-          <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-[#F0AD4E]/10 border border-[#F0AD4E]/30 rounded-full text-xs text-[#F0AD4E]">
+          <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-full text-xs text-[#F59E0B]">
             🔒 Accesso su invito
           </div>
         </div>
 
-        <div className="bg-[#3A3D42] rounded-2xl shadow-xl border border-[#1F2124] p-8">
+        <div className="bg-[#222428] rounded-2xl shadow-xl border border-[#141517] p-8">
           {authView === 'update_password' ? (
             <>
               <h2 className="text-white font-semibold text-lg mb-1">Imposta la tua password</h2>
@@ -203,7 +203,7 @@ export default function LoginPage() {
                 <SetPasswordForm accessToken={inviteToken} onSuccess={() => router.push('/dashboard')} />
               ) : (
                 <div className="flex items-center justify-center gap-3 py-6 text-gray-400 text-sm">
-                  <div className="w-4 h-4 border-2 border-[#F0AD4E] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-[#F59E0B] border-t-transparent rounded-full animate-spin" />
                   Verifica del link in corso...
                 </div>
               )}

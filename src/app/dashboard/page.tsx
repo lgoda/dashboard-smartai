@@ -167,14 +167,14 @@ export default function Dashboard() {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-[#3A3D42] rounded-lg loading"></div>
-          <div className="h-8 bg-[#3A3D42] rounded w-48 loading"></div>
+          <div className="w-8 h-8 bg-[#222428] rounded-lg loading"></div>
+          <div className="h-8 bg-[#222428] rounded w-48 loading"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
-              <div className="h-4 bg-[#1F2124] rounded w-24 mb-3 loading"></div>
-              <div className="h-8 bg-[#1F2124] rounded w-16 loading"></div>
+            <div key={i} className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
+              <div className="h-4 bg-[#141517] rounded w-24 mb-3 loading"></div>
+              <div className="h-8 bg-[#141517] rounded w-16 loading"></div>
             </div>
           ))}
         </div>
@@ -186,7 +186,7 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-[#F0AD4E] rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-[#F59E0B] rounded-xl flex items-center justify-center">
             <span className="text-[#1e293b] text-lg">📊</span>
           </div>
           <div>
@@ -206,7 +206,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="bg-[#3A3D42] rounded-xl p-4 shadow-sm border border-[#1F2124]">
+      <div className="bg-[#222428] rounded-xl p-4 shadow-sm border border-[#141517]">
         <div className="flex flex-wrap items-center gap-3">
           <label className="text-sm font-medium text-gray-300">Filtra per servizio:</label>
           <div className="flex flex-wrap gap-2">
@@ -214,8 +214,8 @@ export default function Dashboard() {
               onClick={() => setServiceFilter('all')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 serviceFilter === 'all'
-                  ? 'bg-[#F0AD4E] text-[#1e293b]'
-                  : 'bg-[#1F2124] text-gray-300 hover:bg-[#3A3D42] hover:text-[#F0AD4E]'
+                  ? 'bg-[#F59E0B] text-[#1e293b]'
+                  : 'bg-[#141517] text-gray-300 hover:bg-[#222428] hover:text-[#F59E0B]'
               }`}
             >
               Tutti i Servizi
@@ -225,8 +225,8 @@ export default function Dashboard() {
                 onClick={() => setServiceFilter('chatbot')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   serviceFilter === 'chatbot'
-                    ? 'bg-[#F0AD4E] text-[#1e293b]'
-                    : 'bg-[#1F2124] text-gray-300 hover:bg-[#3A3D42] hover:text-[#F0AD4E]'
+                    ? 'bg-[#F59E0B] text-[#1e293b]'
+                    : 'bg-[#141517] text-gray-300 hover:bg-[#222428] hover:text-[#F59E0B]'
                 }`}
               >
                 Chatbot
@@ -237,8 +237,8 @@ export default function Dashboard() {
                 onClick={() => setServiceFilter('ai-calls')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   serviceFilter === 'ai-calls'
-                    ? 'bg-[#F0AD4E] text-[#1e293b]'
-                    : 'bg-[#1F2124] text-gray-300 hover:bg-[#3A3D42] hover:text-[#F0AD4E]'
+                    ? 'bg-[#F59E0B] text-[#1e293b]'
+                    : 'bg-[#141517] text-gray-300 hover:bg-[#222428] hover:text-[#F59E0B]'
                 }`}
               >
                 Chiamate IA
@@ -251,27 +251,27 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {(serviceFilter === 'all' || serviceFilter === 'chatbot') && userServices.has_chatbot && (
           <>
-            <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124] card-hover">
+            <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517] card-hover">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Totale Lead</p>
                   <p className="text-3xl font-bold text-white mt-2">{totalLeads}</p>
                   <p className="text-sm text-gray-400 mt-1">{formatDateRange}</p>
                 </div>
-                <div className="w-12 h-12 bg-[#F0AD4E]/20 rounded-lg flex items-center justify-center">
-                  <span className="text-[#F0AD4E] text-xl">📇</span>
+                <div className="w-12 h-12 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
+                  <span className="text-[#F59E0B] text-xl">📇</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124] card-hover">
+            <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517] card-hover">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Conversazioni</p>
                   <p className="text-3xl font-bold text-white mt-2">{totalConvs}</p>
                   <p className="text-sm text-gray-400 mt-1">{formatDateRange}</p>
                 </div>
-                <div className="w-12 h-12 bg-[#3A3D42] rounded-lg flex items-center justify-center border border-[#1F2124]">
+                <div className="w-12 h-12 bg-[#222428] rounded-lg flex items-center justify-center border border-[#141517]">
                   <span className="text-gray-300 text-xl">💬</span>
                 </div>
               </div>
@@ -279,7 +279,7 @@ export default function Dashboard() {
 
             <Link
               href="/dashboard/leads"
-              className="bg-[#F0AD4E] rounded-xl p-6 text-[#1e293b] card-hover group"
+              className="bg-[#F59E0B] rounded-xl p-6 text-[#1e293b] card-hover group"
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -295,7 +295,7 @@ export default function Dashboard() {
 
             <Link
               href="/dashboard/conversations"
-              className="bg-[#F0AD4E] rounded-xl p-6 text-[#1e293b] card-hover group"
+              className="bg-[#F59E0B] rounded-xl p-6 text-[#1e293b] card-hover group"
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -314,7 +314,7 @@ export default function Dashboard() {
         {(serviceFilter === 'all' || serviceFilter === 'ai-calls') && userServices.has_ai_calls && (
           <Link
             href="/dashboard/ai-calls"
-            className="bg-[#F0AD4E] rounded-xl p-6 text-[#1e293b] card-hover group"
+            className="bg-[#F59E0B] rounded-xl p-6 text-[#1e293b] card-hover group"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -330,11 +330,11 @@ export default function Dashboard() {
         )}
 
         {!userServices.has_chatbot && !userServices.has_ai_calls && (
-          <div className="col-span-full bg-[#3A3D42] rounded-xl p-12 text-center border border-[#1F2124]">
+          <div className="col-span-full bg-[#222428] rounded-xl p-12 text-center border border-[#141517]">
             <p className="text-gray-300 mb-4">Nessun servizio attivo configurato</p>
             <Link
               href="/dashboard/settings"
-              className="inline-flex items-center px-6 py-3 bg-[#F0AD4E] text-[#1e293b] rounded-lg font-medium hover:bg-[#E09A3D] transition-colors shadow-lg"
+              className="inline-flex items-center px-6 py-3 bg-[#F59E0B] text-[#1e293b] rounded-lg font-medium hover:bg-[#D97706] transition-colors shadow-lg"
             >
               Vai alle Impostazioni
             </Link>
@@ -343,15 +343,15 @@ export default function Dashboard() {
       </div>
 
       {(serviceFilter === 'all' || serviceFilter === 'chatbot') && userServices.has_chatbot && (
-        <div className="bg-[#3A3D42] rounded-xl shadow-sm border border-[#1F2124] overflow-hidden">
-          <div className="px-6 py-4 border-b border-[#1F2124]">
+        <div className="bg-[#222428] rounded-xl shadow-sm border border-[#141517] overflow-hidden">
+          <div className="px-6 py-4 border-b border-[#141517]">
             <h2 className="text-lg font-semibold text-white">Attività per periodo - Chatbot</h2>
             <p className="text-sm text-gray-400 mt-1">Riepilogo giornaliero di lead e conversazioni per {formatDateRange}</p>
           </div>
 
         <div className="overflow-x-auto">
           <table className="min-w-full">
-            <thead className="bg-[#1F2124]">
+            <thead className="bg-[#141517]">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Data
@@ -367,7 +367,7 @@ export default function Dashboard() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-[#3A3D42] divide-y divide-[#1F2124]">
+            <tbody className="bg-[#222428] divide-y divide-[#141517]">
               {stats.map((stat, index) => (
                 <tr key={index} className="table-row">
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -380,14 +380,14 @@ export default function Dashboard() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F0AD4E]/20 text-[#F0AD4E] border border-[#F0AD4E]/30">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30">
                         {stat.leads}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#5CB85C]/20 text-[#5CB85C] border border-[#5CB85C]/30">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30">
                         {stat.conversations}
                       </span>
                     </div>
@@ -395,10 +395,10 @@ export default function Dashboard() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex space-x-1">
                       {stat.leads > 0 && (
-                        <div className="w-2 h-2 bg-[#F0AD4E] rounded-full"></div>
+                        <div className="w-2 h-2 bg-[#F59E0B] rounded-full"></div>
                       )}
                       {stat.conversations > 0 && (
-                        <div className="w-2 h-2 bg-[#5CB85C] rounded-full"></div>
+                        <div className="w-2 h-2 bg-[#22C55E] rounded-full"></div>
                       )}
                       {stat.leads === 0 && stat.conversations === 0 && (
                         <div className="w-2 h-2 bg-gray-600 rounded-full"></div>

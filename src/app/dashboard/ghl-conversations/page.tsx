@@ -49,7 +49,7 @@ function ContactAvatar({ name }: { name?: string }) {
     ? name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
     : '?'
   return (
-    <div className="w-10 h-10 rounded-full bg-[#F0AD4E]/20 border border-[#F0AD4E]/30 flex items-center justify-center text-[#F0AD4E] font-semibold text-sm flex-shrink-0">
+    <div className="w-10 h-10 rounded-full bg-[#F59E0B]/20 border border-[#F59E0B]/30 flex items-center justify-center text-[#F59E0B] font-semibold text-sm flex-shrink-0">
       {initials}
     </div>
   )
@@ -77,8 +77,8 @@ function MessageBubble({ message }: { message: GHLMessage }) {
         <div
           className={`px-4 py-2 rounded-2xl text-sm ${
             isOutbound
-              ? 'bg-[#F0AD4E] text-[#1e293b] rounded-br-sm'
-              : 'bg-[#1F2124] text-gray-200 rounded-bl-sm'
+              ? 'bg-[#F59E0B] text-[#1e293b] rounded-br-sm'
+              : 'bg-[#141517] text-gray-200 rounded-bl-sm'
           }`}
         >
           {message.body ?? <span className="italic opacity-50">[allegato]</span>}
@@ -93,15 +93,15 @@ function ConversationSkeleton() {
   return (
     <div className="space-y-3">
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="bg-[#3A3D42] rounded-xl p-4 border border-[#1F2124] flex items-center space-x-4">
-          <div className="w-10 h-10 rounded-full bg-[#1F2124] loading flex-shrink-0" />
+        <div key={i} className="bg-[#222428] rounded-xl p-4 border border-[#141517] flex items-center space-x-4">
+          <div className="w-10 h-10 rounded-full bg-[#141517] loading flex-shrink-0" />
           <div className="flex-1 space-y-2">
-            <div className="h-4 bg-[#1F2124] rounded w-1/3 loading" />
-            <div className="h-3 bg-[#1F2124] rounded w-2/3 loading" />
+            <div className="h-4 bg-[#141517] rounded w-1/3 loading" />
+            <div className="h-3 bg-[#141517] rounded w-2/3 loading" />
           </div>
           <div className="space-y-2 text-right">
-            <div className="h-3 bg-[#1F2124] rounded w-12 loading" />
-            <div className="h-5 bg-[#1F2124] rounded w-16 loading" />
+            <div className="h-3 bg-[#141517] rounded w-12 loading" />
+            <div className="h-5 bg-[#141517] rounded w-16 loading" />
           </div>
         </div>
       ))}
@@ -313,8 +313,8 @@ export default function GHLConversationsPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-[#3A3D42] rounded-xl loading" />
-          <div className="h-8 bg-[#3A3D42] rounded w-56 loading" />
+          <div className="w-10 h-10 bg-[#222428] rounded-xl loading" />
+          <div className="h-8 bg-[#222428] rounded w-56 loading" />
         </div>
         <ConversationSkeleton />
       </div>
@@ -325,7 +325,7 @@ export default function GHLConversationsPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-[#F0AD4E] rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-[#F59E0B] rounded-xl flex items-center justify-center">
             <span className="text-[#1e293b] text-lg">💬</span>
           </div>
           <div>
@@ -333,8 +333,8 @@ export default function GHLConversationsPage() {
             <p className="text-gray-300 mt-1">Conversazioni dal tuo CRM GoHighLevel</p>
           </div>
         </div>
-        <div className="bg-[#3A3D42] rounded-xl p-8 border border-[#F0AD4E]/30 text-center">
-          <div className="w-16 h-16 bg-[#F0AD4E]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="bg-[#222428] rounded-xl p-8 border border-[#F59E0B]/30 text-center">
+          <div className="w-16 h-16 bg-[#F59E0B]/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">🔗</span>
           </div>
           <h2 className="text-xl font-semibold text-white mb-2">GoHighLevel non configurato</h2>
@@ -343,7 +343,7 @@ export default function GHLConversationsPage() {
           </p>
           <Link
             href="/dashboard/settings"
-            className="inline-flex items-center px-6 py-3 bg-[#F0AD4E] text-[#1e293b] rounded-lg font-medium hover:bg-[#E09A3D] transition-colors"
+            className="inline-flex items-center px-6 py-3 bg-[#F59E0B] text-[#1e293b] rounded-lg font-medium hover:bg-[#D97706] transition-colors"
           >
             Vai alle Impostazioni
           </Link>
@@ -359,7 +359,7 @@ export default function GHLConversationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-[#F0AD4E] rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-[#F59E0B] rounded-xl flex items-center justify-center">
             <span className="text-[#1e293b] text-lg">💬</span>
           </div>
           <div>
@@ -371,11 +371,11 @@ export default function GHLConversationsPage() {
           <button
             onClick={handleAnalyze}
             disabled={isAnalyzing || conversations.length === 0}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#3A3D42] border border-[#F0AD4E]/40 text-[#F0AD4E] rounded-xl font-medium text-sm hover:bg-[#F0AD4E]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#222428] border border-[#F59E0B]/40 text-[#F59E0B] rounded-xl font-medium text-sm hover:bg-[#F59E0B]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {isAnalyzing ? (
               <>
-                <span className="w-4 h-4 border-2 border-[#F0AD4E]/40 border-t-[#F0AD4E] rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-[#F59E0B]/40 border-t-[#F59E0B] rounded-full animate-spin" />
                 Analisi in corso...
               </>
             ) : (
@@ -386,7 +386,7 @@ export default function GHLConversationsPage() {
             <p className="text-xs text-red-400">{analyzeError}</p>
           )}
           {Object.values(insights).some((i) => i.is_hot_lead) && !isAnalyzing && (
-            <p className="text-xs text-[#F0AD4E]">
+            <p className="text-xs text-[#F59E0B]">
               🔥 {Object.values(insights).filter((i) => i.is_hot_lead).length} opportunità trovate
             </p>
           )}
@@ -395,21 +395,21 @@ export default function GHLConversationsPage() {
 
       {/* Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-[#3A3D42] rounded-xl p-4 border border-[#1F2124]">
+        <div className="bg-[#222428] rounded-xl p-4 border border-[#141517]">
           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Totale</p>
           <p className="text-2xl font-bold text-white">{total}</p>
         </div>
-        <div className="bg-[#3A3D42] rounded-xl p-4 border border-[#1F2124]">
+        <div className="bg-[#222428] rounded-xl p-4 border border-[#141517]">
           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Non lette</p>
-          <p className="text-2xl font-bold text-[#5CB85C]">{unreadCount}</p>
+          <p className="text-2xl font-bold text-[#22C55E]">{unreadCount}</p>
         </div>
-        <div className="bg-[#3A3D42] rounded-xl p-4 border border-[#1F2124]">
+        <div className="bg-[#222428] rounded-xl p-4 border border-[#141517]">
           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Canale principale</p>
-          <p className="text-2xl font-bold text-[#F0AD4E]">
+          <p className="text-2xl font-bold text-[#F59E0B]">
             {topChannel ? getChannelLabel(topChannel[0]) : '—'}
           </p>
         </div>
-        <div className="bg-[#3A3D42] rounded-xl p-4 border border-[#1F2124]">
+        <div className="bg-[#222428] rounded-xl p-4 border border-[#141517]">
           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Canali attivi</p>
           <p className="text-2xl font-bold text-white">{Object.keys(channelBreakdown).length}</p>
         </div>
@@ -419,7 +419,7 @@ export default function GHLConversationsPage() {
         {/* Left: filters + list */}
         <div className="flex-1 min-w-0 space-y-4">
           {/* Filters */}
-          <div className="bg-[#3A3D42] rounded-xl p-4 border border-[#1F2124] space-y-3">
+          <div className="bg-[#222428] rounded-xl p-4 border border-[#141517] space-y-3">
             {/* Channel tabs */}
             <div className="flex flex-wrap gap-2">
               {CHANNEL_FILTERS.map((f) => (
@@ -428,8 +428,8 @@ export default function GHLConversationsPage() {
                   onClick={() => setChannelFilter(f.value)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     channelFilter === f.value
-                      ? 'bg-[#F0AD4E] text-[#1e293b]'
-                      : 'bg-[#1F2124] text-gray-300 hover:text-white hover:bg-[#2C2E31]'
+                      ? 'bg-[#F59E0B] text-[#1e293b]'
+                      : 'bg-[#141517] text-gray-300 hover:text-white hover:bg-[#18191C]'
                   }`}
                 >
                   {f.label}
@@ -442,7 +442,7 @@ export default function GHLConversationsPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as 'all' | 'open' | 'close')}
-                className="px-3 py-2 bg-[#1F2124] border border-[#1F2124] rounded-lg text-sm text-gray-300 focus:ring-2 focus:ring-[#F0AD4E] focus:border-[#F0AD4E]"
+                className="px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-gray-300 focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B]"
               >
                 <option value="all">Tutti gli stati</option>
                 <option value="open">Aperte</option>
@@ -453,7 +453,7 @@ export default function GHLConversationsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Cerca contatto..."
-                className="flex-1 min-w-[140px] px-4 py-2 bg-[#1F2124] border border-[#1F2124] rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-[#F0AD4E] focus:border-[#F0AD4E]"
+                className="flex-1 min-w-[140px] px-4 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B]"
               />
             </div>
 
@@ -472,7 +472,7 @@ export default function GHLConversationsPage() {
           {isFetching ? (
             <ConversationSkeleton />
           ) : filteredConversations.length === 0 ? (
-            <div className="bg-[#3A3D42] rounded-xl p-8 border border-[#1F2124] text-center">
+            <div className="bg-[#222428] rounded-xl p-8 border border-[#141517] text-center">
               <p className="text-gray-400">Nessuna conversazione trovata</p>
             </div>
           ) : (
@@ -484,10 +484,10 @@ export default function GHLConversationsPage() {
                   <button
                     key={conv.id}
                     onClick={() => fetchMessages(conv)}
-                    className={`w-full text-left bg-[#3A3D42] rounded-xl p-4 border transition-colors flex items-center gap-4 ${
+                    className={`w-full text-left bg-[#222428] rounded-xl p-4 border transition-colors flex items-center gap-4 ${
                       isSelected
-                        ? 'border-[#F0AD4E]/50 bg-[#F0AD4E]/5'
-                        : 'border-[#1F2124] hover:border-[#F0AD4E]/30 hover:bg-[#3A3D42]/80'
+                        ? 'border-[#F59E0B]/50 bg-[#F59E0B]/5'
+                        : 'border-[#141517] hover:border-[#F59E0B]/30 hover:bg-[#222428]/80'
                     }`}
                   >
                     <ContactAvatar name={conv.fullName} />
@@ -495,7 +495,7 @@ export default function GHLConversationsPage() {
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="font-medium text-white truncate">{displayName}</span>
                         {conv.unreadCount > 0 && (
-                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#F0AD4E] text-[#1e293b] text-xs flex items-center justify-center font-bold">
+                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#F59E0B] text-[#1e293b] text-xs flex items-center justify-center font-bold">
                             {conv.unreadCount > 9 ? '9+' : conv.unreadCount}
                           </span>
                         )}
@@ -517,12 +517,12 @@ export default function GHLConversationsPage() {
                             🔥 Opportunità
                           </span>
                           {/* Tooltip */}
-                          <div className="absolute right-0 top-full mt-1 w-56 bg-[#1F2124] border border-[#3A3D42] rounded-lg p-3 text-xs text-gray-300 shadow-xl z-10 hidden group-hover:block">
+                          <div className="absolute right-0 top-full mt-1 w-56 bg-[#141517] border border-[#222428] rounded-lg p-3 text-xs text-gray-300 shadow-xl z-10 hidden group-hover:block">
                             {insights[conv.id].missing_action && (
                               <p className="mb-1"><span className="text-orange-400 font-medium">Manca:</span> {insights[conv.id].missing_action}</p>
                             )}
                             {insights[conv.id].suggested_followup && (
-                              <p><span className="text-[#F0AD4E] font-medium">Suggerimento:</span> {insights[conv.id].suggested_followup}</p>
+                              <p><span className="text-[#F59E0B] font-medium">Suggerimento:</span> {insights[conv.id].suggested_followup}</p>
                             )}
                             <p className="mt-1.5 text-gray-500">Score: {insights[conv.id].intent_score}/100</p>
                           </div>
@@ -540,7 +540,7 @@ export default function GHLConversationsPage() {
             <p className="text-sm text-gray-400">
               Pagina {currentPageDisplay} · {filteredConversations.length} risultati
               {(dateRange.from || dateRange.to || channelFilter !== 'all') && conversations.length !== filteredConversations.length && (
-                <span className="text-[#F0AD4E] ml-1">
+                <span className="text-[#F59E0B] ml-1">
                   ({conversations.length - filteredConversations.length} nascosti dai filtri)
                 </span>
               )}
@@ -549,14 +549,14 @@ export default function GHLConversationsPage() {
               <button
                 onClick={handlePrevPage}
                 disabled={pageIndex === 0 || isFetching}
-                className="px-4 py-2 rounded-lg bg-[#3A3D42] border border-[#1F2124] text-sm text-gray-300 disabled:opacity-40 hover:border-[#F0AD4E]/40 transition-colors"
+                className="px-4 py-2 rounded-lg bg-[#222428] border border-[#141517] text-sm text-gray-300 disabled:opacity-40 hover:border-[#F59E0B]/40 transition-colors"
               >
                 ← Precedente
               </button>
               <button
                 onClick={handleNextPage}
                 disabled={!hasMore || isFetching}
-                className="px-4 py-2 rounded-lg bg-[#3A3D42] border border-[#1F2124] text-sm text-gray-300 disabled:opacity-40 hover:border-[#F0AD4E]/40 transition-colors"
+                className="px-4 py-2 rounded-lg bg-[#222428] border border-[#141517] text-sm text-gray-300 disabled:opacity-40 hover:border-[#F59E0B]/40 transition-colors"
               >
                 Successiva →
               </button>
@@ -567,11 +567,11 @@ export default function GHLConversationsPage() {
         {/* Right: chat panel */}
         {selectedConversation && (
           <div
-            className="w-full md:w-[400px] flex-shrink-0 bg-[#3A3D42] rounded-xl border border-[#1F2124] flex flex-col sticky top-20"
+            className="w-full md:w-[400px] flex-shrink-0 bg-[#222428] rounded-xl border border-[#141517] flex flex-col sticky top-20"
             style={{ height: '72vh' }}
           >
             {/* Chat header */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-[#1F2124]">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-[#141517]">
               <ContactAvatar name={selectedConversation.fullName} />
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-white truncate">

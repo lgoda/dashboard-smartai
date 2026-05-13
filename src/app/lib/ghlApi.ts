@@ -93,7 +93,7 @@ export const GHL_CHANNEL_COLORS: Record<string, string> = {
   TYPE_PHONE: '#8B5CF6',
   TYPE_INSTAGRAM: '#E1306C',
   TYPE_FACEBOOK: '#1877F2',
-  TYPE_LIVE_CHAT: '#F0AD4E',
+  TYPE_LIVE_CHAT: '#F59E0B',
   TYPE_GMB: '#EA4335',
 }
 

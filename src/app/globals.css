@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #2C2E31;
+  --background: #18191C;
   --foreground: #ffffff;
   --background-light: #F5F5F5;
   --foreground-dark: #1e293b;
-  --smartservice-orange: #F0AD4E;
-  --smartservice-orange-dark: #E09A3D;
-  --smartservice-green: #5CB85C;
-  --smartservice-charcoal: #2C2E31;
-  --smartservice-charcoal-light: #3A3D42;
-  --smartservice-charcoal-dark: #1F2124;
+  --smartservice-orange: #F59E0B;
+  --smartservice-orange-dark: #D97706;
+  --smartservice-green: #22C55E;
+  --smartservice-charcoal: #18191C;
+  --smartservice-charcoal-light: #222428;
+  --smartservice-charcoal-dark: #141517;
 }
 
 @theme inline {
@@ -34,7 +34,7 @@ body {
   left: 0;
   height: 2px;
   z-index: 9999;
-  background: #F0AD4E;
+  background: #F59E0B;
   animation: nav-progress 3s ease-out forwards;
   pointer-events: none;
 }
@@ -72,7 +72,7 @@ body {
 
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(240, 173, 78, 0.2), 0 10px 10px -5px rgba(240, 173, 78, 0.1);
+  box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.2), 0 10px 10px -5px rgba(245, 158, 11, 0.1);
 }
 
 /* Button animations */
@@ -86,7 +86,7 @@ body {
 .btn-primary:hover {
   background: var(--smartservice-orange-dark);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(240, 173, 78, 0.4);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
 }
 
 /* Table improvements */

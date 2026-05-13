@@ -155,8 +155,8 @@ export default function ImportWizardPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 bg-[#3A3D42] rounded w-64 loading" />
-        <div className="h-64 bg-[#3A3D42] rounded-xl loading" />
+        <div className="h-8 bg-[#222428] rounded w-64 loading" />
+        <div className="h-64 bg-[#222428] rounded-xl loading" />
       </div>
     )
   }
@@ -165,9 +165,9 @@ export default function ImportWizardPage() {
     <div className="space-y-6 max-w-2xl mx-auto">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-gray-400">
-        <Link href="/dashboard/campaigns" className="hover:text-[#F0AD4E]">Campagne</Link>
+        <Link href="/dashboard/campaigns" className="hover:text-[#F59E0B]">Campagne</Link>
         <span>/</span>
-        <Link href={`/dashboard/campaigns/${campaignId}`} className="hover:text-[#F0AD4E]">{campaign?.name}</Link>
+        <Link href={`/dashboard/campaigns/${campaignId}`} className="hover:text-[#F59E0B]">{campaign?.name}</Link>
         <span>/</span>
         <span className="text-white">Nuovo import</span>
       </div>
@@ -177,13 +177,13 @@ export default function ImportWizardPage() {
         {STEPS.map((s, i) => (
           <div key={s} className="flex items-center gap-1">
             <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-colors ${
-              i < step ? 'bg-[#5CB85C] text-white' :
-              i === step ? 'bg-[#F0AD4E] text-[#1e293b]' :
-              'bg-[#1F2124] text-gray-500'
+              i < step ? 'bg-[#22C55E] text-white' :
+              i === step ? 'bg-[#F59E0B] text-[#1e293b]' :
+              'bg-[#141517] text-gray-500'
             }`}>
               {i < step ? '✓' : i + 1}
             </div>
-            <span className={`text-xs hidden sm:inline ${i === step ? 'text-[#F0AD4E] font-medium' : 'text-gray-500'}`}>{s}</span>
+            <span className={`text-xs hidden sm:inline ${i === step ? 'text-[#F59E0B] font-medium' : 'text-gray-500'}`}>{s}</span>
             {i < STEPS.length - 1 && <span className="text-gray-600 mx-1">›</span>}
           </div>
         ))}
@@ -195,14 +195,14 @@ export default function ImportWizardPage() {
 
       {/* ── STEP 0: Campaign info + automation ─────────────────────────── */}
       {step === 0 && campaign && (
-        <div className="bg-[#3A3D42] rounded-xl border border-[#1F2124] p-6 space-y-5">
+        <div className="bg-[#222428] rounded-xl border border-[#141517] p-6 space-y-5">
           <h2 className="text-lg font-semibold text-white">Campagna e automazione CRM</h2>
 
           {/* Campaign info (read-only) */}
-          <div className="bg-[#1F2124] rounded-lg p-4 space-y-2">
+          <div className="bg-[#141517] rounded-lg p-4 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-white">{campaign.name}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${campaign.status === 'active' ? 'bg-[#5CB85C]/20 text-[#5CB85C] border border-[#5CB85C]/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'}`}>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${campaign.status === 'active' ? 'bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'}`}>
                 {campaign.status === 'active' ? 'Attiva' : 'In pausa'}
               </span>
             </div>
@@ -225,22 +225,22 @@ export default function ImportWizardPage() {
                       onClick={() => setSelectedWorkflow(w)}
                       className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
                         isSelected
-                          ? 'border-[#F0AD4E] bg-[#F0AD4E]/10 text-white'
-                          : 'border-[#1F2124] bg-[#1F2124] text-gray-300 hover:border-[#F0AD4E]/40'
+                          ? 'border-[#F59E0B] bg-[#F59E0B]/10 text-white'
+                          : 'border-[#141517] bg-[#141517] text-gray-300 hover:border-[#F59E0B]/40'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">{w.name}</span>
                         <div className="flex items-center gap-1">
                           {isConvention && <span className="text-xs bg-[#25D366]/20 text-[#25D366] px-1.5 py-0.5 rounded">suggerito</span>}
-                          {isSelected && <span className="text-[#F0AD4E]">✓</span>}
+                          {isSelected && <span className="text-[#F59E0B]">✓</span>}
                         </div>
                       </div>
                     </button>
                   )
                 })}
                 {!showAllWorkflows && otherWorkflows.length > 0 && (
-                  <button onClick={() => setShowAllWorkflows(true)} className="w-full text-center text-sm text-gray-400 hover:text-[#F0AD4E] py-2 transition-colors">
+                  <button onClick={() => setShowAllWorkflows(true)} className="w-full text-center text-sm text-gray-400 hover:text-[#F59E0B] py-2 transition-colors">
                     Mostra tutte le automazioni ({otherWorkflows.length} altri)
                   </button>
                 )}
@@ -255,7 +255,7 @@ export default function ImportWizardPage() {
             <button
               onClick={() => setStep(1)}
               disabled={!selectedWorkflow}
-              className="px-6 py-2.5 bg-[#F0AD4E] text-[#1e293b] rounded-lg font-semibold disabled:opacity-40 hover:bg-[#E09A3D] transition-colors"
+              className="px-6 py-2.5 bg-[#F59E0B] text-[#1e293b] rounded-lg font-semibold disabled:opacity-40 hover:bg-[#D97706] transition-colors"
             >
               Continua →
             </button>
@@ -265,7 +265,7 @@ export default function ImportWizardPage() {
 
       {/* ── STEP 1: File upload + list tag ──────────────────────────────── */}
       {step === 1 && (
-        <div className="bg-[#3A3D42] rounded-xl border border-[#1F2124] p-6 space-y-5">
+        <div className="bg-[#222428] rounded-xl border border-[#141517] p-6 space-y-5">
           <h2 className="text-lg font-semibold text-white">Carica file e nomina la lista</h2>
 
           <div>
@@ -273,12 +273,12 @@ export default function ImportWizardPage() {
             <div
               onClick={() => fileInputRef.current?.click()}
               className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
-                file ? 'border-[#5CB85C]/50 bg-[#5CB85C]/5' : 'border-[#1F2124] hover:border-[#F0AD4E]/40'
+                file ? 'border-[#22C55E]/50 bg-[#22C55E]/5' : 'border-[#141517] hover:border-[#F59E0B]/40'
               }`}
             >
               {file ? (
                 <>
-                  <p className="text-[#5CB85C] font-semibold">✓ {file.name}</p>
+                  <p className="text-[#22C55E] font-semibold">✓ {file.name}</p>
                   <p className="text-sm text-gray-400 mt-1">{(file.size / 1024).toFixed(1)} KB</p>
                   <button onClick={(e) => { e.stopPropagation(); setFile(null) }} className="mt-2 text-xs text-red-400 hover:text-red-300">Rimuovi</button>
                 </>
@@ -300,17 +300,17 @@ export default function ImportWizardPage() {
               value={listTag}
               onChange={(e) => setListTag(e.target.value)}
               placeholder="es. lista_sumup_maggio_2026"
-              className="w-full px-4 py-2 bg-[#1F2124] border border-[#1F2124] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-[#F0AD4E] focus:border-[#F0AD4E]"
+              className="w-full px-4 py-2 bg-[#141517] border border-[#141517] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B]"
             />
             <p className="text-xs text-gray-500 mt-1">Questo tag verrà assegnato a tutti i contatti di questa lista.</p>
           </div>
 
           <div className="flex justify-between">
-            <button onClick={() => setStep(0)} className="px-4 py-2 bg-[#1F2124] text-gray-300 rounded-lg text-sm hover:bg-[#2C2E31] transition-colors">← Indietro</button>
+            <button onClick={() => setStep(0)} className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[#18191C] transition-colors">← Indietro</button>
             <button
               onClick={() => setStep(2)}
               disabled={!file || !listTag.trim()}
-              className="px-6 py-2.5 bg-[#F0AD4E] text-[#1e293b] rounded-lg font-semibold disabled:opacity-40 hover:bg-[#E09A3D] transition-colors"
+              className="px-6 py-2.5 bg-[#F59E0B] text-[#1e293b] rounded-lg font-semibold disabled:opacity-40 hover:bg-[#D97706] transition-colors"
             >
               Continua →
             </button>
@@ -320,7 +320,7 @@ export default function ImportWizardPage() {
 
       {/* ── STEP 2: Tags + policy ──────────────────────────────────────── */}
       {step === 2 && (
-        <div className="bg-[#3A3D42] rounded-xl border border-[#1F2124] p-6 space-y-5">
+        <div className="bg-[#222428] rounded-xl border border-[#141517] p-6 space-y-5">
           <h2 className="text-lg font-semibold text-white">Filtri e policy</h2>
 
           <div>
@@ -335,7 +335,7 @@ export default function ImportWizardPage() {
                   value={tagSearch}
                   onChange={(e) => setTagSearch(e.target.value)}
                   placeholder="Cerca tag..."
-                  className="w-full px-3 py-2 mb-2 bg-[#1F2124] border border-[#1F2124] rounded-lg text-white text-sm placeholder-gray-500 focus:ring-2 focus:ring-[#F0AD4E]"
+                  className="w-full px-3 py-2 mb-2 bg-[#141517] border border-[#141517] rounded-lg text-white text-sm placeholder-gray-500 focus:ring-2 focus:ring-[#F59E0B]"
                 />
                 <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
                   {filteredTags.map((tag) => (
@@ -345,7 +345,7 @@ export default function ImportWizardPage() {
                       className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                         excludedTags.includes(tag)
                           ? 'bg-red-500/20 text-red-400 border-red-500/30'
-                          : 'bg-[#1F2124] text-gray-300 border-[#1F2124] hover:border-red-500/30'
+                          : 'bg-[#141517] text-gray-300 border-[#141517] hover:border-red-500/30'
                       }`}
                     >
                       {excludedTags.includes(tag) ? '✕ ' : ''}{tag}
@@ -368,7 +368,7 @@ export default function ImportWizardPage() {
                       }
                     }}
                     placeholder="Digita un tag e premi Invio"
-                    className="flex-1 px-3 py-2 bg-[#1F2124] border border-[#1F2124] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F0AD4E]"
+                    className="flex-1 px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F59E0B]"
                   />
                 </div>
                 {excludedTags.length > 0 && (
@@ -401,11 +401,11 @@ export default function ImportWizardPage() {
                   onClick={() => setExistingPolicy(opt.value)}
                   className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
                     existingPolicy === opt.value
-                      ? 'border-[#F0AD4E] bg-[#F0AD4E]/10'
-                      : 'border-[#1F2124] bg-[#1F2124] hover:border-[#F0AD4E]/30'
+                      ? 'border-[#F59E0B] bg-[#F59E0B]/10'
+                      : 'border-[#141517] bg-[#141517] hover:border-[#F59E0B]/30'
                   }`}
                 >
-                  <p className={`text-sm font-medium ${existingPolicy === opt.value ? 'text-[#F0AD4E]' : 'text-white'}`}>{opt.label}</p>
+                  <p className={`text-sm font-medium ${existingPolicy === opt.value ? 'text-[#F59E0B]' : 'text-white'}`}>{opt.label}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{opt.desc}</p>
                 </button>
               ))}
@@ -413,8 +413,8 @@ export default function ImportWizardPage() {
           </div>
 
           <div className="flex justify-between">
-            <button onClick={() => setStep(1)} className="px-4 py-2 bg-[#1F2124] text-gray-300 rounded-lg text-sm hover:bg-[#2C2E31] transition-colors">← Indietro</button>
-            <button onClick={() => setStep(3)} className="px-6 py-2.5 bg-[#F0AD4E] text-[#1e293b] rounded-lg font-semibold hover:bg-[#E09A3D] transition-colors">
+            <button onClick={() => setStep(1)} className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[#18191C] transition-colors">← Indietro</button>
+            <button onClick={() => setStep(3)} className="px-6 py-2.5 bg-[#F59E0B] text-[#1e293b] rounded-lg font-semibold hover:bg-[#D97706] transition-colors">
               Continua →
             </button>
           </div>
@@ -423,14 +423,14 @@ export default function ImportWizardPage() {
 
       {/* ── STEP 3: Summary ─────────────────────────────────────────────── */}
       {step === 3 && (
-        <div className="bg-[#3A3D42] rounded-xl border border-[#1F2124] p-6 space-y-5">
+        <div className="bg-[#222428] rounded-xl border border-[#141517] p-6 space-y-5">
           <h2 className="text-lg font-semibold text-white">Riepilogo import</h2>
 
-          <div className="bg-[#1F2124] rounded-lg p-4 space-y-2 text-sm">
+          <div className="bg-[#141517] rounded-lg p-4 space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-gray-400">Campagna</span><span className="text-white font-medium">{campaign?.name}</span></div>
             <div className="flex justify-between"><span className="text-gray-400">Automazione CRM</span><span className="text-white font-medium">{selectedWorkflow?.name}</span></div>
             <div className="flex justify-between"><span className="text-gray-400">File</span><span className="text-white">{file?.name}</span></div>
-            <div className="flex justify-between"><span className="text-gray-400">Tag lista</span><span className="text-[#F0AD4E] font-medium">{listTag}</span></div>
+            <div className="flex justify-between"><span className="text-gray-400">Tag lista</span><span className="text-[#F59E0B] font-medium">{listTag}</span></div>
             <div className="flex justify-between"><span className="text-gray-400">Tag esclusi</span><span className="text-white">{excludedTags.length > 0 ? excludedTags.join(', ') : 'Nessuno'}</span></div>
             <div className="flex justify-between"><span className="text-gray-400">Policy contatti esistenti</span><span className="text-white">{existingPolicy === 'tag_only' ? 'Solo tag' : existingPolicy === 'update' ? 'Aggiorna' : 'Escludi'}</span></div>
           </div>
@@ -440,8 +440,8 @@ export default function ImportWizardPage() {
           </p>
 
           <div className="flex justify-between">
-            <button onClick={() => setStep(2)} className="px-4 py-2 bg-[#1F2124] text-gray-300 rounded-lg text-sm hover:bg-[#2C2E31] transition-colors">← Indietro</button>
-            <button onClick={() => setStep(4)} className="px-6 py-2.5 bg-[#F0AD4E] text-[#1e293b] rounded-lg font-semibold hover:bg-[#E09A3D] transition-colors">
+            <button onClick={() => setStep(2)} className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[#18191C] transition-colors">← Indietro</button>
+            <button onClick={() => setStep(4)} className="px-6 py-2.5 bg-[#F59E0B] text-[#1e293b] rounded-lg font-semibold hover:bg-[#D97706] transition-colors">
               Continua →
             </button>
           </div>
@@ -450,10 +450,10 @@ export default function ImportWizardPage() {
 
       {/* ── STEP 4: Consent ─────────────────────────────────────────────── */}
       {step === 4 && (
-        <div className="bg-[#3A3D42] rounded-xl border border-[#1F2124] p-6 space-y-5">
+        <div className="bg-[#222428] rounded-xl border border-[#141517] p-6 space-y-5">
           <h2 className="text-lg font-semibold text-white">Dichiarazione di responsabilità</h2>
 
-          <div className="bg-[#1F2124] rounded-lg p-4 text-sm text-gray-300 leading-relaxed border border-[#3A3D42]">
+          <div className="bg-[#141517] rounded-lg p-4 text-sm text-gray-300 leading-relaxed border border-[#222428]">
             {CONSENT_TEXT}
           </div>
 
@@ -462,7 +462,7 @@ export default function ImportWizardPage() {
               type="checkbox"
               checked={consentAccepted}
               onChange={(e) => setConsentAccepted(e.target.checked)}
-              className="mt-1 w-4 h-4 rounded accent-[#F0AD4E] flex-shrink-0"
+              className="mt-1 w-4 h-4 rounded accent-[#F59E0B] flex-shrink-0"
             />
             <span className="text-sm text-white">
               Confermo e accetto la dichiarazione sopra riportata
@@ -470,11 +470,11 @@ export default function ImportWizardPage() {
           </label>
 
           <div className="flex justify-between">
-            <button onClick={() => setStep(3)} className="px-4 py-2 bg-[#1F2124] text-gray-300 rounded-lg text-sm hover:bg-[#2C2E31] transition-colors">← Indietro</button>
+            <button onClick={() => setStep(3)} className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[#18191C] transition-colors">← Indietro</button>
             <button
               onClick={handleSubmit}
               disabled={!consentAccepted || isSubmitting}
-              className="px-6 py-2.5 bg-[#F0AD4E] text-[#1e293b] rounded-lg font-semibold disabled:opacity-40 hover:bg-[#E09A3D] transition-colors"
+              className="px-6 py-2.5 bg-[#F59E0B] text-[#1e293b] rounded-lg font-semibold disabled:opacity-40 hover:bg-[#D97706] transition-colors"
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
@@ -489,36 +489,36 @@ export default function ImportWizardPage() {
 
       {/* ── STEP 5: Completed ───────────────────────────────────────────── */}
       {step === 5 && importResult && (
-        <div className="bg-[#3A3D42] rounded-xl border border-[#1F2124] p-6 space-y-5">
+        <div className="bg-[#222428] rounded-xl border border-[#141517] p-6 space-y-5">
           <div className="text-center">
-            <div className="w-16 h-16 bg-[#5CB85C]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-[#22C55E]/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl">✓</span>
             </div>
             <h2 className="text-xl font-bold text-white mb-1">Import completato</h2>
             <p className="text-gray-400 text-sm">I contatti validi sono stati messi in coda</p>
           </div>
 
-          <div className="bg-[#1F2124] rounded-lg p-5 space-y-2 text-sm">
-            <div className="flex justify-between pb-2 border-b border-[#3A3D42]">
+          <div className="bg-[#141517] rounded-lg p-5 space-y-2 text-sm">
+            <div className="flex justify-between pb-2 border-b border-[#222428]">
               <span className="text-gray-400">Campagna</span><span className="text-white font-medium">{campaign?.name}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Automazione CRM</span><span className="text-white">{selectedWorkflow?.name}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Tag lista</span><span className="text-[#F0AD4E] font-medium">{listTag}</span>
+              <span className="text-gray-400">Tag lista</span><span className="text-[#F59E0B] font-medium">{listTag}</span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: 'Totale righe', value: importResult.stats?.total_rows ?? 0, color: 'text-white' },
-              { label: 'Cellulari validi', value: importResult.stats?.valid_contacts ?? 0, color: 'text-[#5CB85C]' },
+              { label: 'Cellulari validi', value: importResult.stats?.valid_contacts ?? 0, color: 'text-[#22C55E]' },
               { label: 'Senza cellulare', value: importResult.stats?.excluded_no_phone ?? 0, color: 'text-red-400' },
               { label: 'Duplicati nel file', value: importResult.stats?.excluded_duplicates ?? 0, color: 'text-yellow-400' },
-              { label: 'In coda', value: importResult.stats?.queued_contacts ?? 0, color: 'text-[#F0AD4E]' },
+              { label: 'In coda', value: importResult.stats?.queued_contacts ?? 0, color: 'text-[#F59E0B]' },
             ].map((s) => (
-              <div key={s.label} className="bg-[#1F2124] rounded-lg p-3 text-center">
+              <div key={s.label} className="bg-[#141517] rounded-lg p-3 text-center">
                 <p className="text-xs text-gray-500 mb-1">{s.label}</p>
                 <p className={`text-2xl font-bold ${s.color}`}>{s.value.toLocaleString('it-IT')}</p>
               </div>
@@ -537,7 +537,7 @@ export default function ImportWizardPage() {
 
           <Link
             href={`/dashboard/campaigns/${campaignId}`}
-            className="block w-full text-center px-6 py-3 bg-[#F0AD4E] text-[#1e293b] rounded-xl font-semibold hover:bg-[#E09A3D] transition-colors"
+            className="block w-full text-center px-6 py-3 bg-[#F59E0B] text-[#1e293b] rounded-xl font-semibold hover:bg-[#D97706] transition-colors"
           >
             Vai alla campagna
           </Link>

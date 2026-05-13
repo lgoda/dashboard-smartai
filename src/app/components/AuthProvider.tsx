@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase } from '@/app/lib/supabaseClient'
+import { pageCache } from '@/app/lib/pageCache'
 
 export type Profile = {
   id: string
@@ -125,9 +126,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return
         }
 
-        // Always update user + token (SIGNED_IN, TOKEN_REFRESHED, USER_UPDATED)
+        // Always update user — the access_token may still be expired at this
+        // point (INITIAL_SESSION fires before the background refresh completes).
+        // Only set accessToken when the token is genuinely fresh so that pages
+        // gated on `accessToken` don't run Supabase queries with an expired JWT
+        // (which causes RLS to silently return 0 rows and pollute the cache).
+        // TOKEN_REFRESHED always carries a valid token and will unblock pages.
+        const tokenExpired = !session.expires_at ||
+          (Date.now() / 1000) > (session.expires_at - 30)
         setUser(session.user)
-        setAccessToken(session.access_token)
+        if (!tokenExpired) {
+          setAccessToken(session.access_token)
+          // On TOKEN_REFRESHED, clear the in-memory page cache so stale
+          // data from a previous expired-token fetch is not served.
+          if (event === 'TOKEN_REFRESHED') {
+            pageCache.clear()
+          }
+        }
         setLoading(false)
 
         // Profile: skip if already loaded for this user

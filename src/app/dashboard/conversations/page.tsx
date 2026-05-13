@@ -253,7 +253,7 @@ export default function ConversationsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 bg-[#F0AD4E] rounded-xl flex items-center justify-center">
+        <div className="w-10 h-10 bg-[#F59E0B] rounded-xl flex items-center justify-center">
           <span className="text-[#1e293b] text-lg">💬</span>
         </div>
         <div>
@@ -261,18 +261,18 @@ export default function ConversationsPage() {
           <p className="text-gray-300 mt-1">
             Mostrando {startItem}-{endItem} di {filteredSessions.length} sessioni ({totalSessions} totali) • {filteredMessages} messaggi
             {activeFiltersCount > 0 && (
-              <span className="text-[#F0AD4E] font-medium"> • {activeFiltersCount} filtri attivi</span>
+              <span className="text-[#F59E0B] font-medium"> • {activeFiltersCount} filtri attivi</span>
             )}
           </p>
         </div>
       </div>
 
       {/* Filtri Avanzati */}
-      <div className="bg-gradient-to-br from-[#3A3D42] to-[#2C2E31] rounded-xl p-6 shadow-lg border border-[#1F2124] hover:border-[#F0AD4E]/20 transition-all duration-300">
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#1F2124]">
+      <div className="bg-gradient-to-br from-[#222428] to-[#18191C] rounded-xl p-6 shadow-lg border border-[#141517] hover:border-[#F59E0B]/20 transition-all duration-300">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#141517]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#F0AD4E]/10 rounded-lg flex items-center justify-center border border-[#F0AD4E]/20">
-              <svg className="w-5 h-5 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 bg-[#F59E0B]/10 rounded-lg flex items-center justify-center border border-[#F59E0B]/20">
+              <svg className="w-5 h-5 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
               </svg>
             </div>
@@ -284,7 +284,7 @@ export default function ConversationsPage() {
           {activeFiltersCount > 0 && (
             <button
               onClick={clearAllFilters}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-[#F0AD4E] font-medium rounded-lg hover:bg-[#1F2124] transition-all duration-200"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-[#F59E0B] font-medium rounded-lg hover:bg-[#141517] transition-all duration-200"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -298,7 +298,7 @@ export default function ConversationsPage() {
           {/* Ricerca Full-Text */}
           <div className="lg:col-span-2">
             <label htmlFor="search" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               Ricerca
@@ -310,7 +310,7 @@ export default function ConversationsPage() {
                 placeholder="Cerca in ID sessione, messaggi o mittente..."
                 value={filters.search}
                 onChange={(e) => updateFilter('search', e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 text-white placeholder-gray-500 shadow-sm hover:shadow-md"
+                className="w-full pl-11 pr-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white placeholder-gray-500 shadow-sm hover:shadow-md"
               />
               <svg className="absolute left-3.5 top-3 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -321,7 +321,7 @@ export default function ConversationsPage() {
           {/* Filtro Data */}
           <div>
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               Periodo
@@ -335,7 +335,7 @@ export default function ConversationsPage() {
           {/* Filtro Mittente */}
           <div>
             <label htmlFor="sender" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               Mittente
@@ -344,7 +344,7 @@ export default function ConversationsPage() {
               id="sender"
               value={filters.sender}
               onChange={(e) => updateFilter('sender', e.target.value)}
-              className="w-full px-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 font-medium text-white shadow-sm hover:shadow-md"
+              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 font-medium text-white shadow-sm hover:shadow-md"
             >
               <option value="all">Tutti i messaggi</option>
               <option value="user">Solo utente</option>
@@ -353,11 +353,11 @@ export default function ConversationsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-5 border-t border-[#1F2124]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-5 border-t border-[#141517]">
           {/* Filtro Numero Messaggi */}
           <div>
             <label htmlFor="minMessages" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
               </svg>
               Messaggi minimi per sessione
@@ -368,14 +368,14 @@ export default function ConversationsPage() {
               min="0"
               value={filters.minMessages}
               onChange={(e) => updateFilter('minMessages', parseInt(e.target.value) || 0)}
-              className="w-full px-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 text-white shadow-sm hover:shadow-md"
+              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
             />
           </div>
 
           {/* Ordinamento */}
           <div>
             <label htmlFor="sortBy" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
               </svg>
               Ordina per
@@ -384,7 +384,7 @@ export default function ConversationsPage() {
               id="sortBy"
               value={filters.sortBy}
               onChange={(e) => updateFilter('sortBy', e.target.value as 'date' | 'messages' | 'session')}
-              className="w-full px-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 font-medium text-white shadow-sm hover:shadow-md"
+              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 font-medium text-white shadow-sm hover:shadow-md"
             >
               <option value="date">Data ultima attività</option>
               <option value="messages">Numero messaggi</option>
@@ -394,7 +394,7 @@ export default function ConversationsPage() {
 
           <div>
             <label htmlFor="sortOrder" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
               Direzione
@@ -403,7 +403,7 @@ export default function ConversationsPage() {
               id="sortOrder"
               value={filters.sortOrder}
               onChange={(e) => updateFilter('sortOrder', e.target.value as 'asc' | 'desc')}
-              className="w-full px-4 py-2.5 border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 font-medium text-white shadow-sm hover:shadow-md"
+              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 font-medium text-white shadow-sm hover:shadow-md"
             >
               <option value="desc">Decrescente</option>
               <option value="asc">Crescente</option>
@@ -413,9 +413,9 @@ export default function ConversationsPage() {
 
         {/* Filtri Attivi */}
         {activeFiltersCount > 0 && (
-          <div className="mt-6 pt-5 border-t border-[#1F2124]">
+          <div className="mt-6 pt-5 border-t border-[#141517]">
             <div className="flex items-center gap-2 mb-3">
-              <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
               </svg>
               <span className="text-sm font-semibold text-gray-300">Filtri attivi ({activeFiltersCount})</span>
@@ -456,31 +456,31 @@ export default function ConversationsPage() {
 
       {/* Statistiche Filtrate */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
+        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Sessioni Visibili</p>
               <p className="text-2xl font-bold text-white mt-1">{filteredSessions.length}</p>
             </div>
-            <div className="w-10 h-10 bg-[#F0AD4E]/20 rounded-lg flex items-center justify-center">
-              <span className="text-[#F0AD4E]">🗂️</span>
+            <div className="w-10 h-10 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
+              <span className="text-[#F59E0B]">🗂️</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
+        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Messaggi Visibili</p>
               <p className="text-2xl font-bold text-white mt-1">{filteredMessages}</p>
             </div>
-            <div className="w-10 h-10 bg-[#5CB85C]/20 rounded-lg flex items-center justify-center">
-              <span className="text-[#5CB85C]">💭</span>
+            <div className="w-10 h-10 bg-[#22C55E]/20 rounded-lg flex items-center justify-center">
+              <span className="text-[#22C55E]">💭</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
+        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Media per Sessione</p>
@@ -488,13 +488,13 @@ export default function ConversationsPage() {
                 {filteredSessions.length > 0 ? Math.round(filteredMessages / filteredSessions.length) : 0}
               </p>
             </div>
-            <div className="w-10 h-10 bg-[#F0AD4E]/20 rounded-lg flex items-center justify-center">
-              <span className="text-[#F0AD4E]">📊</span>
+            <div className="w-10 h-10 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
+              <span className="text-[#F59E0B]">📊</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-[#3A3D42] rounded-xl p-6 shadow-sm border border-[#1F2124]">
+        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">% del Totale</p>
@@ -502,7 +502,7 @@ export default function ConversationsPage() {
                 {totalSessions > 0 ? Math.round((filteredSessions.length / totalSessions) * 100) : 0}%
               </p>
             </div>
-            <div className="w-10 h-10 bg-[#3A3D42] rounded-lg flex items-center justify-center border border-[#1F2124]">
+            <div className="w-10 h-10 bg-[#222428] rounded-lg flex items-center justify-center border border-[#141517]">
               <span className="text-gray-300">📈</span>
             </div>
           </div>
@@ -525,15 +525,15 @@ export default function ConversationsPage() {
       <div className="space-y-4">
         {isLoading ? (
           [...Array(3)].map((_, i) => (
-            <div key={i} className="bg-[#3A3D42] rounded-xl p-6 border border-[#1F2124]">
-              <div className="h-5 bg-[#1F2124] rounded w-64 mb-3 loading"></div>
-              <div className="h-4 bg-[#1F2124] rounded w-full mb-2 loading"></div>
-              <div className="h-4 bg-[#1F2124] rounded w-3/4 loading"></div>
+            <div key={i} className="bg-[#222428] rounded-xl p-6 border border-[#141517]">
+              <div className="h-5 bg-[#141517] rounded w-64 mb-3 loading"></div>
+              <div className="h-4 bg-[#141517] rounded w-full mb-2 loading"></div>
+              <div className="h-4 bg-[#141517] rounded w-3/4 loading"></div>
             </div>
           ))
         ) : paginatedSessions.length === 0 && filteredSessions.length === 0 ? (
-          <div className="bg-[#3A3D42] rounded-xl p-12 text-center shadow-sm border border-[#1F2124]">
-            <div className="w-16 h-16 bg-[#1F2124] rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="bg-[#222428] rounded-xl p-12 text-center shadow-sm border border-[#141517]">
+            <div className="w-16 h-16 bg-[#141517] rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-gray-500 text-2xl">💬</span>
             </div>
             <h3 className="text-lg font-medium text-white mb-2">
@@ -547,8 +547,8 @@ export default function ConversationsPage() {
             </p>
           </div>
         ) : paginatedSessions.length === 0 ? (
-          <div className="bg-[#3A3D42] rounded-xl p-12 text-center shadow-sm border border-[#1F2124]">
-            <div className="w-16 h-16 bg-[#1F2124] rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="bg-[#222428] rounded-xl p-12 text-center shadow-sm border border-[#141517]">
+            <div className="w-16 h-16 bg-[#141517] rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-gray-500 text-2xl">📄</span>
             </div>
             <h3 className="text-lg font-medium text-white mb-2">
@@ -565,15 +565,15 @@ export default function ConversationsPage() {
             const isExpanded = expandedSessions.has(sessionId)
             
             return (
-              <div key={sessionId} className="bg-[#3A3D42] rounded-xl shadow-sm border border-[#1F2124] overflow-hidden card-hover">
+              <div key={sessionId} className="bg-[#222428] rounded-xl shadow-sm border border-[#141517] overflow-hidden card-hover">
                 <div 
-                  className="p-6 cursor-pointer hover:bg-[#1F2124] transition-colors"
+                  className="p-6 cursor-pointer hover:bg-[#141517] transition-colors"
                   onClick={() => toggleSession(sessionId)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <div className="w-8 h-8 bg-[#F0AD4E] rounded-lg flex items-center justify-center">
+                        <div className="w-8 h-8 bg-[#F59E0B] rounded-lg flex items-center justify-center">
                           <span className="text-[#1e293b] text-sm font-medium">
                             {sessionId.slice(-2).toUpperCase()}
                           </span>
@@ -588,7 +588,7 @@ export default function ConversationsPage() {
                         </div>
                       </div>
                       
-                      <div className="bg-[#1F2124] rounded-lg p-3 mt-3">
+                      <div className="bg-[#141517] rounded-lg p-3 mt-3">
                         <p className="text-sm text-gray-300">
                           <span className="font-medium text-white">{lastMsg.sender === 'user' ? 'Utente' : 'Bot'}:</span> {lastMsg.message}
                         </p>
@@ -597,7 +597,7 @@ export default function ConversationsPage() {
                     </div>
                     
                     <div className="ml-4 flex items-center space-x-3">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F0AD4E]/20 text-[#F0AD4E] border border-[#F0AD4E]/30">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30">
                         {messages.length} msg
                       </span>
                       <div className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
@@ -610,7 +610,7 @@ export default function ConversationsPage() {
                 </div>
 
                 {isExpanded && (
-                  <div className="border-t border-[#1F2124] bg-[#1F2124]">
+                  <div className="border-t border-[#141517] bg-[#141517]">
                     <div className="p-6">
                       <h4 className="text-sm font-medium text-white mb-4">Cronologia completa</h4>
                       <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -621,8 +621,8 @@ export default function ConversationsPage() {
                           >
                             <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                               msg.sender === 'user' 
-                                ? 'bg-[#F0AD4E] text-[#1e293b]' 
-                                : 'bg-[#3A3D42] text-white border border-[#1F2124]'
+                                ? 'bg-[#F59E0B] text-[#1e293b]' 
+                                : 'bg-[#222428] text-white border border-[#141517]'
                             }`}>
                               <div className="flex items-center space-x-2 mb-1">
                                 <span className="text-xs font-medium opacity-75">

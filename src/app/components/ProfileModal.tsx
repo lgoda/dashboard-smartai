@@ -48,11 +48,11 @@ export function ProfileModal({ onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#2C2E31] rounded-2xl border border-[#3A3D42] shadow-2xl w-full max-w-md">
+      <div className="bg-[#18191C] rounded-2xl border border-[#222428] shadow-2xl w-full max-w-md">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#3A3D42]">
+        <div className="flex items-center justify-between p-6 border-b border-[#222428]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#F0AD4E] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-sm">
+            <div className="w-10 h-10 bg-[#F59E0B] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-sm">
               {initials}
             </div>
             <div>
@@ -68,7 +68,7 @@ export function ProfileModal({ onClose }: Props) {
             <div className="p-3 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-sm">{error}</div>
           )}
           {success && (
-            <div className="p-3 bg-[#5CB85C]/20 text-[#5CB85C] border border-[#5CB85C]/30 rounded-lg text-sm">Profilo aggiornato.</div>
+            <div className="p-3 bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30 rounded-lg text-sm">Profilo aggiornato.</div>
           )}
 
           {/* Nome */}
@@ -79,7 +79,7 @@ export function ProfileModal({ onClose }: Props) {
               value={fullName}
               onChange={e => setFullName(e.target.value)}
               placeholder="Mario Rossi"
-              className="w-full px-4 py-2.5 bg-[#1F2124] border border-[#3A3D42] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F0AD4E] transition-colors"
+              className="w-full px-4 py-2.5 bg-[#141517] border border-[#222428] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
             />
           </div>
 
@@ -91,7 +91,7 @@ export function ProfileModal({ onClose }: Props) {
               value={phone}
               onChange={e => setPhone(e.target.value)}
               placeholder="+39 333 000 0000"
-              className="w-full px-4 py-2.5 bg-[#1F2124] border border-[#3A3D42] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F0AD4E] transition-colors"
+              className="w-full px-4 py-2.5 bg-[#141517] border border-[#222428] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
             />
           </div>
 
@@ -103,7 +103,7 @@ export function ProfileModal({ onClose }: Props) {
               value={company}
               onChange={e => setCompany(e.target.value)}
               placeholder="Nome azienda"
-              className="w-full px-4 py-2.5 bg-[#1F2124] border border-[#3A3D42] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F0AD4E] transition-colors"
+              className="w-full px-4 py-2.5 bg-[#141517] border border-[#222428] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
             />
           </div>
 
@@ -111,16 +111,16 @@ export function ProfileModal({ onClose }: Props) {
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="w-full py-2.5 bg-[#F0AD4E] text-[#1e293b] rounded-lg font-semibold hover:bg-[#E09A3D] transition-colors disabled:opacity-50"
+            className="w-full py-2.5 bg-[#F59E0B] text-[#1e293b] rounded-lg font-semibold hover:bg-[#D97706] transition-colors disabled:opacity-50"
           >
             {isSaving ? 'Salvataggio...' : 'Salva modifiche'}
           </button>
 
           {/* Cambio email */}
-          <div className="pt-2 border-t border-[#3A3D42]">
+          <div className="pt-2 border-t border-[#222428]">
             <label className="block text-sm font-medium text-gray-300 mb-1">Cambia email</label>
             {emailSent ? (
-              <p className="text-sm text-[#5CB85C]">Controlla la nuova email per confermare il cambio.</p>
+              <p className="text-sm text-[#22C55E]">Controlla la nuova email per confermare il cambio.</p>
             ) : (
               <div className="flex gap-2">
                 <input
@@ -128,12 +128,12 @@ export function ProfileModal({ onClose }: Props) {
                   value={newEmail}
                   onChange={e => setNewEmail(e.target.value)}
                   placeholder="nuova@email.com"
-                  className="flex-1 px-4 py-2.5 bg-[#1F2124] border border-[#3A3D42] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F0AD4E] transition-colors text-sm"
+                  className="flex-1 px-4 py-2.5 bg-[#141517] border border-[#222428] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors text-sm"
                 />
                 <button
                   onClick={handleEmailChange}
                   disabled={isSaving || !newEmail.includes('@')}
-                  className="px-4 py-2.5 bg-[#3A3D42] text-white rounded-lg text-sm hover:bg-[#4A4D52] transition-colors disabled:opacity-40"
+                  className="px-4 py-2.5 bg-[#222428] text-white rounded-lg text-sm hover:bg-[#4A4D52] transition-colors disabled:opacity-40"
                 >
                   Invia
                 </button>

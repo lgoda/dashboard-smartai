@@ -12,4 +12,5 @@ export const pageCache = {
     store.set(key, { data, ts: Date.now() })
   },
   del(key: string): void { store.delete(key) },
+  clear(): void { store.clear() },
 }

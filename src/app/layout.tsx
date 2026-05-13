@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="it" className={inter.className}>
       <head />
-      <body className="bg-[#2C2E31] min-h-screen">
+      <body className="bg-[#18191C] min-h-screen">
         <AuthProvider>
           <NavigationProgress />
           <Navigation />

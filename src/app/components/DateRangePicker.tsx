@@ -131,27 +131,27 @@ export default function DateRangePicker({ value, onChange, presets }: DateRangeP
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-full px-4 py-2.5 text-sm bg-[#1F2124] border border-[#1F2124] rounded-lg hover:border-[#F0AD4E]/50 focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] transition-all duration-200 text-white shadow-sm hover:shadow-md group"
+        className="flex items-center justify-between w-full px-4 py-2.5 text-sm bg-[#141517] border border-[#141517] rounded-lg hover:border-[#F59E0B]/50 focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md group"
       >
         <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-gray-400 group-hover:text-[#F0AD4E] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-gray-400 group-hover:text-[#F59E0B] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
           <span className={value.from || value.to ? 'text-white font-medium' : 'text-gray-400'}>
             {getDisplayText()}
           </span>
         </div>
-        <svg className={`w-4 h-4 text-gray-400 group-hover:text-[#F0AD4E] transition-all duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`w-4 h-4 text-gray-400 group-hover:text-[#F59E0B] transition-all duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-[#3A3D42] border border-[#1F2124] rounded-lg shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-[#222428] border border-[#141517] rounded-lg shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="p-4">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#1F2124]">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#141517]">
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-[#F0AD4E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
                 <h4 className="text-sm font-semibold text-white">Periodo</h4>
@@ -159,7 +159,7 @@ export default function DateRangePicker({ value, onChange, presets }: DateRangeP
               {(value.from || value.to) && (
                 <button
                   onClick={clearFilter}
-                  className="text-xs text-gray-400 hover:text-[#F0AD4E] font-medium transition-colors px-2 py-1 rounded hover:bg-[#1F2124]"
+                  className="text-xs text-gray-400 hover:text-[#F59E0B] font-medium transition-colors px-2 py-1 rounded hover:bg-[#141517]"
                 >
                   Cancella
                 </button>
@@ -172,14 +172,14 @@ export default function DateRangePicker({ value, onChange, presets }: DateRangeP
                   <button
                     key={index}
                     onClick={() => handlePresetClick(preset)}
-                    className="w-full text-left px-3 py-2.5 text-sm text-gray-300 hover:bg-[#1F2124] hover:text-[#F0AD4E] rounded-md transition-all duration-150 hover:translate-x-1"
+                    className="w-full text-left px-3 py-2.5 text-sm text-gray-300 hover:bg-[#141517] hover:text-[#F59E0B] rounded-md transition-all duration-150 hover:translate-x-1"
                   >
                     {preset.label}
                   </button>
                 ))}
                 <button
                   onClick={() => setCustomMode(true)}
-                  className="w-full text-left px-3 py-2.5 text-sm text-[#F0AD4E] hover:bg-[#1F2124] rounded-md transition-all duration-150 font-medium border-t border-[#1F2124] mt-2 pt-2 flex items-center gap-2"
+                  className="w-full text-left px-3 py-2.5 text-sm text-[#F59E0B] hover:bg-[#141517] rounded-md transition-all duration-150 font-medium border-t border-[#141517] mt-2 pt-2 flex items-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -197,7 +197,7 @@ export default function DateRangePicker({ value, onChange, presets }: DateRangeP
                     type="date"
                     value={value.from ? value.from.toISOString().split('T')[0] : ''}
                     onChange={(e) => handleCustomDateChange('from', e.target.value)}
-                    className="w-full px-3 py-2.5 text-sm border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] text-white transition-all"
+                    className="w-full px-3 py-2.5 text-sm border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] text-white transition-all"
                   />
                 </div>
                 <div>
@@ -208,19 +208,19 @@ export default function DateRangePicker({ value, onChange, presets }: DateRangeP
                     type="date"
                     value={value.to ? value.to.toISOString().split('T')[0] : ''}
                     onChange={(e) => handleCustomDateChange('to', e.target.value)}
-                    className="w-full px-3 py-2.5 text-sm border border-[#1F2124] bg-[#1F2124] rounded-lg focus:ring-2 focus:ring-[#F0AD4E]/50 focus:border-[#F0AD4E] text-white transition-all"
+                    className="w-full px-3 py-2.5 text-sm border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] text-white transition-all"
                   />
                 </div>
-                <div className="flex space-x-2 pt-2 border-t border-[#1F2124]">
+                <div className="flex space-x-2 pt-2 border-t border-[#141517]">
                   <button
                     onClick={() => setCustomMode(false)}
-                    className="flex-1 px-4 py-2.5 text-sm text-gray-300 bg-[#1F2124] hover:bg-[#2C2E31] rounded-lg transition-all duration-200 font-medium"
+                    className="flex-1 px-4 py-2.5 text-sm text-gray-300 bg-[#141517] hover:bg-[#18191C] rounded-lg transition-all duration-200 font-medium"
                   >
                     Indietro
                   </button>
                   <button
                     onClick={() => setIsOpen(false)}
-                    className="flex-1 px-4 py-2.5 text-sm text-[#1e293b] bg-[#F0AD4E] hover:bg-[#E09A3D] rounded-lg transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
+                    className="flex-1 px-4 py-2.5 text-sm text-[#1e293b] bg-[#F59E0B] hover:bg-[#D97706] rounded-lg transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
                   >
                     Applica
                   </button>
