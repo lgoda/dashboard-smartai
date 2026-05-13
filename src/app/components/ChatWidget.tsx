@@ -31,8 +31,6 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([WELCOME])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [showTooltip, setShowTooltip] = useState(false)
-  const [tooltipDismissed, setTooltipDismissed] = useState(false)
   const [pendingImage, setPendingImage] = useState<File | null>(null)
   const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -40,40 +38,25 @@ export function ChatWidget() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (tooltipDismissed) return
-    const show = setTimeout(() => setShowTooltip(true), 4000)
-    return () => clearTimeout(show)
-  }, [tooltipDismissed])
-
-  useEffect(() => {
-    if (!showTooltip) return
-    const hide = setTimeout(() => setShowTooltip(false), 5000)
-    return () => clearTimeout(hide)
-  }, [showTooltip])
-
-  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
 
   useEffect(() => {
-    if (isOpen) setTimeout(() => inputRef.current?.focus(), 150)
+    if (isOpen) setTimeout(() => inputRef.current?.focus(), 200)
   }, [isOpen])
 
-  // Blocca scroll del body su mobile quando il chat è aperto
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
+    document.body.style.overflow = isOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [isOpen])
+
+  const open = () => setIsOpen(true)
+  const close = () => setIsOpen(false)
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = ''
-    if (!file) return
-    if (!file.type.startsWith('image/')) return
+    if (!file?.type.startsWith('image/')) return
     if (file.size > 5 * 1024 * 1024) { alert('Dimensione massima: 5 MB'); return }
     setPendingImage(file)
     const reader = new FileReader()
@@ -81,26 +64,20 @@ export function ChatWidget() {
     reader.readAsDataURL(file)
   }
 
-  const removePendingImage = () => {
-    setPendingImage(null)
-    setPendingImagePreview(null)
-  }
-
   const send = useCallback(async (text: string) => {
     const trimmed = text.trim()
     if ((!trimmed && !pendingImage) || isLoading) return
 
-    const userMsg: Message = {
+    const capturedImage = pendingImage
+    const capturedPreview = pendingImagePreview
+
+    setMessages(prev => [...prev, {
       id: `u-${Date.now()}`,
       role: 'user',
       content: trimmed || '📎 Screenshot allegato',
-      imagePreviewUrl: pendingImagePreview ?? undefined,
-    }
-    setMessages(prev => [...prev, userMsg])
+      imagePreviewUrl: capturedPreview ?? undefined,
+    }])
     setInput('')
-
-    const capturedImage = pendingImage
-    const capturedPreview = pendingImagePreview
     setPendingImage(null)
     setPendingImagePreview(null)
     setIsLoading(true)
@@ -109,14 +86,12 @@ export function ChatWidget() {
       let payload: Record<string, unknown>
       if (capturedImage && capturedPreview) {
         const commaIdx = capturedPreview.indexOf(',')
-        const base64 = capturedPreview.slice(commaIdx + 1)
-        const mimeType = capturedPreview.slice(5, capturedPreview.indexOf(';'))
         payload = {
           message: trimmed || 'Screenshot allegato',
           sessionId: sessionId.current,
           userName: profile?.full_name || '',
-          imageBase64: base64,
-          imageMimeType: mimeType,
+          imageBase64: capturedPreview.slice(commaIdx + 1),
+          imageMimeType: capturedPreview.slice(5, capturedPreview.indexOf(';')),
           imageName: capturedImage.name,
         }
       } else {
@@ -151,75 +126,87 @@ export function ChatWidget() {
 
   return (
     <>
-      {/* Tooltip (solo desktop) */}
-      {showTooltip && !isOpen && (
-        <div className="hidden sm:block fixed bottom-[88px] right-6 z-40 bg-[#1F2124] border border-[#3A3D42] text-white text-sm px-3 py-2 rounded-xl shadow-xl pointer-events-none">
-          💬 Come posso aiutarti?
-          <div className="absolute bottom-[-6px] right-5 w-3 h-3 bg-[#1F2124] border-r border-b border-[#3A3D42] rotate-45" />
-        </div>
-      )}
+      {/* ── FAB button — nascosto su mobile quando chat è aperta ── */}
+      <button
+        onClick={open}
+        className={`fixed bottom-6 right-6 z-40 w-14 h-14 bg-[#F0AD4E] text-[#1e293b] rounded-full shadow-xl hover:bg-[#E09A3D] active:scale-95 transition-all flex items-center justify-center ${isOpen ? 'hidden sm:flex' : 'flex'}`}
+        aria-label="Apri assistente"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+        </svg>
+      </button>
 
-      {/* Panel — full screen su mobile, floating su desktop */}
+      {/* ── Chat panel ── */}
       {isOpen && (
-        <div className={[
-          'fixed z-50 flex flex-col bg-[#2C2E31] overflow-hidden',
-          // Mobile: full screen
-          'inset-0',
-          // Desktop: pannello floating in basso a destra
-          'sm:inset-auto sm:bottom-[88px] sm:right-6 sm:w-[400px] sm:rounded-2xl sm:border sm:border-[#3A3D42] sm:shadow-2xl',
-        ].join(' ')}
-          style={{ height: undefined }}
+        <div
+          className={[
+            // Mobile: full screen
+            'fixed inset-0 z-50 flex flex-col bg-[#2C2E31]',
+            // Desktop: floating panel
+            'sm:inset-auto sm:bottom-[88px] sm:right-6',
+            'sm:w-[400px] sm:h-[580px]',
+            'sm:rounded-2xl sm:border sm:border-[#3A3D42] sm:shadow-2xl',
+          ].join(' ')}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-[#1F2124] border-b border-[#3A3D42] shrink-0 safe-top">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-[#F0AD4E] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-sm shrink-0">S</div>
-              <div>
-                <p className="text-white font-semibold text-sm leading-tight">Assistente SmartService</p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#5CB85C]" />
-                  <p className="text-xs text-gray-400">Online</p>
-                </div>
-              </div>
-            </div>
+          {/* ── Header ── */}
+          <div className="flex items-center gap-3 px-4 bg-[#1F2124] border-b border-[#3A3D42] shrink-0"
+            style={{ paddingTop: 'max(12px, env(safe-area-inset-top))', paddingBottom: '12px' }}>
+
+            {/* Back/close — freccia su mobile, X su desktop */}
             <button
-              onClick={() => setIsOpen(false)}
-              className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#3A3D42] rounded-lg transition-colors"
+              onClick={close}
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-[#3A3D42] transition-colors shrink-0"
+              aria-label="Chiudi"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* Arrow on mobile */}
+              <svg className="w-5 h-5 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
+              {/* X on desktop */}
+              <svg className="w-5 h-5 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+
+            <div className="w-9 h-9 bg-[#F0AD4E] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-sm shrink-0">S</div>
+
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-semibold text-sm leading-tight truncate">Assistente SmartService</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#5CB85C]" />
+                <p className="text-xs text-gray-400">Online</p>
+              </div>
+            </div>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+          {/* ── Messages ── */}
+          <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4 space-y-4">
             {messages.map(msg => (
-              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div key={msg.id} className={`flex items-end gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'assistant' && (
-                  <div className="w-7 h-7 bg-[#F0AD4E] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-xs shrink-0 mr-2 mt-1">S</div>
+                  <div className="w-7 h-7 bg-[#F0AD4E] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-xs shrink-0">S</div>
                 )}
-                <div className={`max-w-[80%] rounded-2xl text-sm leading-relaxed overflow-hidden ${
+                <div className={`max-w-[78%] rounded-2xl text-sm leading-relaxed overflow-hidden shadow-sm ${
                   msg.role === 'user'
                     ? 'bg-[#F0AD4E] text-[#1e293b] font-medium rounded-br-sm'
                     : 'bg-[#3A3D42] text-white rounded-bl-sm'
                 }`}>
                   {msg.imagePreviewUrl && (
-                    <img src={msg.imagePreviewUrl} alt="screenshot" className="w-full max-w-[260px] rounded-t-2xl object-cover" />
+                    <img src={msg.imagePreviewUrl} alt="screenshot" className="w-full max-w-[260px] object-cover" />
                   )}
-                  {msg.content && (
-                    <p className="px-3 py-2.5 whitespace-pre-wrap">{msg.content}</p>
-                  )}
+                  {msg.content && <p className="px-3.5 py-2.5 whitespace-pre-wrap">{msg.content}</p>}
                 </div>
               </div>
             ))}
 
             {/* Quick questions */}
             {showQuick && (
-              <div className="flex flex-col gap-2 mt-2">
+              <div className="flex flex-col gap-2 pl-9">
                 {QUICK_QUESTIONS.map(q => (
                   <button key={q} onClick={() => send(q)}
-                    className="text-left text-sm text-[#F0AD4E] border border-[#F0AD4E]/30 hover:border-[#F0AD4E]/70 hover:bg-[#F0AD4E]/5 px-4 py-3 rounded-xl transition-colors">
+                    className="text-left text-sm text-[#F0AD4E] border border-[#F0AD4E]/30 hover:border-[#F0AD4E] hover:bg-[#F0AD4E]/5 active:bg-[#F0AD4E]/10 px-4 py-3 rounded-xl transition-colors">
                     {q}
                   </button>
                 ))}
@@ -228,47 +215,54 @@ export function ChatWidget() {
 
             {/* Typing indicator */}
             {isLoading && (
-              <div className="flex justify-start">
-                <div className="w-7 h-7 bg-[#F0AD4E] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-xs shrink-0 mr-2 mt-1">S</div>
-                <div className="bg-[#3A3D42] px-4 py-3 rounded-2xl rounded-bl-sm">
+              <div className="flex items-end gap-2">
+                <div className="w-7 h-7 bg-[#F0AD4E] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-xs shrink-0">S</div>
+                <div className="bg-[#3A3D42] px-4 py-3.5 rounded-2xl rounded-bl-sm shadow-sm">
                   <div className="flex gap-1 items-center">
-                    {[0, 150, 300].map(delay => (
-                      <div key={delay} className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                        style={{ animationDelay: `${delay}ms` }} />
+                    {[0, 150, 300].map(d => (
+                      <div key={d} className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
                     ))}
                   </div>
                 </div>
               </div>
             )}
+
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input area */}
-          <div className="border-t border-[#3A3D42] shrink-0 bg-[#2C2E31]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+          {/* ── Input bar ── */}
+          <div
+            className="shrink-0 bg-[#1F2124] border-t border-[#3A3D42]"
+            style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+          >
             {/* Image preview */}
             {pendingImagePreview && (
-              <div className="px-3 pt-3 flex items-start gap-2">
+              <div className="px-4 pt-3 flex items-center gap-3">
                 <div className="relative">
-                  <img src={pendingImagePreview} alt="preview" className="w-16 h-16 object-cover rounded-lg border border-[#3A3D42]" />
-                  <button
-                    onClick={removePendingImage}
-                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600 transition-colors"
-                  >✕</button>
+                  <img src={pendingImagePreview} alt="preview" className="w-14 h-14 object-cover rounded-xl border border-[#3A3D42]" />
+                  <button onClick={() => { setPendingImage(null); setPendingImagePreview(null) }}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center font-bold">
+                    ✕
+                  </button>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">{pendingImage?.name}</p>
+                <p className="text-xs text-gray-400 truncate">{pendingImage?.name}</p>
               </div>
             )}
 
-            <div className="p-3 flex gap-2 items-end">
+            <div className="flex items-center gap-2 px-4 pt-3">
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
 
               {/* Attach */}
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isLoading}
-                title="Allega screenshot"
-                className="p-2.5 text-gray-400 hover:text-[#F0AD4E] hover:bg-[#3A3D42] rounded-xl transition-colors disabled:opacity-40 shrink-0 text-lg"
-              >📎</button>
+                className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-[#F0AD4E] active:text-[#F0AD4E] transition-colors disabled:opacity-40 shrink-0"
+                aria-label="Allega immagine"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+              </button>
 
               {/* Text input */}
               <input
@@ -277,46 +271,26 @@ export function ChatWidget() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) } }}
-                placeholder={pendingImage ? 'Aggiungi una descrizione...' : 'Scrivi un messaggio...'}
+                placeholder={pendingImage ? 'Descrizione...' : 'Scrivi un messaggio...'}
                 disabled={isLoading}
-                className="flex-1 bg-[#1F2124] text-white text-sm px-4 py-3 rounded-xl border border-[#3A3D42] placeholder-gray-500 focus:outline-none focus:border-[#F0AD4E] disabled:opacity-50 transition-colors"
+                className="flex-1 bg-[#2C2E31] text-white text-sm px-4 py-3 rounded-2xl border border-[#3A3D42] placeholder-gray-500 focus:outline-none focus:border-[#F0AD4E] disabled:opacity-50 transition-colors"
               />
 
               {/* Send */}
               <button
                 onClick={() => send(input)}
                 disabled={(!input.trim() && !pendingImage) || isLoading}
-                className="w-11 h-11 bg-[#F0AD4E] text-[#1e293b] rounded-xl font-bold text-xl hover:bg-[#E09A3D] transition-colors disabled:opacity-40 shrink-0 flex items-center justify-center"
+                className="w-10 h-10 bg-[#F0AD4E] text-[#1e293b] rounded-2xl flex items-center justify-center hover:bg-[#E09A3D] active:scale-95 transition-all disabled:opacity-40 shrink-0"
+                aria-label="Invia"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M12 5l7 7-7 7" />
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19V5m-7 7l7-7 7 7" />
                 </svg>
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Toggle button */}
-      <button
-        onClick={() => {
-          setIsOpen(v => !v)
-          setShowTooltip(false)
-          setTooltipDismissed(true)
-        }}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#F0AD4E] text-[#1e293b] rounded-full shadow-xl hover:bg-[#E09A3D] transition-all flex items-center justify-center"
-        aria-label="Assistente"
-      >
-        {isOpen ? (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-          </svg>
-        )}
-      </button>
     </>
   )
 }
