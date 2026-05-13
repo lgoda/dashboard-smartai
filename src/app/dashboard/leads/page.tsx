@@ -554,82 +554,87 @@ export default function LeadsPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead className="bg-[#1F2124]">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Nome
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Contatti
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Messaggio
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Fonte
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Data
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-[#3A3D42] divide-y divide-[#1F2124]">
-                {leads.map((lead) => (
-                  <tr key={lead.id} className="table-row">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-[#F0AD4E] rounded-full flex items-center justify-center mr-3">
-                          <span className="text-[#1e293b] font-medium text-sm">
-                            {lead.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div>
+          <>
+            {/* Mobile card view */}
+            <div className="md:hidden divide-y divide-[#1F2124]">
+              {leads.map((lead) => (
+                <div key={lead.id} className="p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-[#F0AD4E] rounded-full flex items-center justify-center shrink-0">
+                        <span className="text-[#1e293b] font-bold text-sm">{lead.name.charAt(0).toUpperCase()}</span>
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-white">{lead.name}</div>
+                        <div className="text-xs text-gray-400">{new Date(lead.created_at).toLocaleDateString('it-IT')}</div>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#F0AD4E]/20 text-[#F0AD4E] border border-[#F0AD4E]/30 shrink-0">
+                      {lead.source}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-300">{lead.email}</div>
+                  {lead.phone && <div className="text-sm text-gray-400">{lead.phone}</div>}
+                  {lead.message?.trim() && (
+                    <div className="text-xs text-gray-400 line-clamp-2 bg-[#1F2124] rounded p-2">{lead.message}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full">
+                <thead className="bg-[#1F2124]">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Nome</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Contatti</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Messaggio</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Fonte</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Data</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-[#3A3D42] divide-y divide-[#1F2124]">
+                  {leads.map((lead) => (
+                    <tr key={lead.id} className="table-row">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-[#F0AD4E] rounded-full flex items-center justify-center mr-3">
+                            <span className="text-[#1e293b] font-medium text-sm">{lead.name.charAt(0).toUpperCase()}</span>
+                          </div>
                           <div className="text-sm font-medium text-white">{lead.name}</div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        <div className="text-sm text-white">{lead.email}</div>
-                        {lead.phone && (
-                          <div className="text-sm text-gray-400">{lead.phone}</div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-white max-w-xs">
-                        {lead.message && lead.message.trim() ? (
-                          <p className="truncate" title={lead.message}>
-                            {lead.message}
-                          </p>
-                        ) : (
-                          <span className="text-gray-500 italic">Nessun messaggio</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F0AD4E]/20 text-[#F0AD4E] border border-[#F0AD4E]/30">
-                        {lead.source}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-white">
-                        {new Date(lead.created_at).toLocaleDateString('it-IT')}
-                      </div>
-                      <div className="text-sm text-gray-400">
-                        {new Date(lead.created_at).toLocaleTimeString('it-IT', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-1">
+                          <div className="text-sm text-white">{lead.email}</div>
+                          {lead.phone && <div className="text-sm text-gray-400">{lead.phone}</div>}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-white max-w-xs">
+                          {lead.message?.trim() ? (
+                            <p className="truncate" title={lead.message}>{lead.message}</p>
+                          ) : (
+                            <span className="text-gray-500 italic">Nessun messaggio</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F0AD4E]/20 text-[#F0AD4E] border border-[#F0AD4E]/30">
+                          {lead.source}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-white">{new Date(lead.created_at).toLocaleDateString('it-IT')}</div>
+                        <div className="text-sm text-gray-400">{new Date(lead.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

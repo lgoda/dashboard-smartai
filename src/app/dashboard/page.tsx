@@ -207,9 +207,9 @@ export default function Dashboard() {
       </div>
 
       <div className="bg-[#3A3D42] rounded-xl p-4 shadow-sm border border-[#1F2124]">
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-wrap items-center gap-3">
           <label className="text-sm font-medium text-gray-300">Filtra per servizio:</label>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setServiceFilter('all')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
