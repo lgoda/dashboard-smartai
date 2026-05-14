@@ -54,6 +54,7 @@ export default function AICallsPage() {
   const [nextPaginationKey, setNextPaginationKey] = useState<string | undefined>(undefined)
   const [hasMore, setHasMore] = useState(false)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [loadingAudio, setLoadingAudio] = useState<Record<string, boolean>>({})
   const [audioUrls, setAudioUrls] = useState<Record<string, string>>({})
   const [filters, setFilters] = useState<Filters>({
@@ -778,1038 +779,507 @@ export default function AICallsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-[#222428] rounded-xl p-6 shadow-lg border border-[#141517]">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-[#F59E0B] rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-[#1e293b] text-xl">📞</span>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white">Chiamate IA</h1>
-              <p className="text-gray-300 mt-1">
-                {calls.length} chiamate caricate
-                {activeFiltersCount > 0 && (
-                  <span className="text-[#F59E0B] font-medium"> • {activeFiltersCount} filtri attivi</span>
-                )}
-              </p>
-            </div>
+    <div className="space-y-4">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-[#F59E0B] rounded-xl flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-[#1e293b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
           </div>
-          
-          {(hasElevenLabsToken || hasRetellToken) && (
-            <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-300">Provider:</label>
-              <select
-                value={provider}
-                onChange={(e) => setProvider(e.target.value as Provider)}
-                className="px-4 py-2 bg-[#141517] border border-[#141517] rounded-lg text-white text-sm font-medium focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B]"
-              >
-                {hasElevenLabsToken && hasRetellToken && <option value="all">Tutti</option>}
-                {hasElevenLabsToken && <option value="elevenlabs">ElevenLabs</option>}
-                {hasRetellToken && <option value="retell">Retell AI</option>}
-              </select>
-            </div>
-          )}
+          <div>
+            <h1 className="text-2xl font-bold text-white">Chiamate IA</h1>
+            <p className="text-sm text-gray-400 mt-0.5">
+              {calls.length} chiamate
+              {activeFiltersCount > 0 && <span className="text-[#F59E0B]"> · {activeFiltersCount} filtri attivi</span>}
+            </p>
+          </div>
         </div>
+
+        {(hasElevenLabsToken || hasRetellToken) && hasElevenLabsToken && hasRetellToken && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">Provider:</span>
+            <select
+              value={provider}
+              onChange={(e) => setProvider(e.target.value as Provider)}
+              className="px-3 py-1.5 bg-[#222428] border border-[#141517] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B]"
+            >
+              <option value="all">Tutti</option>
+              {hasElevenLabsToken && <option value="elevenlabs">ElevenLabs</option>}
+              {hasRetellToken && <option value="retell">Retell AI</option>}
+            </select>
+          </div>
+        )}
       </div>
 
+      {/* ── Error banner ── */}
       {error && (
-        <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-2">
-                <span className="text-red-400 text-lg">⚠️</span>
-                <p className="text-sm font-semibold text-red-400">Errore nel caricamento</p>
-              </div>
-              <p className="text-sm text-red-300 mb-3">{error}</p>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => {
-                    setError(null)
-                    loadCalls(true)
-                  }}
-                  className="px-4 py-2 bg-[#F59E0B] text-[#1e293b] rounded-lg text-sm font-medium hover:bg-[#D97706] transition-colors shadow-md"
-                >
-                  Riprova
-                </button>
-                <button
-                  onClick={() => setError(null)}
-                  className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm font-medium hover:bg-[#18191C] transition-colors"
-                >
-                  Chiudi
-                </button>
-              </div>
-            </div>
-            <button
-              onClick={() => setError(null)}
-              className="text-red-400 hover:text-red-300 ml-4"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+          <svg className="w-4 h-4 text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <p className="text-sm text-red-400 flex-1">{error}</p>
+          <button onClick={() => { setError(null); loadCalls(true) }} className="text-xs text-[#F59E0B] hover:underline">Riprova</button>
+          <button onClick={() => setError(null)} className="text-gray-500 hover:text-gray-300"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
         </div>
       )}
 
-      <div className="bg-gradient-to-br from-[#222428] to-[#18191C] rounded-xl p-6 shadow-lg border border-[#141517] hover:border-[#F59E0B]/20 transition-all duration-300">
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#141517]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#F59E0B]/10 rounded-lg flex items-center justify-center border border-[#F59E0B]/20">
-              <svg className="w-5 h-5 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-white">Filtri e Ricerca</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Trova le chiamate che stai cercando</p>
-            </div>
+      {/* ── Filter bar (sempre visibile) ── */}
+      <div className="bg-[#222428] rounded-xl border border-[#141517] overflow-hidden">
+        <div className="flex flex-wrap items-center gap-2 p-3">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[180px]">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Cerca agent, titolo..."
+              value={filters.search}
+              onChange={(e) => updateFilter('search', e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
+            />
           </div>
+
+          {/* DateRangePicker */}
+          <div className="shrink-0">
+            <DateRangePicker value={filters.dateRange} onChange={(range) => updateFilter('dateRange', range)} />
+          </div>
+
+          {/* Filtri avanzati toggle */}
+          <button
+            onClick={() => setFiltersOpen(o => !o)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors shrink-0 ${
+              filtersOpen || activeFiltersCount > 0
+                ? 'bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30'
+                : 'bg-[#141517] text-gray-300 border border-[#141517] hover:text-white'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+            Filtri
+            {activeFiltersCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-[#F59E0B] text-[#1e293b] text-[10px] font-bold flex items-center justify-center">{activeFiltersCount}</span>
+            )}
+            <svg className={`w-3 h-3 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {/* Sort */}
+          <select
+            value={filters.sortBy}
+            onChange={(e) => updateFilter('sortBy', e.target.value as 'date' | 'duration' | 'messages' | 'cost')}
+            className="shrink-0 px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B] transition-colors"
+          >
+            <option value="date">↓ Data</option>
+            <option value="duration">↓ Durata</option>
+            <option value="messages">↓ Messaggi</option>
+            <option value="cost">↓ Costo</option>
+          </select>
+          <select
+            value={filters.sortOrder}
+            onChange={(e) => updateFilter('sortOrder', e.target.value as 'asc' | 'desc')}
+            className="shrink-0 px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B] transition-colors"
+          >
+            <option value="desc">Desc</option>
+            <option value="asc">Asc</option>
+          </select>
+
           {activeFiltersCount > 0 && (
-            <button
-              onClick={clearAllFilters}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-[#F59E0B] font-medium rounded-lg hover:bg-[#141517] transition-all duration-200"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+            <button onClick={clearAllFilters} className="shrink-0 text-xs text-gray-400 hover:text-red-400 transition-colors px-2">
               Cancella tutti
             </button>
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-5">
-          <div className="lg:col-span-2">
-            <label htmlFor="search" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              Ricerca
-            </label>
-            <div className="relative">
-              <input
-                id="search"
-                type="text"
-                placeholder="Cerca per agent, titolo, summary..."
-                value={filters.search}
-                onChange={(e) => updateFilter('search', e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white placeholder-gray-500 shadow-sm hover:shadow-md"
-              />
-              <svg className="absolute left-3.5 top-3 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-          </div>
-
-          <div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Periodo
-            </label>
-            <DateRangePicker
-              value={filters.dateRange}
-              onChange={(range) => updateFilter('dateRange', range)}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="outcome" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Outcome
-            </label>
-            <select
-              id="outcome"
-              value={filters.outcome}
-              onChange={(e) => updateFilter('outcome', e.target.value)}
-              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
-            >
-              <option value="">Tutti gli outcome</option>
-              <option value="successful">Successo</option>
-              <option value="failed">Fallito</option>
-              <option value="unknown">Sconosciuto</option>
-            </select>
-          </div>
-          
-          <div>
-            <label htmlFor="agentId" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              Agente
-            </label>
-            <select
-              id="agentId"
-              value={filters.agentId}
-              onChange={(e) => updateFilter('agentId', e.target.value)}
-              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
-            >
-              <option value="">Tutti gli agenti</option>
-              {agents.map(agent => (
-                <option key={agent.id} value={agent.id}>
-                  {agent.name || agent.id.substring(0, 8) + '...'}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mt-5 pt-5 border-t border-[#141517]">
-          {/* Retell-specific filters */}
-          {provider === 'retell' || provider === 'all' ? (
-            <>
-              <div>
-                <label htmlFor="callStatus" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-                  <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Stato Chiamata
-                </label>
-                <select
-                  id="callStatus"
-                  value={filters.callStatus}
-                  onChange={(e) => updateFilter('callStatus', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
-                >
-                  <option value="">Tutti gli stati</option>
-                  {callStatuses.map(status => (
-                    <option key={status} value={status}>{status}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label htmlFor="terminationReason" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-                  <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Motivo Terminazione
-                </label>
-                <select
-                  id="terminationReason"
-                  value={filters.terminationReason}
-                  onChange={(e) => updateFilter('terminationReason', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
-                >
-                  <option value="">Tutti i motivi</option>
-                  {terminationReasons.map(reason => (
-                    <option key={reason} value={reason}>{reason.replace(/_/g, ' ')}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label htmlFor="sentiment" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-                  <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Sentiment
-                </label>
-                <select
-                  id="sentiment"
-                  value={filters.sentiment}
-                  onChange={(e) => updateFilter('sentiment', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
-                >
-                  <option value="">Tutti i sentiment</option>
-                  {sentiments.map(sent => (
-                    <option key={sent} value={sent}>{sent}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label htmlFor="minCost" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-                  <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Costo Min {(provider === 'retell' || provider === 'all') ? '($)' : '(€)'}
-                </label>
-                <input
-                  id="minCost"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={filters.minCost}
-                  onChange={(e) => updateFilter('minCost', parseFloat(e.target.value) || 0)}
-                  className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white placeholder-gray-500 shadow-sm hover:shadow-md"
-                  placeholder="0"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="maxCost" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-                  <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Costo Max {(provider === 'retell' || provider === 'all') ? '($)' : '(€)'}
-                </label>
-                <input
-                  id="maxCost"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={filters.maxCost}
-                  onChange={(e) => updateFilter('maxCost', parseFloat(e.target.value) || 0)}
-                  className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white placeholder-gray-500 shadow-sm hover:shadow-md"
-                  placeholder="0"
-                />
-              </div>
-            </>
-          ) : null}
-          
-          <div>
-            <label htmlFor="direction" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-              Direzione
-            </label>
-            <select
-              id="direction"
-              value={filters.direction}
-              onChange={(e) => updateFilter('direction', e.target.value)}
-              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
-            >
-              <option value="">Tutte le direzioni</option>
-              <option value="inbound">Inbound</option>
-              <option value="outbound">Outbound</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="minRating" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-              </svg>
-              Rating minimo
-            </label>
-            <input
-              id="minRating"
-              type="number"
-              min="0"
-              max="5"
-              step="0.1"
-              value={filters.minRating}
-              onChange={(e) => updateFilter('minRating', parseFloat(e.target.value) || 0)}
-              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white placeholder-gray-500 shadow-sm hover:shadow-md"
-              placeholder="0"
-            />
-          </div>
-          <div>
-            <label htmlFor="minDuration" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Durata minima (sec)
-            </label>
-            <input
-              id="minDuration"
-              type="number"
-              min="0"
-              value={filters.minDuration}
-              onChange={(e) => updateFilter('minDuration', parseInt(e.target.value) || 0)}
-              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white placeholder-gray-500 shadow-sm hover:shadow-md"
-              placeholder="0"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="maxDuration" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Durata massima (sec)
-            </label>
-            <input
-              id="maxDuration"
-              type="number"
-              min="0"
-              value={filters.maxDuration}
-              onChange={(e) => updateFilter('maxDuration', parseInt(e.target.value) || 0)}
-              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white placeholder-gray-500 shadow-sm hover:shadow-md"
-              placeholder="0"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="sortBy" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
-              </svg>
-              Ordina per
-            </label>
-            <select
-              id="sortBy"
-              value={filters.sortBy}
-              onChange={(e) => updateFilter('sortBy', e.target.value as 'date' | 'duration' | 'messages' | 'cost')}
-              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
-            >
-              <option value="date">Data</option>
-              <option value="duration">Durata</option>
-              <option value="messages">Messaggi</option>
-              <option value="cost">Costo</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="sortOrder" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
-              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
-              Direzione
-            </label>
-            <select
-              id="sortOrder"
-              value={filters.sortOrder}
-              onChange={(e) => updateFilter('sortOrder', e.target.value as 'asc' | 'desc')}
-              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
-            >
-              <option value="desc">Decrescente</option>
-              <option value="asc">Crescente</option>
-            </select>
-          </div>
-        </div>
-
+        {/* Active filter chips */}
         {activeFiltersCount > 0 && (
-          <div className="mt-6 pt-5 border-t border-[#141517]">
-            <div className="flex items-center gap-2 mb-3">
-              <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
-              <span className="text-sm font-semibold text-gray-300">Filtri attivi ({activeFiltersCount})</span>
+          <div className="flex flex-wrap gap-1.5 px-3 pb-3">
+            {filters.search && <FilterBadge label="Ricerca" value={filters.search} onRemove={() => updateFilter('search', '')} />}
+            {(filters.dateRange.from || filters.dateRange.to) && <FilterBadge label="Periodo" value={formatDateRange(filters.dateRange)} onRemove={() => updateFilter('dateRange', { from: null, to: null })} />}
+            {filters.outcome && <FilterBadge label="Outcome" value={getOutcomeLabel(filters.outcome)} onRemove={() => updateFilter('outcome', '')} />}
+            {filters.agentId && <FilterBadge label="Agente" value={agents.find(a => a.id === filters.agentId)?.name || filters.agentId.substring(0, 8) + '...'} onRemove={() => updateFilter('agentId', '')} />}
+            {filters.callStatus && <FilterBadge label="Stato" value={filters.callStatus} onRemove={() => updateFilter('callStatus', '')} />}
+            {filters.terminationReason && <FilterBadge label="Terminazione" value={filters.terminationReason.replace(/_/g, ' ')} onRemove={() => updateFilter('terminationReason', '')} />}
+            {filters.sentiment && <FilterBadge label="Sentiment" value={filters.sentiment} onRemove={() => updateFilter('sentiment', '')} />}
+            {filters.direction && <FilterBadge label="Direzione" value={filters.direction === 'inbound' ? 'Inbound' : 'Outbound'} onRemove={() => updateFilter('direction', '')} />}
+            {filters.minRating > 0 && <FilterBadge label="Rating min" value={`★ ${filters.minRating}`} onRemove={() => updateFilter('minRating', 0)} />}
+            {filters.minDuration > 0 && <FilterBadge label="Durata min" value={`${filters.minDuration}s`} onRemove={() => updateFilter('minDuration', 0)} />}
+            {filters.maxDuration > 0 && <FilterBadge label="Durata max" value={`${filters.maxDuration}s`} onRemove={() => updateFilter('maxDuration', 0)} />}
+            {filters.minCost > 0 && <FilterBadge label="Costo min" value={`${(provider === 'retell' || provider === 'all') ? '$' : '€'}${filters.minCost.toFixed(2)}`} onRemove={() => updateFilter('minCost', 0)} />}
+            {filters.maxCost > 0 && <FilterBadge label="Costo max" value={`${(provider === 'retell' || provider === 'all') ? '$' : '€'}${filters.maxCost.toFixed(2)}`} onRemove={() => updateFilter('maxCost', 0)} />}
+          </div>
+        )}
+
+        {/* ── Pannello filtri avanzati (collassabile) ── */}
+        {filtersOpen && (
+          <div className="border-t border-[#141517] p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Outcome */}
+            <div>
+              <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Outcome</label>
+              <select value={filters.outcome} onChange={(e) => updateFilter('outcome', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
+                <option value="">Tutti</option>
+                <option value="successful">Successo</option>
+                <option value="failed">Fallito</option>
+                <option value="unknown">Sconosciuto</option>
+              </select>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {filters.search && (
-                <FilterBadge
-                  label="Ricerca"
-                  value={filters.search}
-                  onRemove={() => updateFilter('search', '')}
-                />
-              )}
-              {(filters.dateRange.from || filters.dateRange.to) && (
-                <FilterBadge
-                  label="Periodo"
-                  value={formatDateRange(filters.dateRange)}
-                  onRemove={() => updateFilter('dateRange', { from: null, to: null })}
-                />
-              )}
-              {filters.outcome && (
-                <FilterBadge
-                  label="Outcome"
-                  value={getOutcomeLabel(filters.outcome)}
-                  onRemove={() => updateFilter('outcome', '')}
-                />
-              )}
-              {filters.agentId && (
-                <FilterBadge
-                  label="Agente"
-                  value={agents.find(a => a.id === filters.agentId)?.name || filters.agentId.substring(0, 8) + '...'}
-                  onRemove={() => updateFilter('agentId', '')}
-                />
-              )}
-              {filters.callStatus && (
-                <FilterBadge
-                  label="Stato"
-                  value={filters.callStatus}
-                  onRemove={() => updateFilter('callStatus', '')}
-                />
-              )}
-              {filters.terminationReason && (
-                <FilterBadge
-                  label="Terminazione"
-                  value={filters.terminationReason.replace(/_/g, ' ')}
-                  onRemove={() => updateFilter('terminationReason', '')}
-                />
-              )}
-              {filters.sentiment && (
-                <FilterBadge
-                  label="Sentiment"
-                  value={filters.sentiment}
-                  onRemove={() => updateFilter('sentiment', '')}
-                />
-              )}
-              {filters.direction && (
-                <FilterBadge
-                  label="Direzione"
-                  value={filters.direction === 'inbound' ? 'Inbound' : 'Outbound'}
-                  onRemove={() => updateFilter('direction', '')}
-                />
-              )}
-              {filters.minRating > 0 && (
-                <FilterBadge
-                  label="Rating min"
-                  value={`★ ${filters.minRating}`}
-                  onRemove={() => updateFilter('minRating', 0)}
-                />
-              )}
-              {filters.minDuration > 0 && (
-                <FilterBadge
-                  label="Durata min"
-                  value={`${filters.minDuration}s`}
-                  onRemove={() => updateFilter('minDuration', 0)}
-                />
-              )}
-              {filters.maxDuration > 0 && (
-                <FilterBadge
-                  label="Durata max"
-                  value={`${filters.maxDuration}s`}
-                  onRemove={() => updateFilter('maxDuration', 0)}
-                />
-              )}
-              {filters.minCost > 0 && (
-                <FilterBadge
-                  label="Costo min"
-                  value={`${(provider === 'retell' || provider === 'all') ? '$' : '€'}${filters.minCost.toFixed(2)}`}
-                  onRemove={() => updateFilter('minCost', 0)}
-                />
-              )}
-              {filters.maxCost > 0 && (
-                <FilterBadge
-                  label="Costo max"
-                  value={`${(provider === 'retell' || provider === 'all') ? '$' : '€'}${filters.maxCost.toFixed(2)}`}
-                  onRemove={() => updateFilter('maxCost', 0)}
-                />
-              )}
+            {/* Agente */}
+            <div>
+              <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Agente</label>
+              <select value={filters.agentId} onChange={(e) => updateFilter('agentId', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
+                <option value="">Tutti</option>
+                {agents.map(agent => <option key={agent.id} value={agent.id}>{agent.name || agent.id.substring(0, 8) + '...'}</option>)}
+              </select>
             </div>
+            {/* Direzione */}
+            <div>
+              <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Direzione</label>
+              <select value={filters.direction} onChange={(e) => updateFilter('direction', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
+                <option value="">Tutte</option>
+                <option value="inbound">Inbound</option>
+                <option value="outbound">Outbound</option>
+              </select>
+            </div>
+            {/* Rating min */}
+            <div>
+              <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Rating minimo</label>
+              <input type="number" min="0" max="5" step="0.1" value={filters.minRating} onChange={(e) => updateFilter('minRating', parseFloat(e.target.value) || 0)} placeholder="0" className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]" />
+            </div>
+            {/* Durata min/max */}
+            <div>
+              <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Durata min (sec)</label>
+              <input type="number" min="0" value={filters.minDuration} onChange={(e) => updateFilter('minDuration', parseInt(e.target.value) || 0)} placeholder="0" className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Durata max (sec)</label>
+              <input type="number" min="0" value={filters.maxDuration} onChange={(e) => updateFilter('maxDuration', parseInt(e.target.value) || 0)} placeholder="0" className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]" />
+            </div>
+            {/* Retell-specific */}
+            {(provider === 'retell' || provider === 'all') && (
+              <>
+                <div>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Stato Chiamata</label>
+                  <select value={filters.callStatus} onChange={(e) => updateFilter('callStatus', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
+                    <option value="">Tutti</option>
+                    {callStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Terminazione</label>
+                  <select value={filters.terminationReason} onChange={(e) => updateFilter('terminationReason', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
+                    <option value="">Tutti</option>
+                    {terminationReasons.map(r => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Sentiment</label>
+                  <select value={filters.sentiment} onChange={(e) => updateFilter('sentiment', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
+                    <option value="">Tutti</option>
+                    {sentiments.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Costo min</label>
+                    <input type="number" min="0" step="0.01" value={filters.minCost} onChange={(e) => updateFilter('minCost', parseFloat(e.target.value) || 0)} placeholder="0" className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Costo max</label>
+                    <input type="number" min="0" step="0.01" value={filters.maxCost} onChange={(e) => updateFilter('maxCost', parseFloat(e.target.value) || 0)} placeholder="0" className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]" />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
 
-      <div className={`grid grid-cols-1 md:grid-cols-${hasRetellToken || provider === 'retell' || provider === 'all' ? '5' : '4'} gap-6`}>
-        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
-          <div className="flex items-center justify-between">
+      {/* ── Stat cards (compatte) ── */}
+      <div className={`grid grid-cols-2 ${hasRetellToken || provider === 'retell' || provider === 'all' ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3`}>
+        {[
+          { label: 'Chiamate', value: calls.length, sub: null, color: '#F59E0B' },
+          { label: 'Successo', value: `${successRate}%`, sub: `${successfulCalls}/${calls.length}`, color: '#22C55E' },
+          { label: 'Durata media', value: calls.length > 0 ? formatDuration(Math.round(calls.reduce((acc, c) => acc + (c.duration_secs || 0), 0) / calls.length)) : '—', sub: null, color: '#F59E0B' },
+          { label: 'Messaggi', value: calls.reduce((acc, c) => acc + (c.message_count || 0), 0).toLocaleString('it-IT'), sub: null, color: '#F59E0B' },
+        ].map(stat => (
+          <div key={stat.label} className="bg-[#222428] rounded-xl px-4 py-3.5 border border-[#141517] flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Chiamate Caricate</p>
-              <p className="text-2xl font-bold text-white mt-1">{calls.length}</p>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{stat.label}</p>
+              <p className="text-xl font-bold text-white mt-0.5">{stat.value}</p>
+              {stat.sub && <p className="text-xs text-gray-500 mt-0.5">{stat.sub}</p>}
             </div>
-            <div className="w-12 h-12 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
-              <span className="text-[#F59E0B] text-xl">📞</span>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${stat.color}20` }}>
+              <div className="w-2 h-2 rounded-full" style={{ background: stat.color }} />
             </div>
           </div>
-        </div>
-
-        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517] hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Tasso Successo</p>
-              <p className="text-2xl font-bold text-white mt-1">{successRate}%</p>
-            </div>
-            <div className="w-12 h-12 bg-[#22C55E]/20 rounded-lg flex items-center justify-center">
-              <span className="text-[#22C55E] text-xl font-bold">✓</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517] hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Durata Media</p>
-              <p className="text-2xl font-bold text-white mt-1">
-                {calls.length > 0
-                  ? formatDuration(Math.round(calls.reduce((acc, c) => acc + (c.duration_secs || 0), 0) / calls.length))
-                  : '0m 0s'
-                }
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
-              <span className="text-[#F59E0B] text-xl">⏱️</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517] hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Totale Messaggi</p>
-              <p className="text-2xl font-bold text-white mt-1">
-                {calls.reduce((acc, c) => acc + (c.message_count || 0), 0).toLocaleString('it-IT')}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
-              <span className="text-[#F59E0B] text-xl">💬</span>
-            </div>
-          </div>
-        </div>
-        
+        ))}
         {(hasRetellToken || provider === 'retell' || provider === 'all') && (
-          <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517] hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">
-                  Costo Totale {provider === 'retell' || (provider === 'all' && calls.some(c => c.provider === 'retell')) ? '(USD)' : ''}
-                </p>
-                <p className="text-2xl font-bold text-white mt-1">
-                  {(provider === 'retell' || (provider === 'all' && calls.some(c => c.provider === 'retell'))) ? '$' : '€'}{totalCost.toFixed(2)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Media: {(provider === 'retell' || (provider === 'all' && calls.some(c => c.provider === 'retell'))) ? '$' : '€'}{averageCost.toFixed(2)}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
-                <span className="text-[#F59E0B] text-xl">💰</span>
-              </div>
+          <div className="bg-[#222428] rounded-xl px-4 py-3.5 border border-[#141517] flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Costo totale</p>
+              <p className="text-xl font-bold text-white mt-0.5">{calls.some(c => c.provider === 'retell') ? '$' : '€'}{totalCost.toFixed(2)}</p>
+              <p className="text-xs text-gray-500 mt-0.5">media {calls.some(c => c.provider === 'retell') ? '$' : '€'}{averageCost.toFixed(2)}</p>
+            </div>
+            <div className="w-8 h-8 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center shrink-0">
+              <div className="w-2 h-2 rounded-full bg-[#F59E0B]" />
             </div>
           </div>
         )}
       </div>
 
-      <div className="bg-[#222428] rounded-xl shadow-sm border border-[#141517] overflow-hidden">
+      {/* ── Lista chiamate ── */}
+      <div className="bg-[#222428] rounded-xl border border-[#141517] overflow-hidden">
         {isLoading ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 border-4 border-[#F59E0B] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-300">Caricamento chiamate...</p>
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="w-8 h-8 border-2 border-[#F59E0B] border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-gray-400">Caricamento chiamate...</p>
           </div>
         ) : calls.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-[#141517] rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-gray-500 text-2xl">📞</span>
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="w-12 h-12 bg-[#141517] rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
             </div>
-            <h3 className="text-lg font-medium text-white mb-2">
-              {activeFiltersCount > 0 ? 'Nessun risultato trovato' : 'Nessuna chiamata disponibile'}
-            </h3>
-            <p className="text-gray-400 mb-4">
-              {activeFiltersCount > 0
-                ? 'Prova a modificare i filtri di ricerca'
-                : 'Non ci sono chiamate disponibili'
-              }
-            </p>
+            <p className="text-sm font-medium text-white">{activeFiltersCount > 0 ? 'Nessun risultato' : 'Nessuna chiamata disponibile'}</p>
+            <p className="text-xs text-gray-500">{activeFiltersCount > 0 ? 'Prova a modificare i filtri' : 'Le chiamate appariranno qui'}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead className="bg-[#141517]">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Provider & Titolo
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Agent
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Data e Ora
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Durata
-                  </th>
-                  {(hasRetellToken || provider === 'retell' || provider === 'all') && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Terminazione
-                    </th>
-                  )}
-                  {(hasRetellToken || provider === 'retell' || provider === 'all') && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Costo
-                    </th>
-                  )}
-                  {(hasRetellToken || provider === 'retell' || provider === 'all') && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Sentiment
-                    </th>
-                  )}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Direzione
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Rating
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Outcome
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider w-10">
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-[#222428]">
-                {calls.map((call) => {
-                  const callDate = new Date(call.start_time * 1000)
-                  const isExpanded = expandedRow === call.id
-                  const terminationReason = getUnifiedTerminationReason(call)
-                  const sentiment = getUnifiedSentiment(call)
-                  const cost = getUnifiedCost(call)
-                  const isRetell = call.provider === 'retell'
+          <div className="divide-y divide-[#141517]">
+            {calls.map((call) => {
+              const callDate = new Date(call.start_time * 1000)
+              const isExpanded = expandedRow === call.id
+              const terminationReason = getUnifiedTerminationReason(call)
+              const sentiment = getUnifiedSentiment(call)
+              const cost = getUnifiedCost(call)
+              const isRetell = call.provider === 'retell'
+              const isSuccess = getUnifiedCallSuccess(call)
 
-                  return (
-                    <>
-                      <tr
-                        key={call.id}
-                        className="border-b border-[#141517] hover:bg-[#141517] transition-colors cursor-pointer"
-                        onClick={() => toggleRowExpansion(call.id)}
-                      >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center space-x-2">
-                            {isRetell && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30">
-                                Retell
-                              </span>
-                            )}
-                            {call.provider === 'elevenlabs' && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                                ElevenLabs
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-sm font-semibold text-white mb-1 mt-1">
-                            {call.call_summary_title || 'Chiamata senza titolo'}
-                          </div>
-                          <div className="text-xs text-gray-400 line-clamp-2">
-                            {call.transcript_summary || 'Nessun summary disponibile'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-white font-medium">
-                            {call.agent_name || 'Agent sconosciuto'}
-                          </div>
-                          <div className="text-xs text-gray-500 font-mono">
-                            {call.agent_id.substring(0, 8)}...
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-white">
-                            {callDate.toLocaleDateString('it-IT')}
-                          </div>
-                          <div className="text-sm text-gray-400">
-                            {callDate.toLocaleTimeString('it-IT', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-white">
-                            {formatDuration(call.duration_secs || 0)}
-                          </div>
-                        </td>
-                        {(hasRetellToken || provider === 'retell' || provider === 'all') && (
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {terminationReason && terminationReason !== 'unknown' ? (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30" title={terminationReason}>
-                                {getDisconnectionReasonLabel(terminationReason)}
-                              </span>
-                            ) : (
-                              <span className="text-gray-500 text-xs">-</span>
-                            )}
-                          </td>
+              return (
+                <div key={call.id}>
+                  {/* ── Riga chiamata ── */}
+                  <div
+                    onClick={() => toggleRowExpansion(call.id)}
+                    className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-colors group ${isExpanded ? 'bg-[#141517]' : 'hover:bg-[#1a1b1e]'}`}
+                  >
+                    {/* Status dot */}
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${isSuccess ? 'bg-[#22C55E]' : 'bg-red-500'}`} />
+
+                    {/* Info sinistra */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Provider badge */}
+                        {isRetell ? (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/25 leading-tight">Retell</span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/25 leading-tight">ElevenLabs</span>
                         )}
-                        {(hasRetellToken || provider === 'retell' || provider === 'all') && (
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {cost ? (
-                              <span className="text-sm text-white font-medium">
-                                {isRetell ? '$' : '€'}{cost.toFixed(2)}
-                              </span>
-                            ) : (
-                              <span className="text-gray-500 text-xs">-</span>
-                            )}
-                          </td>
-                        )}
-                        {(hasRetellToken || provider === 'retell' || provider === 'all') && (
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {sentiment ? (
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                sentiment.toLowerCase() === 'positive'
-                                  ? 'bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30'
-                                  : sentiment.toLowerCase() === 'negative'
-                                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                                  : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                              }`}>
-                                {sentiment}
-                              </span>
-                            ) : (
-                              <span className="text-gray-500 text-xs">-</span>
-                            )}
-                          </td>
-                        )}
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getDirectionBadge(call.direction)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {renderRating(call.rating)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            getUnifiedCallSuccess(call)
-                              ? 'bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30'
-                              : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                          }`}>
-                            {getUnifiedCallSuccess(call) ? 'Successo' : 'Fallito'}
+                        {/* Direction */}
+                        {call.direction && (
+                          <span className="text-[10px] text-gray-500">
+                            {call.direction === 'inbound' ? '↙ In' : '↗ Out'}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                          <span className={`text-gray-400 transition-transform duration-200 inline-block ${isExpanded ? 'rotate-180' : ''}`}>
-                            ▼
-                          </span>
-                        </td>
-                      </tr>
+                        )}
+                        {/* Title */}
+                        <span className="text-sm font-semibold text-white truncate">
+                          {call.call_summary_title || 'Chiamata senza titolo'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500 flex-wrap">
+                        <span>{call.agent_name || 'Agent sconosciuto'}</span>
+                        <span>·</span>
+                        <span>{callDate.toLocaleDateString('it-IT')} {callDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    </div>
 
-                      {isExpanded && (
-                        <tr key={`${call.id}-expanded`}>
-                          <td colSpan={hasRetellToken || provider === 'retell' || provider === 'all' ? 11 : 8} className="px-6 py-6 bg-[#141517] border-b border-[#141517]">
-                            <div className="space-y-4">
-                              <div>
-                                <h4 className="text-sm font-semibold text-white mb-2">Transcript Summary Completo</h4>
-                                <p className="text-sm text-gray-300 leading-relaxed">
-                                  {call.transcript_summary || 'Nessun summary disponibile per questa chiamata.'}
-                                </p>
-                              </div>
-
-                              {/* Retell-specific details */}
-                              {isRetell && (
-                                <>
-                                  {/* Transcript completo per Retell */}
-                                  {call.transcript && (
-                                    <div>
-                                      <h4 className="text-sm font-semibold text-white mb-2">Transcript Completo</h4>
-                                      <div className="bg-[#222428] rounded-lg p-4 max-h-96 overflow-y-auto">
-                                        <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
-                                          {call.transcript}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Dettagli chiamata */}
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                                    {terminationReason && terminationReason !== 'unknown' && (
-                                      <div className="bg-[#222428] rounded-lg p-3">
-                                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Motivo Terminazione</p>
-                                        <p className="text-sm text-white font-medium">{getDisconnectionReasonLabel(terminationReason)}</p>
-                                      </div>
-                                    )}
-                                    {sentiment && (
-                                      <div className="bg-[#222428] rounded-lg p-3">
-                                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Sentiment</p>
-                                        <p className="text-sm text-white font-medium">{sentiment}</p>
-                                      </div>
-                                    )}
-                                    {call.call_analysis?.call_successful !== undefined && (
-                                      <div className="bg-[#222428] rounded-lg p-3">
-                                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Esito Chiamata</p>
-                                        <p className={`text-sm font-medium ${
-                                          call.call_analysis.call_successful 
-                                            ? 'text-[#22C55E]' 
-                                            : 'text-red-400'
-                                        }`}>
-                                          {call.call_analysis.call_successful ? '✓ Successo' : '✗ Fallita'}
-                                        </p>
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {/* Dettagli costo */}
-                                  {call.call_cost && (
-                                    <div className="bg-[#222428] rounded-lg p-4">
-                                      <h4 className="text-sm font-semibold text-white mb-3">Dettagli Costo {isRetell ? '(USD)' : '(EUR)'}</h4>
-                                      <div className="space-y-2">
-                                        {call.call_cost.product_costs && call.call_cost.product_costs.length > 0 && (
-                                          <div>
-                                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Costi per Prodotto</p>
-                                            <div className="space-y-1">
-                                              {call.call_cost.product_costs.map((product, idx) => {
-                                                // Retell: i costi sono in centesimi, convertiamo in dollari
-                                                const productCost = isRetell ? product.cost / 100 : product.cost
-                                                const unitPrice = isRetell ? product.unit_price / 100 : product.unit_price
-                                                const currency = isRetell ? '$' : '€'
-                                                
-                                                return (
-                                                  <div key={idx} className="flex justify-between text-sm">
-                                                    <span className="text-gray-300">{product.product}</span>
-                                                    <span className="text-white font-medium">
-                                                      {currency}{productCost.toFixed(4)} 
-                                                      {unitPrice && ` (${currency}${unitPrice.toFixed(4)}/unità)`}
-                                                    </span>
-                                                  </div>
-                                                )
-                                              })}
-                                            </div>
-                                          </div>
-                                        )}
-                                        {call.call_cost.total_duration_seconds && call.call_cost.total_duration_unit_price && (
-                                          <div className="flex justify-between text-sm pt-2 border-t border-[#141517]">
-                                            <span className="text-gray-300">
-                                              Durata ({call.call_cost.total_duration_seconds}s)
-                                            </span>
-                                            <span className="text-white font-medium">
-                                              {(() => {
-                                                // Retell: i costi sono in centesimi, convertiamo in dollari
-                                                const durationCost = isRetell 
-                                                  ? (call.call_cost.total_duration_seconds * call.call_cost.total_duration_unit_price) / 100
-                                                  : call.call_cost.total_duration_seconds * call.call_cost.total_duration_unit_price
-                                                const currency = isRetell ? '$' : '€'
-                                                return `${currency}${durationCost.toFixed(4)}`
-                                              })()}
-                                            </span>
-                                          </div>
-                                        )}
-                                        {cost && (
-                                          <div className="flex justify-between text-sm pt-2 border-t border-[#141517] font-semibold">
-                                            <span className="text-white">Costo Totale</span>
-                                            <span className="text-[#F59E0B] text-lg">
-                                              {isRetell ? '$' : '€'}{cost.toFixed(2)}
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Analisi completa */}
-                                  {call.call_analysis && (
-                                    <div className="bg-[#222428] rounded-lg p-4">
-                                      <h4 className="text-sm font-semibold text-white mb-3">Analisi Chiamata</h4>
-                                      <div className="space-y-2 text-sm">
-                                        {call.call_analysis.call_summary && (
-                                          <div>
-                                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Riassunto</p>
-                                            <p className="text-gray-300 leading-relaxed">{call.call_analysis.call_summary}</p>
-                                          </div>
-                                        )}
-                                        {call.call_analysis.in_voicemail !== undefined && (
-                                          <div className="flex items-center space-x-2">
-                                            <span className="text-xs text-gray-400 uppercase tracking-wide">Segreteria:</span>
-                                            <span className={`text-sm font-medium ${
-                                              call.call_analysis.in_voicemail ? 'text-[#F59E0B]' : 'text-gray-300'
-                                            }`}>
-                                              {call.call_analysis.in_voicemail ? 'Sì' : 'No'}
-                                            </span>
-                                          </div>
-                                        )}
-                                        {call.call_analysis.custom_analysis_data && Object.keys(call.call_analysis.custom_analysis_data).length > 0 && (
-                                          <div>
-                                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Dati Personalizzati</p>
-                                            <pre className="text-xs text-gray-300 bg-[#141517] p-2 rounded overflow-x-auto">
-                                              {JSON.stringify(call.call_analysis.custom_analysis_data, null, 2)}
-                                            </pre>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-                                </>
-                              )}
-
-                              <div className="flex flex-wrap gap-3 pt-2">
-                                {/* Audio player per Retell (inline) */}
-                                {isRetell && call.recording_url && (
-                                  <div className="w-full">
-                                    <h4 className="text-sm font-semibold text-white mb-2">Registrazione Audio</h4>
-                                    <audio
-                                      controls
-                                      className="w-full max-w-2xl"
-                                      src={call.recording_url}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      Il tuo browser non supporta l&apos;elemento audio.
-                                    </audio>
-                                    <a
-                                      href={call.recording_url}
-                                      download
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="mt-2 inline-flex items-center text-xs text-gray-400 hover:text-[#F59E0B] transition-colors"
-                                    >
-                                      <span>⬇️</span>
-                                      <span className="ml-1">Scarica registrazione</span>
-                                    </a>
-                                  </div>
-                                )}
-                                
-                                {/* Audio per ElevenLabs */}
-                                {call.provider === 'elevenlabs' && (
-                                  <>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        loadAudio(call.id)
-                                      }}
-                                      disabled={loadingAudio[call.id]}
-                                      className="px-4 py-2 bg-[#F59E0B] text-[#1e293b] rounded-lg text-sm font-medium hover:bg-[#D97706] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-md"
-                                    >
-                                      <span>🔊</span>
-                                      <span>{loadingAudio[call.id] ? 'Caricamento...' : 'Ascolta Audio'}</span>
-                                    </button>
-
-                                    <Link
-                                      href={`/dashboard/ai-calls/${call.id}`}
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="px-4 py-2 bg-[#141517] text-white rounded-lg text-sm font-medium hover:bg-[#18191C] transition-colors flex items-center space-x-2"
-                                    >
-                                      <span>📄</span>
-                                      <span>Transcript Completo</span>
-                                    </Link>
-                                  </>
-                                )}
-
-                                {/* Copia transcript o summary */}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    const textToCopy = isRetell && call.transcript 
-                                      ? call.transcript 
-                                      : call.transcript_summary || ''
-                                    if (textToCopy) {
-                                      navigator.clipboard.writeText(textToCopy)
-                                    }
-                                  }}
-                                  className="px-4 py-2 bg-[#222428] text-gray-300 rounded-lg text-sm font-medium hover:bg-[#18191C] transition-colors flex items-center space-x-2"
-                                >
-                                  <span>📋</span>
-                                  <span>{isRetell && call.transcript ? 'Copia Transcript' : 'Copia Summary'}</span>
-                                </button>
-                              </div>
-
-                              {/* Audio player per ElevenLabs (dopo caricamento) */}
-                              {call.provider === 'elevenlabs' && audioUrls[call.id] && (
-                                <div className="pt-3">
-                                  <audio
-                                    controls
-                                    className="w-full max-w-2xl"
-                                    src={audioUrls[call.id]}
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    Il tuo browser non supporta l&apos;elemento audio.
-                                  </audio>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
+                    {/* Badges destra */}
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                      {/* Outcome */}
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${isSuccess ? 'bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E]/25' : 'bg-red-500/15 text-red-400 border-red-500/25'}`}>
+                        {isSuccess ? 'Successo' : 'Fallito'}
+                      </span>
+                      {/* Sentiment */}
+                      {sentiment && (
+                        <span className={`hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                          sentiment.toLowerCase() === 'positive' ? 'bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E]/25'
+                          : sentiment.toLowerCase() === 'negative' ? 'bg-red-500/15 text-red-400 border-red-500/25'
+                          : 'bg-gray-500/15 text-gray-400 border-gray-500/25'
+                        }`}>{sentiment}</span>
                       )}
-                    </>
-                  )
-                })}
-              </tbody>
-            </table>
+                      {/* Rating */}
+                      {call.rating && (
+                        <span className="hidden sm:flex items-center gap-0.5 text-xs text-[#F59E0B]">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                          {call.rating.toFixed(1)}
+                        </span>
+                      )}
+                      {/* Duration */}
+                      <span className="text-xs text-gray-400">{formatDuration(call.duration_secs || 0)}</span>
+                      {/* Cost */}
+                      {cost ? <span className="hidden sm:block text-xs text-gray-400">{isRetell ? '$' : '€'}{cost.toFixed(2)}</span> : null}
+                      {/* Chevron */}
+                      <svg className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* ── Panel espanso ── */}
+                  {isExpanded && (
+                    <div className="bg-[#141517] border-t border-[#18191C] px-4 py-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+
+                      {/* Summary */}
+                      {call.transcript_summary && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Sommario</p>
+                          <p className="text-sm text-gray-300 leading-relaxed">{call.transcript_summary}</p>
+                        </div>
+                      )}
+
+                      {/* Transcript (Retell) */}
+                      {isRetell && call.transcript && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Transcript</p>
+                          <div className="bg-[#18191C] rounded-lg p-3 max-h-64 overflow-y-auto">
+                            <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{call.transcript}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Dettagli grid */}
+                      {isRetell && (terminationReason || sentiment || call.call_analysis?.call_successful !== undefined) && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {terminationReason && terminationReason !== 'unknown' && (
+                            <div className="bg-[#18191C] rounded-lg px-3 py-2">
+                              <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-0.5">Terminazione</p>
+                              <p className="text-sm text-white font-medium">{getDisconnectionReasonLabel(terminationReason)}</p>
+                            </div>
+                          )}
+                          {sentiment && (
+                            <div className="bg-[#18191C] rounded-lg px-3 py-2">
+                              <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-0.5">Sentiment</p>
+                              <p className="text-sm text-white font-medium">{sentiment}</p>
+                            </div>
+                          )}
+                          {call.call_analysis?.call_successful !== undefined && (
+                            <div className="bg-[#18191C] rounded-lg px-3 py-2">
+                              <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-0.5">Esito</p>
+                              <p className={`text-sm font-medium ${call.call_analysis.call_successful ? 'text-[#22C55E]' : 'text-red-400'}`}>
+                                {call.call_analysis.call_successful ? '✓ Successo' : '✗ Fallita'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Costo breakdown (Retell) */}
+                      {isRetell && call.call_cost && cost && (
+                        <div className="bg-[#18191C] rounded-lg p-3">
+                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Costo dettagliato (USD)</p>
+                          <div className="space-y-1">
+                            {call.call_cost.product_costs?.map((product, idx) => {
+                              const productCost = isRetell ? product.cost / 100 : product.cost
+                              return (
+                                <div key={idx} className="flex justify-between text-xs">
+                                  <span className="text-gray-400">{product.product}</span>
+                                  <span className="text-white">${productCost.toFixed(4)}</span>
+                                </div>
+                              )
+                            })}
+                            <div className="flex justify-between text-sm pt-1.5 border-t border-[#141517] font-semibold">
+                              <span className="text-gray-300">Totale</span>
+                              <span className="text-[#F59E0B]">${cost.toFixed(4)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Analisi (Retell) */}
+                      {isRetell && call.call_analysis?.call_summary && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Analisi AI</p>
+                          <p className="text-sm text-gray-300 leading-relaxed">{call.call_analysis.call_summary}</p>
+                        </div>
+                      )}
+
+                      {/* Audio & azioni */}
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {isRetell && call.recording_url && (
+                          <div className="w-full space-y-2">
+                            <audio controls className="w-full max-w-lg" src={call.recording_url}>
+                              Il tuo browser non supporta l&apos;elemento audio.
+                            </audio>
+                            <a href={call.recording_url} download className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-[#F59E0B] transition-colors">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                              Scarica registrazione
+                            </a>
+                          </div>
+                        )}
+
+                        {call.provider === 'elevenlabs' && (
+                          <>
+                            <button
+                              onClick={() => loadAudio(call.id)}
+                              disabled={loadingAudio[call.id]}
+                              className="flex items-center gap-2 px-3 py-2 bg-[#F59E0B] text-[#1e293b] rounded-lg text-sm font-medium hover:bg-[#D97706] transition-colors disabled:opacity-50"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M12 6v12m-3.536-9.536a5 5 0 000 7.072" /></svg>
+                              {loadingAudio[call.id] ? 'Caricamento...' : 'Ascolta Audio'}
+                            </button>
+                            <Link href={`/dashboard/ai-calls/${call.id}`} className="flex items-center gap-2 px-3 py-2 bg-[#18191C] text-white rounded-lg text-sm font-medium hover:bg-[#222428] transition-colors">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                              Transcript completo
+                            </Link>
+                          </>
+                        )}
+
+                        <button
+                          onClick={() => {
+                            const text = isRetell && call.transcript ? call.transcript : call.transcript_summary || ''
+                            if (text) navigator.clipboard.writeText(text)
+                          }}
+                          className="flex items-center gap-2 px-3 py-2 bg-[#18191C] text-gray-300 rounded-lg text-sm hover:text-white hover:bg-[#222428] transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                          {isRetell && call.transcript ? 'Copia transcript' : 'Copia summary'}
+                        </button>
+                      </div>
+
+                      {call.provider === 'elevenlabs' && audioUrls[call.id] && (
+                        <audio controls className="w-full max-w-lg" src={audioUrls[call.id]}>
+                          Il tuo browser non supporta l&apos;elemento audio.
+                        </audio>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
 
+        {/* Load more */}
         {!isLoading && calls.length > 0 && (
-          <div className="py-8 text-center border-t border-[#141517]">
+          <div className="px-4 py-5 border-t border-[#141517] flex items-center justify-center">
             {hasMore ? (
               <div ref={observerTarget}>
                 {isLoadingMore ? (
-                  <div className="flex items-center justify-center space-x-2">
-                    <div className="w-5 h-5 border-2 border-[#F59E0B] border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-sm text-gray-300">Caricamento altre chiamate...</p>
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <div className="w-4 h-4 border-2 border-[#F59E0B] border-t-transparent rounded-full animate-spin" />
+                    Caricamento...
                   </div>
                 ) : (
-                  <button
-                    onClick={() => loadCalls(false)}
-                    className="px-6 py-2 bg-[#F59E0B] text-[#1e293b] rounded-lg font-medium hover:bg-[#D97706] transition-colors shadow-md"
-                  >
+                  <button onClick={() => loadCalls(false)} className="px-5 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm font-medium hover:text-white hover:bg-[#18191C] border border-[#141517] transition-colors">
                     Carica altre chiamate
                   </button>
                 )}
               </div>
             ) : (
-              <div className="flex flex-col items-center space-y-2">
-                <div className="w-12 h-12 bg-[#22C55E]/20 rounded-full flex items-center justify-center border border-[#22C55E]/30">
-                  <span className="text-[#22C55E] text-xl font-bold">✓</span>
-                </div>
-                <p className="text-sm font-medium text-white">Tutte le chiamate sono state caricate</p>
-                <p className="text-xs text-gray-400">{calls.length} chiamate totali visualizzate</p>
-              </div>
+              <p className="text-xs text-gray-500">{calls.length} chiamate caricate · fine</p>
             )}
           </div>
         )}
