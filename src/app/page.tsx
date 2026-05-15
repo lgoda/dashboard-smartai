@@ -120,9 +120,10 @@ export default function LoginPage() {
   const needsPasswordRef = useRef(false)
   const [sessionReady, setSessionReady] = useState(false)
   const [inviteToken, setInviteToken] = useState<string | null>(null)
+  // Se l'utente apre un link invite/recovery mentre è già loggato con un altro account
+  const [sessionConflict, setSessionConflict] = useState<{ existingEmail: string } | null>(null)
 
   useEffect(() => {
-    // Register listener FIRST so we don't miss SIGNED_IN fired by setSession()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         needsPasswordRef.current = true
@@ -140,7 +141,6 @@ export default function LoginPage() {
       }
     })
 
-    // Parse hash and query params AFTER listener is set up
     const hashParams = new URLSearchParams(window.location.hash.slice(1))
     const searchParams = new URLSearchParams(window.location.search)
     const type = hashParams.get('type') || searchParams.get('type')
@@ -153,23 +153,29 @@ export default function LoginPage() {
       const refresh_token = hashParams.get('refresh_token')
 
       if (access_token && refresh_token) {
-        // Store token immediately so form can use it even before setSession completes
-        setInviteToken(access_token)
-        supabase.auth.setSession({ access_token, refresh_token }).then(({ error }) => {
-          if (error) {
-            console.error('[invite] setSession error:', error.message)
-            setSessionReady(true) // show form anyway, API route will show the real error
+        // ── PROTEZIONE: controlla se c'è già una sessione attiva ──
+        // Se sì, non sovrascriverla: mostra un avviso invece.
+        supabase.auth.getSession().then(({ data: { session: existing } }) => {
+          if (existing?.user) {
+            // Sessione già attiva → conflitto, non fare setSession
+            setSessionConflict({ existingEmail: existing.user.email ?? 'account esistente' })
+            setAuthView('sign_in') // torna alla sign_in per non mostrare il form password
+            return
           }
-          // On success, SIGNED_IN fires → setInviteToken + setSessionReady(true)
+          // Nessuna sessione attiva → procedi normalmente
+          setInviteToken(access_token)
+          supabase.auth.setSession({ access_token, refresh_token }).then(({ error }) => {
+            if (error) {
+              console.error('[invite] setSession error:', error.message)
+              setSessionReady(true)
+            }
+          })
         })
       } else {
-        // No hash tokens: try code exchange (PKCE) or check existing session
         const code = searchParams.get('code')
         if (code) {
           supabase.auth.exchangeCodeForSession(code).catch(console.error)
-          // On success, SIGNED_IN fires
         } else {
-          // Tokens may have been processed before our listener — check directly
           supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) setSessionReady(true)
           })
@@ -193,6 +199,16 @@ export default function LoginPage() {
             🔒 Accesso su invito
           </div>
         </div>
+
+        {/* Banner conflitto sessione: link invito aperto nello stesso browser */}
+        {sessionConflict && (
+          <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-sm">
+            <p className="text-amber-400 font-semibold mb-1">⚠️ Sei già loggato come {sessionConflict.existingEmail}</p>
+            <p className="text-amber-300/80 text-xs leading-relaxed">
+              Questo link di invito è per un altro utente. Aprilo in una finestra in <strong>incognito</strong> o in un browser diverso per impostare la password del nuovo account senza disconnettere la sessione corrente.
+            </p>
+          </div>
+        )}
 
         <div className="bg-[#222428] rounded-2xl shadow-xl border border-[#141517] p-8">
           {authView === 'update_password' ? (

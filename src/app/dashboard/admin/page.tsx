@@ -128,20 +128,32 @@ export default function AdminPage() {
         )}
 
         {inviteLink && (
-          <div className="mb-4 p-3 bg-[#141517] border border-[#F59E0B]/30 rounded-lg">
-            <p className="text-xs text-gray-400 mb-2">Copia e condividi questo link con l'utente (valido per 24h):</p>
-            <div className="flex gap-2 items-center">
-              <input
-                readOnly
-                value={inviteLink}
-                className="flex-1 text-xs text-[#F59E0B] bg-transparent outline-none truncate"
-              />
-              <button
-                onClick={copyLink}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/30 text-[#F59E0B] hover:bg-[#F59E0B]/20 transition-colors whitespace-nowrap"
-              >
-                {copied ? '✓ Copiato' : 'Copia link'}
-              </button>
+          <div className="mb-4 space-y-2">
+            {/* Avviso critico */}
+            <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+              <svg className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+              <p className="text-xs text-amber-300 leading-relaxed">
+                <strong className="text-amber-400">Non aprire questo link in questo browser.</strong> Condividilo con il nuovo utente oppure aprilo in una <strong>finestra incognito</strong> — altrimenti disconnetteresti la tua sessione admin.
+              </p>
+            </div>
+            {/* Link */}
+            <div className="p-3 bg-[#141517] border border-[#F59E0B]/30 rounded-lg">
+              <p className="text-xs text-gray-400 mb-2">Link di invito (valido 24h) — copia e invia all'utente:</p>
+              <div className="flex gap-2 items-center">
+                <input
+                  readOnly
+                  value={inviteLink}
+                  className="flex-1 text-xs text-[#F59E0B] bg-transparent outline-none truncate"
+                />
+                <button
+                  onClick={copyLink}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/30 text-[#F59E0B] hover:bg-[#F59E0B]/20 transition-colors whitespace-nowrap"
+                >
+                  {copied ? '✓ Copiato' : 'Copia link'}
+                </button>
+              </div>
             </div>
           </div>
         )}
