@@ -254,8 +254,13 @@ export default function LoginPage() {
           )}
         </div>
 
-        <div className="text-center mt-8 text-sm text-gray-400">
+        <div className="text-center mt-8 text-sm text-gray-400 space-y-1">
           <p>Gestisci i tuoi servizi AI in modo semplice e professionale</p>
+          <p>
+            <a href="/reset" className="text-gray-600 hover:text-gray-400 transition-colors text-xs underline underline-offset-2">
+              Problemi di accesso? Reimposta la sessione
+            </a>
+          </p>
         </div>
       </div>
     </div>
