@@ -16,7 +16,7 @@ export const supabase = createClient(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true,
+      detectSessionInUrl: false, // gestito manualmente in page.tsx per evitare sovrascrittura sessione esistente
       storageKey: 'smartbot-auth',
       flowType: 'pkce',
     },
