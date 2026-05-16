@@ -27,8 +27,14 @@ export function Navigation() {
 
   useEffect(() => {
     if (!loading) {
-      if (user && isAuthPage) router.push('/dashboard')
-      else if (!user && !isAuthPage) router.push('/')
+      if (user && isAuthPage) {
+        // Non redirigere se siamo in un flow di invito/recovery (l'utente deve impostare la password)
+        const inInviteFlow = typeof window !== 'undefined' &&
+          sessionStorage.getItem('smartbot-invite-flow') === '1'
+        if (!inInviteFlow) router.push('/dashboard')
+      } else if (!user && !isAuthPage) {
+        router.push('/')
+      }
     }
   }, [user, loading, isAuthPage, router])
 

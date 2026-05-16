@@ -153,20 +153,20 @@ export default function LoginPage() {
       const refresh_token = hashParams.get('refresh_token')
 
       if (access_token && refresh_token) {
-        // ── PROTEZIONE: controlla se c'è già una sessione attiva ──
-        // Se sì, non sovrascriverla: mostra un avviso invece.
+        // Controlla sessione esistente prima di sovrascriverla
         supabase.auth.getSession().then(({ data: { session: existing } }) => {
           if (existing?.user) {
-            // Sessione già attiva → conflitto, non fare setSession
             setSessionConflict({ existingEmail: existing.user.email ?? 'account esistente' })
-            setAuthView('sign_in') // torna alla sign_in per non mostrare il form password
+            setAuthView('sign_in')
             return
           }
-          // Nessuna sessione attiva → procedi normalmente
+          // Setta il flag per bloccare il redirect di Navigation
+          sessionStorage.setItem('smartbot-invite-flow', '1')
           setInviteToken(access_token)
           supabase.auth.setSession({ access_token, refresh_token }).then(({ error }) => {
             if (error) {
               console.error('[invite] setSession error:', error.message)
+              sessionStorage.removeItem('smartbot-invite-flow')
               setSessionReady(true)
             }
           })
@@ -174,7 +174,19 @@ export default function LoginPage() {
       } else {
         const code = searchParams.get('code')
         if (code) {
-          supabase.auth.exchangeCodeForSession(code).catch(console.error)
+          supabase.auth.getSession().then(({ data: { session: existing } }) => {
+            if (existing?.user) {
+              setSessionConflict({ existingEmail: existing.user.email ?? 'account esistente' })
+              setAuthView('sign_in')
+              return
+            }
+            // Setta il flag per bloccare il redirect di Navigation
+            sessionStorage.setItem('smartbot-invite-flow', '1')
+            supabase.auth.exchangeCodeForSession(code).catch(err => {
+              console.error('[invite] exchangeCodeForSession error:', err)
+              sessionStorage.removeItem('smartbot-invite-flow')
+            })
+          })
         } else {
           supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) setSessionReady(true)
@@ -216,7 +228,10 @@ export default function LoginPage() {
               <h2 className="text-white font-semibold text-lg mb-1">Imposta la tua password</h2>
               <p className="text-gray-400 text-sm mb-6">Scegli una password per accedere alla dashboard.</p>
               {sessionReady && inviteToken ? (
-                <SetPasswordForm accessToken={inviteToken} onSuccess={() => router.push('/dashboard')} />
+                <SetPasswordForm accessToken={inviteToken} onSuccess={() => {
+                  sessionStorage.removeItem('smartbot-invite-flow')
+                  router.push('/dashboard')
+                }} />
               ) : (
                 <div className="flex items-center justify-center gap-3 py-6 text-gray-400 text-sm">
                   <div className="w-4 h-4 border-2 border-[#F59E0B] border-t-transparent rounded-full animate-spin" />
