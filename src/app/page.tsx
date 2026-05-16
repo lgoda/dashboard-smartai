@@ -122,23 +122,23 @@ export default function LoginPage() {
   const [inviteToken, setInviteToken] = useState<string | null>(null)
   // Se l'utente apre un link invite/recovery mentre è già loggato con un altro account
   const [sessionConflict, setSessionConflict] = useState<{ existingEmail: string } | null>(null)
+  const [passwordJustSet, setPasswordJustSet] = useState(false)
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        needsPasswordRef.current = true
-        setAuthView('update_password')
-        setSessionReady(true)
-      } else if (event === 'SIGNED_IN' && session) {
+      if (event === 'SIGNED_IN' && session) {
         if (!needsPasswordRef.current) {
+          // Login normale — vai alla dashboard
           router.push('/dashboard')
         } else {
+          // Flow invito/recovery — mostra il form per impostare la password
           setInviteToken(session.access_token)
           setSessionReady(true)
         }
-      } else if (event === 'USER_UPDATED') {
-        router.push('/dashboard')
       }
+      // PASSWORD_RECOVERY e USER_UPDATED non gestiti qui:
+      // - PASSWORD_RECOVERY non scatta con detectSessionInUrl:false
+      // - USER_UPDATED: il sign-out post-password avviene in onSuccess del form
     })
 
     const hashParams = new URLSearchParams(window.location.hash.slice(1))
@@ -195,6 +195,11 @@ export default function LoginPage() {
       }
     }
 
+    // Mostra il banner di successo se arriviamo da un reset/invito completato
+    if (new URLSearchParams(window.location.search).get('passwordSet') === '1') {
+      setPasswordJustSet(true)
+    }
+
     return () => subscription.unsubscribe()
   }, [router])
 
@@ -212,6 +217,14 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {/* Banner password impostata con successo */}
+        {passwordJustSet && (
+          <div className="mb-4 p-4 bg-[#22C55E]/10 border border-[#22C55E]/30 rounded-xl text-sm">
+            <p className="text-[#22C55E] font-semibold mb-0.5">✓ Password impostata con successo</p>
+            <p className="text-[#22C55E]/80 text-xs">Accedi con la tua email e la nuova password.</p>
+          </div>
+        )}
+
         {/* Banner conflitto sessione: link invito aperto nello stesso browser */}
         {sessionConflict && (
           <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-sm">
@@ -228,9 +241,13 @@ export default function LoginPage() {
               <h2 className="text-white font-semibold text-lg mb-1">Imposta la tua password</h2>
               <p className="text-gray-400 text-sm mb-6">Scegli una password per accedere alla dashboard.</p>
               {sessionReady && inviteToken ? (
-                <SetPasswordForm accessToken={inviteToken} onSuccess={() => {
+                <SetPasswordForm accessToken={inviteToken} onSuccess={async () => {
                   sessionStorage.removeItem('smartbot-invite-flow')
-                  router.push('/dashboard')
+                  // Sign out della sessione temporanea di invito/recovery,
+                  // poi redirect al login: l'utente usa le nuove credenziali
+                  // per ottenere una sessione fresca e valida.
+                  await supabase.auth.signOut({ scope: 'local' }).catch(console.error)
+                  router.replace('/?passwordSet=1')
                 }} />
               ) : (
                 <div className="flex items-center justify-center gap-3 py-6 text-gray-400 text-sm">
