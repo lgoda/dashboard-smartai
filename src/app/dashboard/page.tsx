@@ -67,7 +67,7 @@ export default function Dashboard() {
       .select('has_chatbot, has_ai_calls')
       .eq('user_id', user.id)
       .maybeSingle()
-      .then(({ data }) => { if (data) setUserServices(data) })
+      .then(({ data }) => { if (data) setUserServices(data) }, () => {})
   }, [user?.id])
 
   const fetchStats = useCallback(async () => {

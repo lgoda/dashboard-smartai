@@ -243,11 +243,12 @@ export default function LoginPage() {
               {sessionReady && inviteToken ? (
                 <SetPasswordForm accessToken={inviteToken} onSuccess={async () => {
                   sessionStorage.removeItem('smartbot-invite-flow')
-                  // Sign out della sessione temporanea di invito/recovery,
-                  // poi redirect al login: l'utente usa le nuove credenziali
-                  // per ottenere una sessione fresca e valida.
+                  // Sign out della sessione temporanea di invito/recovery.
+                  // Usa window.location.replace (full reload) invece di router.replace:
+                  // router.replace non rimonta il componente e lascia authView='update_password',
+                  // impedendo all'utente di vedere il form di login senza ricaricare la pagina.
                   await supabase.auth.signOut({ scope: 'local' }).catch(console.error)
-                  router.replace('/?passwordSet=1')
+                  window.location.replace('/?passwordSet=1')
                 }} />
               ) : (
                 <div className="flex items-center justify-center gap-3 py-6 text-gray-400 text-sm">

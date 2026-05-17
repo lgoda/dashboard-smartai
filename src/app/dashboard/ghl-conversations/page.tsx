@@ -156,10 +156,10 @@ export default function GHLConversationsPage() {
       .eq('user_id', user.id)
       .eq('is_active', true)
       .maybeSingle()
-      .then(({ data }) => {
-        setHasToken(!!data)
-        setTokenChecked(true)
-      })
+      .then(
+        ({ data }) => { setHasToken(!!data); setTokenChecked(true) },
+        () => { setHasToken(false); setTokenChecked(true) }
+      )
   }, [user?.id])
 
   // Core fetch — accepts an explicit cursor (undefined = first page)
