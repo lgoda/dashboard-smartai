@@ -132,9 +132,10 @@ export function parseExcel(buffer: ArrayBuffer): { rows: Record<string, string>[
 
 export function processContacts(
   rows: Record<string, string>[],
-  headers: string[]
+  headers: string[],
+  columnMapOverride?: Record<string, string>
 ): ParseResult {
-  const columnMap = detectColumns(headers)
+  const columnMap = columnMapOverride ?? detectColumns(headers)
   const seenPhones = new Set<string>()
   const contacts: ParsedContact[] = []
 

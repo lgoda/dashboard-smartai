@@ -78,8 +78,12 @@ export async function POST(
 
     if (rows.length === 0) return NextResponse.json({ error: 'Il file è vuoto' }, { status: 400 })
 
+    // Use user-provided column mapping if supplied, otherwise auto-detect
+    const column_map_raw = formData.get('column_map') as string | null
+    const columnMapOverride = column_map_raw ? JSON.parse(column_map_raw) as Record<string, string> : undefined
+
     // Process contacts
-    const result = processContacts(rows, headers)
+    const result = processContacts(rows, headers, columnMapOverride)
 
     // Create import record
     const { data: importRecord, error: importError } = await supabase
