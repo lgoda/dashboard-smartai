@@ -71,7 +71,6 @@ export default function AdminBillingPage() {
   const [mappings, setMappings] = useState<AgentMapping[]>([])
   const [retellAgents, setRetellAgents] = useState<RetellAgent[]>([])
   const [retellApiConfigured, setRetellApiConfigured] = useState(true)
-  const [retellApiError, setRetellApiError] = useState<string | null>(null)
   const [agentsLoading, setAgentsLoading] = useState(false)
   type AgentRowState = { userId: string; pricePerMinuteCents: string; saving: boolean; msg: string | null }
   const [agentRows, setAgentRows] = useState<Record<string, AgentRowState>>({})
@@ -127,7 +126,6 @@ export default function AdminBillingPage() {
         setMappings(loadedMappings)
         setRetellAgents(j.retell_agents ?? [])
         setRetellApiConfigured(j.retell_api_configured ?? false)
-        setRetellApiError(j.retell_api_error ?? null)
         // Pre-populate per-row state from existing mappings
         const rows: Record<string, { userId: string; pricePerMinuteCents: string; saving: boolean; msg: string | null }> = {}
         for (const m of loadedMappings) {
@@ -401,13 +399,10 @@ export default function AdminBillingPage() {
 
             {agentsLoading ? (
               <div className="text-gray-400 text-sm py-4">Caricamento agent Retell...</div>
-            ) : retellApiError ? (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-sm">
-                <p className="text-red-400 font-medium mb-0.5">Errore chiamata API Retell</p>
-                <p className="text-red-400/70 text-xs font-mono">{retellApiError}</p>
-              </div>
             ) : retellAgents.length === 0 && retellApiConfigured ? (
-              <div className="bg-[#2C2E31] rounded-xl p-6 text-gray-400 text-sm">Nessun agent trovato nell&apos;account Retell</div>
+              <div className="bg-[#2C2E31] rounded-xl p-6 text-gray-400 text-sm">
+                Nessun agent trovato nello storico chiamate. Gli agent appariranno qui automaticamente dopo la prima sincronizzazione.
+              </div>
             ) : retellAgents.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-xs text-gray-500 mb-1">
