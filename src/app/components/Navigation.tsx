@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { href: '/dashboard/campaigns', label: 'Campagne', exact: false },
   { href: '/dashboard/ghl-conversations', label: 'CRM', exact: false },
   { href: '/dashboard/settings', label: 'Impostazioni', exact: true },
+  { href: '/dashboard/billing', label: 'Fatturazione', exact: true },
 ]
 
 export function Navigation() {
@@ -87,14 +88,24 @@ export function Navigation() {
             {/* Right side */}
             <div className="flex items-center gap-2">
               {profile?.role === 'admin' && (
-                <Link href="/dashboard/admin"
-                  className={`hidden sm:block px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                    pathname === '/dashboard/admin'
-                      ? 'bg-red-500/20 text-red-400 border-red-500/40'
-                      : 'text-gray-400 border-[#222428] hover:bg-[#222428] hover:text-white'
-                  }`}>
-                  Admin
-                </Link>
+                <>
+                  <Link href="/dashboard/admin/billing"
+                    className={`hidden sm:block px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      pathname?.startsWith('/dashboard/admin/billing')
+                        ? 'bg-[#F59E0B]/20 text-[#F59E0B] border-[#F59E0B]/40'
+                        : 'text-gray-400 border-[#222428] hover:bg-[#222428] hover:text-white'
+                    }`}>
+                    Billing
+                  </Link>
+                  <Link href="/dashboard/admin"
+                    className={`hidden sm:block px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      pathname === '/dashboard/admin'
+                        ? 'bg-red-500/20 text-red-400 border-red-500/40'
+                        : 'text-gray-400 border-[#222428] hover:bg-[#222428] hover:text-white'
+                    }`}>
+                    Admin
+                  </Link>
+                </>
               )}
 
               <button
@@ -141,9 +152,14 @@ export function Navigation() {
               </Link>
             ))}
             {profile?.role === 'admin' && (
-              <Link href="/dashboard/admin" className={mobileLinkClass('/dashboard/admin', true)}>
-                Admin
-              </Link>
+              <>
+                <Link href="/dashboard/admin/billing" className={mobileLinkClass('/dashboard/admin/billing', false)}>
+                  Billing
+                </Link>
+                <Link href="/dashboard/admin" className={mobileLinkClass('/dashboard/admin', true)}>
+                  Admin
+                </Link>
+              </>
             )}
             <div className="pt-2 border-t border-[#222428]">
               <button
