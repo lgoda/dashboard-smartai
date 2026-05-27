@@ -3,7 +3,7 @@ import { requireAdmin, createServiceClient, getAdminConfig } from '@/app/lib/bil
 
 export const dynamic = 'force-dynamic'
 
-const RETELL_AGENT_BASE = 'https://api.retellai.com/v2'
+const RETELL_AGENT_BASE = 'https://api.retellai.com'
 
 /**
  * GET  — list all configured agent mappings + fetch agent names from Retell
