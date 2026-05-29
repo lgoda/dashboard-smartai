@@ -14,6 +14,8 @@ import {
 
 const RETELL_BASE = 'https://api.retellai.com/v2'
 const BATCH_LIMIT = 100
+const CONCURRENCY = 10
+const FETCH_TIMEOUT_MS = 20_000
 
 export type SyncResult = {
   processed: number
@@ -35,35 +37,44 @@ type RetellCallRaw = {
   end_timestamp?: number
   call_cost?: {
     total_duration_seconds?: number
-    combined_cost: number // USD cents (not dollars) per Retell API spec
+    combined_cost: number
   }
 }
 
+const emptyStats = (): Omit<SyncResult, 'processed'> => ({
+  synced: 0, skipped_no_cost: 0, skipped_no_mapping: 0, skipped_duplicate: 0, blocked_no_balance: 0, error: 0,
+})
+
 export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResult> {
   const adminConfig = await getAdminConfig(sb)
-  if (!adminConfig) return { processed: 0, synced: 0, skipped_no_cost: 0, skipped_no_mapping: 0, skipped_duplicate: 0, blocked_no_balance: 0, error: 1, error_message: 'billing_admin_config non trovata' }
-  if (!adminConfig.retell_billing_api_token) return { processed: 0, synced: 0, skipped_no_cost: 0, skipped_no_mapping: 0, skipped_duplicate: 0, blocked_no_balance: 0, error: 1, error_message: 'retell_billing_api_token non configurato' }
+  if (!adminConfig) return { processed: 0, ...emptyStats(), error: 1, error_message: 'billing_admin_config non trovata' }
+  if (!adminConfig.retell_billing_api_token) return { processed: 0, ...emptyStats(), error: 1, error_message: 'retell_billing_api_token non configurato' }
 
-  // Load active agent→user mappings
   const { data: agentConfigs, error: agentErr } = await sb
     .from('billing_agent_config')
     .select('*')
     .eq('is_active', true)
 
-  if (agentErr) return { processed: 0, synced: 0, skipped_no_cost: 0, skipped_no_mapping: 0, skipped_duplicate: 0, blocked_no_balance: 0, error: 1, error_message: agentErr.message }
+  if (agentErr) return { processed: 0, ...emptyStats(), error: 1, error_message: agentErr.message }
 
   const agentMap = new Map<string, BillingAgentConfig>(
     (agentConfigs ?? []).map((a: BillingAgentConfig) => [a.agent_id, a])
   )
 
-  // Time window
-  const fromTs = adminConfig.last_retell_sync_at
-    ? new Date(adminConfig.last_retell_sync_at).getTime()
-    : Date.now() - 60 * 60 * 1000 // 1h fallback — evita timeout su prima run
-
   const toTs = Date.now()
 
-  // Fetch calls from Retell (paginated)
+  if (agentMap.size === 0) {
+    await sb.from('billing_admin_config').update({ last_retell_sync_at: new Date(toTs).toISOString() }).eq('id', adminConfig.id)
+    return { processed: 0, ...emptyStats() }
+  }
+
+  const mappedAgentIds = Array.from(agentMap.keys())
+
+  const fromTs = adminConfig.last_retell_sync_at
+    ? new Date(adminConfig.last_retell_sync_at).getTime()
+    : Date.now() - 60 * 60 * 1000
+
+  // Fetch calls from Retell (filtered by mapped agents)
   const allCalls: RetellCallRaw[] = []
   let paginationKey: string | undefined = undefined
   let page = 0
@@ -72,6 +83,7 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
     const body: Record<string, unknown> = {
       filter_criteria: {
         call_status: ['ended'],
+        agent_id: mappedAgentIds,
         start_timestamp_from: fromTs,
         start_timestamp_to: toTs,
       },
@@ -80,19 +92,27 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
     }
     if (paginationKey) body.pagination_key = paginationKey
 
-    const resp = await fetch(`${RETELL_BASE}/list-calls`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${adminConfig.retell_billing_api_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    })
+    let resp: Response
+    try {
+      resp = await fetch(`${RETELL_BASE}/list-calls`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${adminConfig.retell_billing_api_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      })
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e)
+      console.error('[retellBillingSync] Retell fetch failed:', msg)
+      return { processed: allCalls.length, ...emptyStats(), error: 1, error_message: `Retell fetch failed: ${msg}` }
+    }
 
     if (!resp.ok) {
       const text = await resp.text()
       console.error('[retellBillingSync] Retell API error:', resp.status, text)
-      return { processed: allCalls.length, synced: 0, skipped_no_cost: 0, skipped_no_mapping: 0, skipped_duplicate: 0, blocked_no_balance: 0, error: 1, error_message: `Retell API ${resp.status}: ${text}` }
+      return { processed: allCalls.length, ...emptyStats(), error: 1, error_message: `Retell API ${resp.status}: ${text}` }
     }
 
     const calls: RetellCallRaw[] = await resp.json()
@@ -101,10 +121,9 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
     page++
   } while (paginationKey && page < 20)
 
-  const stats = { synced: 0, skipped_no_cost: 0, skipped_no_mapping: 0, skipped_duplicate: 0, blocked_no_balance: 0, error: 0 }
+  const stats = emptyStats()
   const unmappedAgents = new Set<string>()
 
-  // Batch idempotency check — 1 query per tutto il batch invece di 1 per chiamata
   const billableCalls = allCalls.filter(c => c.call_cost?.combined_cost && c.call_cost.combined_cost > 0)
   const { data: existingRows } = await sb
     .from('retell_call_billing')
@@ -112,8 +131,7 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
     .in('call_id', billableCalls.map(c => c.call_id))
   const existingCallIds = new Set((existingRows ?? []).map((r: { call_id: string }) => r.call_id))
 
-  // Cache clientConfig per evitare fetch ripetute per lo stesso utente
-  const clientConfigCache = new Map<string, Awaited<ReturnType<typeof import('./billingApi').getClientConfig>>>()
+  const clientConfigCache = new Map<string, Awaited<ReturnType<typeof getClientConfig>>>()
   const getClientConfigCached = async (userId: string) => {
     if (!clientConfigCache.has(userId)) {
       clientConfigCache.set(userId, await getClientConfig(sb, userId))
@@ -121,18 +139,17 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
     return clientConfigCache.get(userId)!
   }
 
-  for (const call of allCalls) {
+  async function processCall(call: RetellCallRaw): Promise<void> {
     if (!call.call_cost || !call.call_cost.combined_cost || call.call_cost.combined_cost <= 0) {
       stats.skipped_no_cost++
-      continue
+      return
     }
 
     const agentConfig = agentMap.get(call.agent_id)
     const userId = agentConfig?.user_id ?? null
     if (!userId) unmappedAgents.add(call.agent_id)
 
-    // Idempotency check (Set lookup, O(1))
-    if (existingCallIds.has(call.call_id)) { stats.skipped_duplicate++; continue }
+    if (existingCallIds.has(call.call_id)) { stats.skipped_duplicate++; return }
 
     if (!userId) {
       await sb.from('retell_call_billing').insert({
@@ -146,7 +163,7 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
         retell_end_ts:   call.end_timestamp   ? new Date(call.end_timestamp).toISOString()   : null,
       })
       stats.skipped_no_mapping++
-      continue
+      return
     }
 
     const clientConfig = await getClientConfigCached(userId)
@@ -156,13 +173,10 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
     let costEur: number, minutes: number, marginPercent: number
 
     if (billingMode === 'prepaid') {
-      // In prepaid the client already paid for the package — no per-call EUR charge.
-      // Only deduct actual call minutes from the balance.
       minutes       = durationSeconds / 60
       costEur       = 0
       marginPercent = 0
 
-      // If balance exhausted, respect overflow_mode
       const balance = await getBalance(sb, userId)
       if (balance.balance_minutes <= 0) {
         if (overflowMode === 'block') {
@@ -178,13 +192,12 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
             retell_end_ts:    call.end_timestamp   ? new Date(call.end_timestamp).toISOString()   : null,
           })
           stats.blocked_no_balance++
-          continue
+          return
         }
 
         if (overflowMode === 'auto_renew') {
           const packageId = clientConfig?.auto_recharge_package_id
           if (!packageId) {
-            // No package configured — fall back to block
             await sb.from('retell_call_billing').insert({
               user_id:          userId,
               call_id:          call.call_id,
@@ -197,7 +210,7 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
               retell_end_ts:    call.end_timestamp   ? new Date(call.end_timestamp).toISOString()   : null,
             })
             stats.blocked_no_balance++
-            continue
+            return
           }
 
           const { error: renewErr } = await purchasePackage(sb, {
@@ -221,19 +234,16 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
               retell_end_ts:    call.end_timestamp   ? new Date(call.end_timestamp).toISOString()   : null,
             })
             stats.blocked_no_balance++
-            continue
+            return
           }
-          // Package recharged — proceed to bill this call normally below
         }
-        // pay_per_use handled in future phase — for now falls through to normal billing
       }
     } else {
-      // Postpaid / hybrid: charge per call at Retell cost + margin
       if (agentConfig!.price_per_minute_cents != null) {
         const r = calcMinutesFromPricePerMinute(durationSeconds, agentConfig!.price_per_minute_cents)
         costEur = r.costEur; minutes = r.minutes; marginPercent = 0
       } else {
-        const r = calcClientCost(call.call_cost.combined_cost, adminConfig, clientConfig)
+        const r = calcClientCost(call.call_cost.combined_cost, adminConfig!, clientConfig)
         costEur = r.costEur; marginPercent = r.marginPercent; minutes = durationSeconds / 60
       }
     }
@@ -261,7 +271,7 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
 
     if (insertErr) {
       if (insertErr.code === '23505') { stats.skipped_duplicate++ } else { console.error('[retellBillingSync] insert error:', insertErr.message); stats.error++ }
-      continue
+      return
     }
 
     const { data: ledgerEntry, error: creditErr } = await creditMinutes(sb, {
@@ -274,30 +284,52 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
       console.error('[retellBillingSync] creditMinutes error:', creditErr)
       await sb.from('retell_call_billing').update({ sync_status: 'error', error_detail: creditErr }).eq('id', callRecord.id)
       stats.error++
-      continue
+      return
     }
 
     await sb.from('retell_call_billing').update({ sync_status: 'billed', ledger_id: ledgerEntry!.id, billed_at: new Date().toISOString() }).eq('id', callRecord.id)
     stats.synced++
 
-    // ── Postpaid: aggiorna outstanding e controlla soglia ──────────────────
     if (billingMode !== 'prepaid' && costEurCents > 0) {
       await incrementOutstanding(sb, userId, costEurCents)
+    }
+  }
 
-      const trigger    = clientConfig?.invoice_trigger ?? 'monthly'
-      const threshold  = clientConfig?.invoice_threshold_cents ?? 5000
+  // Process calls in parallel chunks; advance watermark after each chunk so
+  // progress is preserved even if the function is killed.
+  const processCallSafe = async (call: RetellCallRaw) => {
+    try {
+      await processCall(call)
+    } catch (e) {
+      console.error('[retellBillingSync] processCall threw:', e)
+      stats.error++
+    }
+  }
 
-      if (trigger === 'threshold' || trigger === 'both') {
-        const updatedBalance = await getBalance(sb, userId)
-        if (updatedBalance.outstanding_cents >= threshold) {
-          const today = new Date().toISOString().slice(0, 10)
-          await generatePostpaidInvoice(sb, {
-            userId,
-            periodFrom: today,
-            periodTo:   today,
-          })
-        }
-      }
+  for (let i = 0; i < allCalls.length; i += CONCURRENCY) {
+    const chunk = allCalls.slice(i, i + CONCURRENCY)
+    await Promise.all(chunk.map(processCallSafe))
+
+    const lastStart = chunk[chunk.length - 1]?.start_timestamp
+    if (lastStart) {
+      await sb.from('billing_admin_config')
+        .update({ last_retell_sync_at: new Date(lastStart).toISOString() })
+        .eq('id', adminConfig.id)
+    }
+  }
+
+  // Threshold-based invoice check — run once per postpaid user after all calls
+  // billed, avoids races between parallel call processing.
+  for (const [userId, cfg] of clientConfigCache.entries()) {
+    if (!cfg || cfg.billing_mode === 'prepaid') continue
+    const trigger   = cfg.invoice_trigger ?? 'monthly'
+    const threshold = cfg.invoice_threshold_cents ?? 5000
+    if (trigger !== 'threshold' && trigger !== 'both') continue
+
+    const balance = await getBalance(sb, userId)
+    if (balance.outstanding_cents >= threshold) {
+      const today = new Date().toISOString().slice(0, 10)
+      await generatePostpaidInvoice(sb, { userId, periodFrom: today, periodTo: today })
     }
   }
 
