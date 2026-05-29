@@ -59,7 +59,7 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
   // Time window
   const fromTs = adminConfig.last_retell_sync_at
     ? new Date(adminConfig.last_retell_sync_at).getTime()
-    : Date.now() - 24 * 60 * 60 * 1000
+    : Date.now() - 60 * 60 * 1000 // 1h fallback — evita timeout su prima run
 
   const toTs = Date.now()
 
