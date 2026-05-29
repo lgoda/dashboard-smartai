@@ -16,6 +16,10 @@ const RETELL_BASE = 'https://api.retellai.com/v2'
 const BATCH_LIMIT = 100
 const CONCURRENCY = 10
 const FETCH_TIMEOUT_MS = 20_000
+// Re-scan a window before the watermark so calls that started before the
+// watermark but ended after it (long calls) still get picked up. Dedup via
+// existingCallIds prevents double billing.
+const SAFETY_WINDOW_MS = 30 * 60 * 1000
 
 export type SyncResult = {
   processed: number
@@ -71,7 +75,7 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
   const mappedAgentIds = Array.from(agentMap.keys())
 
   const fromTs = adminConfig.last_retell_sync_at
-    ? new Date(adminConfig.last_retell_sync_at).getTime()
+    ? new Date(adminConfig.last_retell_sync_at).getTime() - SAFETY_WINDOW_MS
     : Date.now() - 60 * 60 * 1000
 
   // Fetch calls from Retell (filtered by mapped agents)

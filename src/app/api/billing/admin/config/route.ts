@@ -18,7 +18,7 @@ export async function PATCH(request: NextRequest) {
   if (!admin) return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
 
   const body = await request.json()
-  const allowed = ['default_margin_percent', 'usd_eur_rate', 'notification_email', 'retell_billing_api_token']
+  const allowed = ['default_margin_percent', 'usd_eur_rate', 'notification_email', 'retell_billing_api_token', 'monthly_invoice_day']
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
   for (const key of allowed) {
     if (key in body) updates[key] = body[key]

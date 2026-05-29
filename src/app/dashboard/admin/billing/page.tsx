@@ -49,6 +49,7 @@ type AdminConfig = {
   notification_email: string | null
   retell_billing_api_token: string | null
   last_retell_sync_at: string | null
+  monthly_invoice_day: number
 }
 
 function fmt(minutes: number) {
@@ -135,7 +136,7 @@ export default function AdminBillingPage() {
 
   // ── impostazioni ──
   const [config, setConfig] = useState<AdminConfig | null>(null)
-  const [configForm, setConfigForm] = useState({ default_margin_percent: '', usd_eur_rate: '', notification_email: '', retell_billing_api_token: '' })
+  const [configForm, setConfigForm] = useState({ default_margin_percent: '', usd_eur_rate: '', notification_email: '', retell_billing_api_token: '', monthly_invoice_day: '27' })
   const [configSaving, setConfigSaving] = useState(false)
   const [configMsg, setConfigMsg] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
@@ -258,6 +259,7 @@ export default function AdminBillingPage() {
         usd_eur_rate: String(c.usd_eur_rate ?? 0.93),
         notification_email: c.notification_email ?? '',
         retell_billing_api_token: c.retell_billing_api_token ?? '',
+        monthly_invoice_day: String(c.monthly_invoice_day ?? 27),
       })
     }
   }, [accessToken, headers])
@@ -436,6 +438,7 @@ export default function AdminBillingPage() {
         usd_eur_rate: Number(configForm.usd_eur_rate),
         notification_email: configForm.notification_email || null,
         retell_billing_api_token: configForm.retell_billing_api_token || null,
+        monthly_invoice_day: Number(configForm.monthly_invoice_day),
       }),
     })
     if (r.ok) {
@@ -930,6 +933,13 @@ export default function AdminBillingPage() {
                     placeholder="key_..." className={inputCls} />
                   <p className="text-xs text-gray-500 mt-1">Chiave usata per sincronizzare tutte le chiamate</p>
                 </div>
+                <div>
+                  <label className={labelCls}>Giorno mensile fatturazione postpaid</label>
+                  <input type="number" min="1" max="28" value={configForm.monthly_invoice_day}
+                    onChange={e => setConfigForm(f => ({ ...f, monthly_invoice_day: e.target.value }))}
+                    className={inputCls} />
+                  <p className="text-xs text-gray-500 mt-1">Giorno del mese in cui vengono generate le fatture mensili per tutti i clienti postpaid (1–28)</p>
+                </div>
               </div>
               {configMsg && <p className={`text-xs mt-2 ${configMsg.includes('salvate') ? 'text-green-400' : 'text-red-400'}`}>{configMsg}</p>}
               <button onClick={saveConfig} disabled={configSaving}
@@ -1092,12 +1102,7 @@ export default function AdminBillingPage() {
                   )}
 
                   {(clientConfigForm.invoice_trigger === 'monthly' || clientConfigForm.invoice_trigger === 'both') && (
-                    <div>
-                      <label className={labelCls}>Giorno del mese per fatturazione</label>
-                      <input type="number" min="1" max="28" value={clientConfigForm.billing_period_start_day}
-                        onChange={e => setClientConfigForm(f => ({ ...f, billing_period_start_day: e.target.value }))}
-                        className={inputCls} />
-                    </div>
+                    <p className="text-xs text-gray-500">Il giorno di fatturazione mensile è impostato globalmente da <strong className="text-gray-300">Impostazioni</strong>.</p>
                   )}
                 </>
               )}

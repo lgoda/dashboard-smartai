@@ -82,6 +82,7 @@ export default function BillingPage() {
   const [billingMode, setBillingMode]               = useState<'prepaid' | 'postpaid' | 'hybrid'>('prepaid')
   const [invoiceTrigger, setInvoiceTrigger]         = useState<'monthly' | 'threshold' | 'both'>('monthly')
   const [invoiceThresholdCents, setInvoiceThresholdCents] = useState(5000)
+  const [monthlyInvoiceDay, setMonthlyInvoiceDay] = useState(27)
   const [ledger, setLedger]     = useState<LedgerEntry[]>([])
   const [ledgerTotal, setLedgerTotal] = useState(0)
   const [ledgerPage, setLedgerPage]   = useState(0)
@@ -112,6 +113,7 @@ export default function BillingPage() {
       setBillingMode(j.billing_mode ?? 'prepaid')
       setInvoiceTrigger(j.invoice_trigger ?? 'monthly')
       setInvoiceThresholdCents(j.invoice_threshold_cents ?? 5000)
+      setMonthlyInvoiceDay(j.monthly_invoice_day ?? 27)
     }
   }, [accessToken, headers])
 
@@ -257,9 +259,14 @@ export default function BillingPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="text-xs text-gray-500 leading-relaxed">
-                {invoiceTrigger === 'monthly' && 'La fattura viene generata automaticamente alla fine del mese.'}
-                {invoiceTrigger === 'threshold' && `La fattura viene generata automaticamente al raggiungimento di €${(invoiceThresholdCents / 100).toFixed(0)}.`}
-                {invoiceTrigger === 'both' && `La fattura viene generata alla fine del mese o al raggiungimento di €${(invoiceThresholdCents / 100).toFixed(0)}, in base a quale si verifica prima.`}
+                {(() => {
+                  const day        = monthlyInvoiceDay
+                  const dayLabel   = day === 1 ? 'il 1° di ogni mese' : `il giorno ${day} di ogni mese`
+                  const thresholdE = (invoiceThresholdCents / 100).toFixed(2).replace('.', ',')
+                  if (invoiceTrigger === 'monthly')   return <>La fattura viene generata automaticamente <strong className="text-gray-300">{dayLabel}</strong>.</>
+                  if (invoiceTrigger === 'threshold') return <>La fattura viene generata automaticamente al raggiungimento di <strong className="text-gray-300">€{thresholdE}</strong> di spesa.</>
+                  return <>La fattura viene generata automaticamente <strong className="text-gray-300">{dayLabel}</strong>, oppure al raggiungimento di <strong className="text-gray-300">€{thresholdE}</strong> di spesa (in base a quale si verifica prima).</>
+                })()}
               </p>
             </div>
           </div>

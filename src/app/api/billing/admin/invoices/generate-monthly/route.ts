@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient, generatePostpaidInvoice } from '@/app/lib/billingApi'
+import { createServiceClient, generatePostpaidInvoice, getAdminConfig } from '@/app/lib/billingApi'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 const CRON_SECRET = process.env.CRON_SECRET
 
-// Called by n8n at end of each month to generate invoices for all postpaid clients
+// Called daily by n8n; runs only on admin_config.monthly_invoice_day
 export async function POST(request: NextRequest) {
   const provided = request.headers.get('x-cron-secret')
     ?? new URL(request.url).searchParams.get('secret')
@@ -16,15 +16,25 @@ export async function POST(request: NextRequest) {
 
   const sb = createServiceClient()
 
+  const adminConfig = await getAdminConfig(sb)
+  if (!adminConfig) return NextResponse.json({ error: 'billing_admin_config non trovata' }, { status: 500 })
+
+  const today        = new Date()
+  const todayDay     = today.getUTCDate()
+  const invoiceDay   = adminConfig.monthly_invoice_day ?? 27
+
+  if (todayDay !== invoiceDay) {
+    return NextResponse.json({ skipped: true, reason: `today=${todayDay} != monthly_invoice_day=${invoiceDay}` })
+  }
+
   // Find all postpaid/hybrid clients with outstanding > 0
   const { data: configs, error: cfgErr } = await sb
     .from('billing_client_config')
-    .select('user_id, invoice_trigger, billing_period_start_day')
+    .select('user_id, invoice_trigger')
     .in('billing_mode', ['postpaid', 'hybrid'])
 
   if (cfgErr) return NextResponse.json({ error: cfgErr.message }, { status: 500 })
 
-  const today = new Date()
   const periodFrom = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10)
   const periodTo   = today.toISOString().slice(0, 10)
 

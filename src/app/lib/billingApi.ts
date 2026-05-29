@@ -19,6 +19,7 @@ export type BillingAdminConfig = {
   notification_email: string | null
   retell_billing_api_token: string | null
   last_retell_sync_at: string | null
+  monthly_invoice_day: number
   updated_at: string
 }
 
@@ -372,7 +373,8 @@ export async function generatePostpaidInvoice(
 
   // Reset outstanding so the next billing cycle starts from 0.
   // Deduct only the snapshot so any amount accrued concurrently stays in the new cycle.
-  await sb.rpc('deduct_outstanding', { p_user_id: params.userId, p_delta_cents: outstandingSnapshot })
+  const { error: deductErr } = await sb.rpc('deduct_outstanding', { p_user_id: params.userId, p_delta_cents: outstandingSnapshot })
+  if (deductErr) console.error('[generatePostpaidInvoice] deduct_outstanding failed:', deductErr)
 
   return { invoice: invoice as BillingInvoice, error: null }
 }
