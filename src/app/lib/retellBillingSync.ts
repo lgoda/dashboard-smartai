@@ -104,6 +104,23 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
   const stats = { synced: 0, skipped_no_cost: 0, skipped_no_mapping: 0, skipped_duplicate: 0, blocked_no_balance: 0, error: 0 }
   const unmappedAgents = new Set<string>()
 
+  // Batch idempotency check — 1 query per tutto il batch invece di 1 per chiamata
+  const billableCalls = allCalls.filter(c => c.call_cost?.combined_cost && c.call_cost.combined_cost > 0)
+  const { data: existingRows } = await sb
+    .from('retell_call_billing')
+    .select('call_id')
+    .in('call_id', billableCalls.map(c => c.call_id))
+  const existingCallIds = new Set((existingRows ?? []).map((r: { call_id: string }) => r.call_id))
+
+  // Cache clientConfig per evitare fetch ripetute per lo stesso utente
+  const clientConfigCache = new Map<string, Awaited<ReturnType<typeof import('./billingApi').getClientConfig>>>()
+  const getClientConfigCached = async (userId: string) => {
+    if (!clientConfigCache.has(userId)) {
+      clientConfigCache.set(userId, await getClientConfig(sb, userId))
+    }
+    return clientConfigCache.get(userId)!
+  }
+
   for (const call of allCalls) {
     if (!call.call_cost || !call.call_cost.combined_cost || call.call_cost.combined_cost <= 0) {
       stats.skipped_no_cost++
@@ -114,13 +131,8 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
     const userId = agentConfig?.user_id ?? null
     if (!userId) unmappedAgents.add(call.agent_id)
 
-    // Idempotency check
-    const { count } = await sb
-      .from('retell_call_billing')
-      .select('*', { count: 'exact', head: true })
-      .eq('call_id', call.call_id)
-
-    if ((count ?? 0) > 0) { stats.skipped_duplicate++; continue }
+    // Idempotency check (Set lookup, O(1))
+    if (existingCallIds.has(call.call_id)) { stats.skipped_duplicate++; continue }
 
     if (!userId) {
       await sb.from('retell_call_billing').insert({
@@ -137,7 +149,7 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
       continue
     }
 
-    const clientConfig = await getClientConfig(sb, userId)
+    const clientConfig = await getClientConfigCached(userId)
     const billingMode  = clientConfig?.billing_mode  ?? 'prepaid'
     const overflowMode = clientConfig?.overflow_mode ?? 'block'
     const durationSeconds = call.call_cost.total_duration_seconds ?? 0
