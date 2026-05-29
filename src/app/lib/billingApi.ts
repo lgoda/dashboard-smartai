@@ -38,10 +38,15 @@ export type BillingClientConfig = {
   id: string
   user_id: string
   billing_mode: 'prepaid' | 'postpaid' | 'hybrid'
+  overflow_mode: 'block' | 'auto_renew' | 'pay_per_use'
+  overflow_price_per_minute_cents: number | null
   margin_percent: number | null
   low_balance_threshold_minutes: number
   auto_recharge_enabled: boolean
   auto_recharge_package_id: string | null
+  invoice_trigger: 'monthly' | 'threshold' | 'both'
+  invoice_threshold_cents: number
+  billing_period_start_day: number
   stripe_customer_id: string | null
   stripe_payment_method_id: string | null
   created_at: string
@@ -66,6 +71,7 @@ export type BillingBalance = {
   user_id: string
   balance_minutes: number
   balance_cents: number
+  outstanding_cents: number
   last_updated_at: string
 }
 
@@ -81,10 +87,31 @@ export type RetellCallBilling = {
   margin_percent: number | null
   ledger_id: string | null
   billed_at: string | null
-  sync_status: 'pending' | 'billed' | 'error' | 'skipped'
+  sync_status: 'pending' | 'billed' | 'error' | 'skipped' | 'blocked_no_balance'
   error_detail: string | null
   retell_start_ts: string | null
   retell_end_ts: string | null
+  created_at: string
+}
+
+export type BillingInvoice = {
+  id: string
+  invoice_number: string
+  user_id: string
+  package_id: string | null
+  amount_cents: number
+  currency: string
+  minutes_added: number
+  status: 'issued' | 'paid' | 'cancelled'
+  type: 'package_purchase' | 'auto_recharge' | 'postpaid_period'
+  ledger_id: string | null
+  notes: string | null
+  due_date: string | null
+  paid_at: string | null
+  period_from: string | null
+  period_to: string | null
+  outstanding_before_cents: number | null
+  created_by: string | null
   created_at: string
 }
 
@@ -110,7 +137,7 @@ export async function getBalance(sb: SupabaseClient, userId: string): Promise<Bi
     .select('*')
     .eq('user_id', userId)
     .maybeSingle()
-  return data ?? { user_id: userId, balance_minutes: 0, balance_cents: 0, last_updated_at: new Date().toISOString() }
+  return data ?? { user_id: userId, balance_minutes: 0, balance_cents: 0, outstanding_cents: 0, last_updated_at: new Date().toISOString() }
 }
 
 /**
@@ -154,16 +181,18 @@ export function effectiveMarginPercent(
 }
 
 /**
- * Convert Retell combined_cost (USD) to client EUR including margin.
+ * Convert Retell combined_cost to client EUR including margin.
+ * NOTE: Retell's combined_cost (and cost_retell_usd in DB) is in USD cents, not dollars.
+ * Divide by 100 before applying exchange rate.
  * Returns { costEur, marginPercent }
  */
 export function calcClientCost(
-  costRetellUsd: number,
+  costRetellCents: number,
   adminConfig: BillingAdminConfig,
   clientConfig: BillingClientConfig | null
 ): { costEur: number; marginPercent: number } {
   const margin = effectiveMarginPercent(adminConfig, clientConfig)
-  const costEur = costRetellUsd * adminConfig.usd_eur_rate * (1 + margin / 100)
+  const costEur = (costRetellCents / 100) * adminConfig.usd_eur_rate * (1 + margin / 100)
   return { costEur: Math.ceil(costEur * 100) / 100, marginPercent: margin }
 }
 
@@ -216,4 +245,134 @@ export async function requireAuth(
   const { data: { user } } = await client.auth.getUser()
   if (!user) return null
   return { userId: user.id }
+}
+
+/**
+ * Purchase a package: credit minutes, create ledger entry and invoice.
+ * Used for both manual purchases (client) and auto-recharge (sync).
+ */
+export async function purchasePackage(
+  sb: SupabaseClient,
+  params: {
+    userId: string
+    packageId: string
+    type: 'package_purchase' | 'auto_recharge'
+    createdBy?: string
+    /** For auto_recharge: the call_id that triggered the recharge. Makes the key deterministic so concurrent syncs don't double-charge. */
+    triggerCallId?: string
+  }
+): Promise<{ invoice: BillingInvoice | null; error: string | null }> {
+  const { data: pkg } = await sb
+    .from('billing_packages')
+    .select('*')
+    .eq('id', params.packageId)
+    .eq('is_active', true)
+    .single()
+
+  if (!pkg) return { invoice: null, error: 'Pacchetto non trovato o non attivo' }
+
+  const idempotencyKey = params.type === 'auto_recharge' && params.triggerCallId
+    ? `auto_recharge_${params.packageId}_${params.userId}_${params.triggerCallId}`
+    : `${params.type}_${params.packageId}_${params.userId}_${Date.now()}`
+  const description    = params.type === 'auto_recharge'
+    ? `Ricarica automatica: ${pkg.name}`
+    : `Acquisto pacchetto: ${pkg.name}`
+
+  const { data: ledgerEntry, error: ledgerErr } = await creditMinutes(sb, {
+    userId:         params.userId,
+    minutesDelta:   pkg.minutes,
+    amountCents:    pkg.price_cents,
+    type:           params.type === 'auto_recharge' ? 'auto_recharge' : 'purchase',
+    idempotencyKey,
+    description,
+    createdBy:      params.createdBy,
+  })
+
+  if (ledgerErr) return { invoice: null, error: ledgerErr }
+
+  // Generate invoice number via DB function and insert
+  const { data: numRow } = await sb.rpc('next_invoice_number')
+  const invoiceNumber = numRow as string
+
+  const { data: invoice, error: invErr } = await sb
+    .from('billing_invoices')
+    .insert({
+      invoice_number: invoiceNumber,
+      user_id:        params.userId,
+      package_id:     params.packageId,
+      amount_cents:   pkg.price_cents,
+      currency:       pkg.currency ?? 'eur',
+      minutes_added:  pkg.minutes,
+      type:           params.type,
+      ledger_id:      ledgerEntry?.id ?? null,
+      due_date:       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      created_by:     params.createdBy ?? null,
+    })
+    .select()
+    .single()
+
+  if (invErr) return { invoice: null, error: invErr.message }
+  return { invoice: invoice as BillingInvoice, error: null }
+}
+
+/**
+ * Increment outstanding_cents for a postpaid client after each billed call.
+ * Uses an atomic Postgres upsert so concurrent syncs stay consistent.
+ */
+export async function incrementOutstanding(
+  sb: SupabaseClient,
+  userId: string,
+  deltaCents: number
+): Promise<void> {
+  await sb.rpc('increment_outstanding', { p_user_id: userId, p_delta_cents: deltaCents })
+}
+
+/**
+ * Generate a postpaid period invoice capturing the current outstanding balance.
+ * Idempotent: if outstanding is 0, returns early.
+ */
+export async function generatePostpaidInvoice(
+  sb: SupabaseClient,
+  params: {
+    userId: string
+    periodFrom: string   // ISO date string YYYY-MM-DD
+    periodTo: string
+    createdBy?: string
+  }
+): Promise<{ invoice: BillingInvoice | null; error: string | null }> {
+  const balance = await getBalance(sb, params.userId)
+  if (balance.outstanding_cents <= 0) return { invoice: null, error: 'Nessun importo da fatturare' }
+
+  const outstandingSnapshot = balance.outstanding_cents
+
+  const { data: numRow } = await sb.rpc('next_invoice_number')
+  const invoiceNumber = numRow as string
+
+  const { data: invoice, error: invErr } = await sb
+    .from('billing_invoices')
+    .insert({
+      invoice_number:          invoiceNumber,
+      user_id:                 params.userId,
+      package_id:              null,
+      amount_cents:            outstandingSnapshot,
+      currency:                'eur',
+      minutes_added:           0,
+      type:                    'postpaid_period',
+      status:                  'issued',
+      outstanding_before_cents: outstandingSnapshot,
+      period_from:             params.periodFrom,
+      period_to:               params.periodTo,
+      due_date:                new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      created_by:              params.createdBy ?? null,
+    })
+    .select()
+    .single()
+
+  if (invErr) return { invoice: null, error: invErr.message }
+
+  // Reset outstanding so the next billing cycle starts from 0.
+  // Deduct only the snapshot so any amount accrued concurrently stays in the new cycle.
+  await sb.rpc('deduct_outstanding', { p_user_id: params.userId, p_delta_cents: outstandingSnapshot })
+
+  return { invoice: invoice as BillingInvoice, error: null }
 }

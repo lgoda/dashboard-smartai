@@ -6,14 +6,18 @@ import { useAuth } from '@/app/components/AuthProvider'
 
 export const dynamic = 'force-dynamic'
 
-type Tab = 'clienti' | 'agent' | 'pacchetti' | 'impostazioni'
+type Tab = 'clienti' | 'agent' | 'pacchetti' | 'fatture' | 'impostazioni'
 
 type ClientRow = {
   id: string
   full_name: string
   company: string
-  balance: { balance_minutes: number; balance_cents: number }
-  billing_config: { billing_mode: string; margin_percent: number | null; auto_recharge_enabled: boolean } | null
+  balance: { balance_minutes: number; balance_cents: number; outstanding_cents?: number }
+  billing_config: {
+    billing_mode: string; margin_percent: number | null; auto_recharge_enabled: boolean
+    low_balance_threshold_minutes?: number; overflow_mode?: string; auto_recharge_package_id?: string
+    invoice_trigger?: string; invoice_threshold_cents?: number; billing_period_start_day?: number
+  } | null
   last_call: { billed_at: string } | null
   minutes_used_30d: number
 }
@@ -28,7 +32,7 @@ type AgentMapping = {
   profiles?: { full_name: string }
 }
 
-type RetellAgent = { agent_id: string; agent_name: string }
+type RetellAgent = { agent_id: string; agent_name: string | null }
 
 type Package = {
   id: string
@@ -48,8 +52,12 @@ type AdminConfig = {
 }
 
 function fmt(minutes: number) {
-  if (minutes < 1) return `${Math.round(minutes * 60)}s`
-  return `${minutes.toFixed(1)} min`
+  const totalSec = Math.round(Math.abs(minutes) * 60)
+  const m = Math.floor(totalSec / 60)
+  const s = totalSec % 60
+  if (m === 0) return `${s}s`
+  if (s === 0) return `${m} min`
+  return `${m} min ${s}s`
 }
 
 export default function AdminBillingPage() {
@@ -67,13 +75,38 @@ export default function AdminBillingPage() {
   const [creditSaving, setCreditSaving] = useState(false)
   const [creditMsg, setCreditMsg] = useState<string | null>(null)
 
+  type ClientConfigForm = {
+    billing_mode: string
+    overflow_mode: string
+    auto_recharge_enabled: boolean
+    auto_recharge_package_id: string
+    margin_percent: string
+    low_balance_threshold_minutes: string
+    invoice_trigger: string
+    invoice_threshold_euros: string
+    billing_period_start_day: string
+  }
+  const [clientConfigModal, setClientConfigModal] = useState<ClientRow | null>(null)
+  const [clientConfigForm, setClientConfigForm] = useState<ClientConfigForm>({
+    billing_mode: 'prepaid', overflow_mode: 'block',
+    auto_recharge_enabled: false, auto_recharge_package_id: '',
+    margin_percent: '', low_balance_threshold_minutes: '30',
+    invoice_trigger: 'monthly', invoice_threshold_euros: '50',
+    billing_period_start_day: '1',
+  })
+  const [clientConfigSaving, setClientConfigSaving] = useState(false)
+  const [clientConfigMsg, setClientConfigMsg] = useState<string | null>(null)
+
   // ── agent ──
   const [mappings, setMappings] = useState<AgentMapping[]>([])
   const [retellAgents, setRetellAgents] = useState<RetellAgent[]>([])
   const [retellApiConfigured, setRetellApiConfigured] = useState(true)
   const [agentsLoading, setAgentsLoading] = useState(false)
-  type AgentRowState = { userId: string; pricePerMinuteCents: string; saving: boolean; msg: string | null }
+  type AgentRowState = { userId: string; agentName: string; pricePerMinuteCents: string; saving: boolean; msg: string | null }
   const [agentRows, setAgentRows] = useState<Record<string, AgentRowState>>({})
+  const [newAgentForm, setNewAgentForm] = useState({ agentId: '', userId: '', agentName: '' })
+  const [newAgentSaving, setNewAgentSaving] = useState(false)
+  const [newAgentMsg, setNewAgentMsg] = useState<string | null>(null)
 
   // ── pacchetti ──
   const [packages, setPackages] = useState<Package[]>([])
@@ -81,6 +114,24 @@ export default function AdminBillingPage() {
   const [pkgForm, setPkgForm] = useState({ name: '', minutes: '', price_cents: '' })
   const [pkgSaving, setPkgSaving] = useState(false)
   const [pkgMsg, setPkgMsg] = useState<string | null>(null)
+
+  // ── fatture admin ──
+  type AdminInvoice = {
+    id: string; invoice_number: string; amount_cents: number; minutes_added: number
+    status: 'issued' | 'paid' | 'cancelled'; type: string; due_date: string | null
+    paid_at: string | null; created_at: string
+    billing_packages: { name: string } | null
+    profiles: { full_name: string } | null
+  }
+  const [adminInvoices, setAdminInvoices] = useState<AdminInvoice[]>([])
+  const [adminInvoicesTotal, setAdminInvoicesTotal] = useState(0)
+  const [adminInvoicesMore, setAdminInvoicesMore] = useState(false)
+  const [adminInvoicePage, setAdminInvoicePage] = useState(0)
+  const [adminInvoicesLoading, setAdminInvoicesLoading] = useState(false)
+  const [adminInvoiceFilter, setAdminInvoiceFilter] = useState('')
+  const [updatingInvoice, setUpdatingInvoice] = useState<string | null>(null)
+  const [generatingInvoice, setGeneratingInvoice] = useState<string | null>(null)
+  const [generateInvoiceMsg, setGenerateInvoiceMsg] = useState<{ userId: string; msg: string; ok: boolean } | null>(null)
 
   // ── impostazioni ──
   const [config, setConfig] = useState<AdminConfig | null>(null)
@@ -99,9 +150,9 @@ export default function AdminBillingPage() {
     if (profile && profile.role !== 'admin') router.push('/dashboard')
   }, [profile, router])
 
-  // Bug 1 fix: load clients on mount so they're available in Agent tab dropdown too
+  // Load clients and packages on mount (both needed across tabs)
   useEffect(() => {
-    if (accessToken) fetchClients()
+    if (accessToken) { fetchClients(); fetchPackages() }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken])
 
@@ -127,10 +178,11 @@ export default function AdminBillingPage() {
         setRetellAgents(j.retell_agents ?? [])
         setRetellApiConfigured(j.retell_api_configured ?? false)
         // Pre-populate per-row state from existing mappings
-        const rows: Record<string, { userId: string; pricePerMinuteCents: string; saving: boolean; msg: string | null }> = {}
+        const rows: Record<string, AgentRowState> = {}
         for (const m of loadedMappings) {
           rows[m.agent_id] = {
             userId: m.user_id,
+            agentName: m.agent_name ?? '',
             pricePerMinuteCents: m.price_per_minute_cents != null ? String(m.price_per_minute_cents) : '',
             saving: false,
             msg: null,
@@ -149,6 +201,51 @@ export default function AdminBillingPage() {
       if (r.ok) setPackages((await r.json()).packages ?? [])
     } finally { setPkgLoading(false) }
   }, [accessToken, headers])
+
+  const fetchAdminInvoices = useCallback(async (p: number, filter?: string) => {
+    if (!accessToken) return
+    setAdminInvoicesLoading(true)
+    try {
+      const params = new URLSearchParams({ page: String(p) })
+      const f = filter ?? adminInvoiceFilter
+      if (f) params.set('status', f)
+      const r = await fetch(`/api/billing/admin/invoices?${params}`, { headers: headers() })
+      if (r.ok) {
+        const j = await r.json()
+        setAdminInvoices(prev => p === 0 ? j.invoices : [...prev, ...j.invoices])
+        setAdminInvoicesTotal(j.total)
+        setAdminInvoicesMore(j.has_more)
+      }
+    } finally { setAdminInvoicesLoading(false) }
+  }, [accessToken, headers, adminInvoiceFilter])
+
+  const updateInvoiceStatus = async (id: string, status: string) => {
+    setUpdatingInvoice(id)
+    const r = await fetch('/api/billing/admin/invoices', {
+      method: 'PATCH',
+      headers: headers(),
+      body: JSON.stringify({ id, status }),
+    })
+    if (r.ok) {
+      setAdminInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: status as 'issued' | 'paid' | 'cancelled', paid_at: status === 'paid' ? new Date().toISOString() : null } : inv))
+    }
+    setUpdatingInvoice(null)
+  }
+
+  const generateInvoice = async (userId: string) => {
+    setGeneratingInvoice(userId)
+    setGenerateInvoiceMsg(null)
+    const r = await fetch('/api/billing/admin/invoices/generate', {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ user_id: userId }),
+    })
+    const j = await r.json()
+    setGenerateInvoiceMsg({ userId, msg: r.ok ? `Fattura ${j.invoice.invoice_number} generata` : j.error, ok: r.ok })
+    if (r.ok) fetchClients()
+    setGeneratingInvoice(null)
+    setTimeout(() => setGenerateInvoiceMsg(null), 4000)
+  }
 
   const fetchConfig = useCallback(async () => {
     if (!accessToken) return
@@ -170,8 +267,57 @@ export default function AdminBillingPage() {
     if (tab === 'clienti')      fetchClients()
     if (tab === 'agent')        fetchAgents()
     if (tab === 'pacchetti')    fetchPackages()
+    if (tab === 'fatture')      { setAdminInvoicePage(0); fetchAdminInvoices(0) }
     if (tab === 'impostazioni') fetchConfig()
-  }, [tab, accessToken, fetchClients, fetchAgents, fetchPackages, fetchConfig])
+  }, [tab, accessToken, fetchClients, fetchAgents, fetchPackages, fetchAdminInvoices, fetchConfig])
+
+  // ── client config ──
+  const openClientConfig = (c: ClientRow) => {
+    const bc = c.billing_config
+    setClientConfigForm({
+      billing_mode:                   bc?.billing_mode ?? 'prepaid',
+      overflow_mode:                  bc?.overflow_mode ?? 'block',
+      auto_recharge_enabled:          bc?.auto_recharge_enabled ?? false,
+      auto_recharge_package_id:       bc?.auto_recharge_package_id ?? '',
+      margin_percent:                 bc?.margin_percent != null ? String(bc.margin_percent) : '',
+      low_balance_threshold_minutes:  String(bc?.low_balance_threshold_minutes ?? 30),
+      invoice_trigger:                bc?.invoice_trigger ?? 'monthly',
+      invoice_threshold_euros:        bc?.invoice_threshold_cents != null ? String(bc.invoice_threshold_cents / 100) : '50',
+      billing_period_start_day:       String(bc?.billing_period_start_day ?? 1),
+    })
+    setClientConfigMsg(null)
+    setClientConfigModal(c)
+  }
+
+  const saveClientConfig = async () => {
+    if (!clientConfigModal) return
+    setClientConfigSaving(true)
+    setClientConfigMsg(null)
+    const r = await fetch('/api/billing/admin/users', {
+      method: 'PATCH',
+      headers: headers(),
+      body: JSON.stringify({
+        user_id:                      clientConfigModal.id,
+        billing_mode:                 clientConfigForm.billing_mode,
+        overflow_mode:                clientConfigForm.overflow_mode,
+        auto_recharge_enabled:        clientConfigForm.auto_recharge_enabled,
+        auto_recharge_package_id:     clientConfigForm.auto_recharge_package_id || null,
+        margin_percent:               clientConfigForm.margin_percent === '' ? null : Number(clientConfigForm.margin_percent),
+        low_balance_threshold_minutes: Number(clientConfigForm.low_balance_threshold_minutes),
+        invoice_trigger:              clientConfigForm.invoice_trigger,
+        invoice_threshold_cents:      Math.round(Number(clientConfigForm.invoice_threshold_euros) * 100),
+        billing_period_start_day:     Number(clientConfigForm.billing_period_start_day),
+      }),
+    })
+    if (r.ok) {
+      setClientConfigMsg('Salvato')
+      fetchClients()
+      setTimeout(() => { setClientConfigModal(null); setClientConfigMsg(null) }, 1000)
+    } else {
+      setClientConfigMsg((await r.json()).error)
+    }
+    setClientConfigSaving(false)
+  }
 
   // ── credit ──
   const saveCredit = async () => {
@@ -200,7 +346,7 @@ export default function AdminBillingPage() {
   }
 
   // ── agent mapping ──
-  const saveAgentRow = async (agentId: string, agentName: string) => {
+  const saveAgentRow = async (agentId: string) => {
     const row = agentRows[agentId]
     if (!row?.userId) return
     setAgentRows(prev => ({ ...prev, [agentId]: { ...prev[agentId], saving: true, msg: null } }))
@@ -210,7 +356,7 @@ export default function AdminBillingPage() {
       body: JSON.stringify({
         agent_id: agentId,
         user_id: row.userId,
-        agent_name: agentName || null,
+        agent_name: row.agentName || null,
         price_per_minute_cents: row.pricePerMinuteCents ? Number(row.pricePerMinuteCents) : null,
       }),
     })
@@ -224,6 +370,30 @@ export default function AdminBillingPage() {
     }
   }
 
+  const addNewAgent = async () => {
+    if (!newAgentForm.agentId.trim() || !newAgentForm.userId) return
+    setNewAgentSaving(true)
+    setNewAgentMsg(null)
+    const r = await fetch('/api/billing/admin/agents', {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({
+        agent_id: newAgentForm.agentId.trim(),
+        user_id: newAgentForm.userId,
+        agent_name: newAgentForm.agentName.trim() || null,
+      }),
+    })
+    if (r.ok) {
+      setNewAgentMsg('Agent aggiunto')
+      setNewAgentForm({ agentId: '', userId: '', agentName: '' })
+      fetchAgents()
+      setTimeout(() => setNewAgentMsg(null), 2000)
+    } else {
+      setNewAgentMsg((await r.json()).error)
+    }
+    setNewAgentSaving(false)
+  }
+
   // ── pacchetto ──
   const savePkg = async () => {
     if (!pkgForm.name || !pkgForm.minutes || !pkgForm.price_cents) return
@@ -232,7 +402,7 @@ export default function AdminBillingPage() {
     const r = await fetch('/api/billing/packages', {
       method: 'POST',
       headers: headers(),
-      body: JSON.stringify({ name: pkgForm.name, minutes: Number(pkgForm.minutes), price_cents: Number(pkgForm.price_cents) }),
+      body: JSON.stringify({ name: pkgForm.name, minutes: Number(pkgForm.minutes), price_cents: Math.round(Number(pkgForm.price_cents) * 100) }),
     })
     if (r.ok) {
       setPkgMsg('Pacchetto creato')
@@ -286,8 +456,9 @@ export default function AdminBillingPage() {
       const j = await r.json()
       if (r.ok) {
         const parts = [`Sync completata: ${j.synced} fatturate`]
-        if (j.skipped_no_mapping) parts.push(`${j.skipped_no_mapping} senza mapping`)
-        if (j.skipped_duplicate)  parts.push(`${j.skipped_duplicate} duplicate`)
+        if (j.skipped_no_mapping)   parts.push(`${j.skipped_no_mapping} senza mapping`)
+        if (j.skipped_duplicate)    parts.push(`${j.skipped_duplicate} duplicate`)
+        if (j.blocked_no_balance)   parts.push(`${j.blocked_no_balance} bloccate (saldo esaurito)`)
         if (j.unmapped_agents?.length) parts.push(`Agent non mappati: ${j.unmapped_agents.join(', ')}`)
         setSyncMsg(parts.join(' — '))
         fetchConfig()
@@ -321,10 +492,11 @@ export default function AdminBillingPage() {
         <p className="text-gray-400 text-sm mb-6">Gestisci saldi, agent, pacchetti e impostazioni billing</p>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-[#2C2E31] p-1 rounded-xl w-fit">
+        <div className="flex flex-wrap gap-1 mb-6 bg-[#2C2E31] p-1 rounded-xl w-fit">
           {tabBtn('clienti', 'Clienti')}
           {tabBtn('agent', 'Agent')}
           {tabBtn('pacchetti', 'Pacchetti')}
+          {tabBtn('fatture', 'Fatture')}
           {tabBtn('impostazioni', 'Impostazioni')}
         </div>
 
@@ -347,7 +519,7 @@ export default function AdminBillingPage() {
                       )}
                     </div>
 
-                    <div className="flex gap-4 text-sm">
+                    <div className="flex gap-4 text-sm flex-wrap">
                       <div className="text-center">
                         <div className={`font-bold text-lg ${c.balance.balance_minutes < 10 ? 'text-red-400' : 'text-[#F59E0B]'}`}>
                           {fmt(c.balance.balance_minutes)}
@@ -358,20 +530,50 @@ export default function AdminBillingPage() {
                         <div className="font-bold text-lg text-white">{fmt(c.minutes_used_30d)}</div>
                         <div className="text-xs text-gray-500">usati 30gg</div>
                       </div>
-                      {c.billing_config && (
+                      {c.billing_config?.billing_mode !== 'prepaid' && (
                         <div className="text-center">
-                          <div className="font-bold text-lg text-white">{c.billing_config.margin_percent ?? '—'}%</div>
+                          <div className={`font-bold text-lg ${(c.balance.outstanding_cents ?? 0) > 0 ? 'text-orange-400' : 'text-gray-500'}`}>
+                            €{((c.balance.outstanding_cents ?? 0) / 100).toFixed(2)}
+                          </div>
+                          <div className="text-xs text-gray-500">outstanding</div>
+                        </div>
+                      )}
+                      {c.billing_config?.billing_mode === 'prepaid' && c.billing_config.margin_percent != null && (
+                        <div className="text-center">
+                          <div className="font-bold text-lg text-white">{c.billing_config.margin_percent}%</div>
                           <div className="text-xs text-gray-500">margine</div>
                         </div>
                       )}
                     </div>
 
-                    <button
-                      onClick={() => { setCreditModal(c); setCreditMsg(null); setCreditMinutes(''); setCreditDesc('') }}
-                      className="shrink-0 px-3 py-1.5 text-xs font-medium bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30 rounded-lg hover:bg-[#F59E0B]/30 transition-colors"
-                    >
-                      + Credito
-                    </button>
+                    <div className="flex gap-2 shrink-0 flex-wrap">
+                      <button
+                        onClick={() => openClientConfig(c)}
+                        className="px-3 py-1.5 text-xs font-medium bg-[#3A3D42] text-gray-300 border border-[#3A3D42] rounded-lg hover:bg-[#444] transition-colors"
+                      >
+                        ⚙ Configura
+                      </button>
+                      <button
+                        onClick={() => { setCreditModal(c); setCreditMsg(null); setCreditMinutes(''); setCreditDesc('') }}
+                        className="px-3 py-1.5 text-xs font-medium bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30 rounded-lg hover:bg-[#F59E0B]/30 transition-colors"
+                      >
+                        + Credito
+                      </button>
+                      {c.billing_config?.billing_mode !== 'prepaid' && (c.balance.outstanding_cents ?? 0) > 0 && (
+                        <button
+                          onClick={() => generateInvoice(c.id)}
+                          disabled={generatingInvoice === c.id}
+                          className="px-3 py-1.5 text-xs font-medium bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded-lg hover:bg-orange-500/30 disabled:opacity-50 transition-colors"
+                        >
+                          {generatingInvoice === c.id ? '...' : 'Genera fattura'}
+                        </button>
+                      )}
+                    </div>
+                    {generateInvoiceMsg?.userId === c.id && (
+                      <div className={`text-xs mt-1 w-full ${generateInvoiceMsg.ok ? 'text-green-400' : 'text-red-400'}`}>
+                        {generateInvoiceMsg.msg}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -382,6 +584,54 @@ export default function AdminBillingPage() {
         {/* ── TAB: AGENT ── */}
         {tab === 'agent' && (
           <div className="space-y-4">
+            {/* Add new agent manually */}
+            <div className="bg-[#2C2E31] rounded-xl p-5">
+              <h2 className="text-sm font-semibold text-white mb-3">Aggiungi agent</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_1.5fr_1fr_auto] gap-3 items-end">
+                <div>
+                  <label className={labelCls}>Agent ID <span className="text-red-400">*</span></label>
+                  <input
+                    value={newAgentForm.agentId}
+                    onChange={e => setNewAgentForm(f => ({ ...f, agentId: e.target.value }))}
+                    placeholder="agent_xxxx..."
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Nome visualizzato</label>
+                  <input
+                    value={newAgentForm.agentName}
+                    onChange={e => setNewAgentForm(f => ({ ...f, agentName: e.target.value }))}
+                    placeholder="es. Assistente Prenotazioni"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Cliente <span className="text-red-400">*</span></label>
+                  <select
+                    value={newAgentForm.userId}
+                    onChange={e => setNewAgentForm(f => ({ ...f, userId: e.target.value }))}
+                    className={inputCls}
+                  >
+                    <option value="">— Seleziona cliente —</option>
+                    {clients.map(c => (
+                      <option key={c.id} value={c.id}>{c.full_name || c.id.slice(0, 8)}{c.company ? ` (${c.company})` : ''}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={addNewAgent}
+                  disabled={newAgentSaving || !newAgentForm.agentId.trim() || !newAgentForm.userId}
+                  className="px-4 py-2 bg-[#F59E0B] text-[#1e293b] text-sm font-semibold rounded-lg disabled:opacity-40 hover:bg-[#D97706] transition-colors whitespace-nowrap"
+                >
+                  {newAgentSaving ? '...' : 'Aggiungi'}
+                </button>
+              </div>
+              {newAgentMsg && (
+                <p className={`text-xs mt-2 ${newAgentMsg === 'Agent aggiunto' ? 'text-green-400' : 'text-red-400'}`}>{newAgentMsg}</p>
+              )}
+            </div>
+
             {/* Banner solo se la chiave non è configurata nel DB */}
             {!agentsLoading && !retellApiConfigured && (
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 flex items-start gap-3">
@@ -410,29 +660,38 @@ export default function AdminBillingPage() {
                 </p>
 
                 {/* Header */}
-                <div className="hidden sm:grid sm:grid-cols-[1fr_1.5fr_140px_80px] gap-3 px-4 py-1 text-xs text-gray-500 font-medium uppercase tracking-wide">
-                  <span>Agent</span>
+                <div className="hidden sm:grid sm:grid-cols-[minmax(0,170px)_1fr_1.5fr_140px_80px] gap-3 px-4 py-1 text-xs text-gray-500 font-medium uppercase tracking-wide">
+                  <span>Agent ID</span>
+                  <span>Nome visualizzato</span>
                   <span>Cliente</span>
-                  <span>€/min (opt.)</span>
+                  <span title="Tariffa fissa in centesimi €/min. Se impostata, sostituisce il calcolo basato sul margine %.">€/min (opt.) ⓘ</span>
                   <span></span>
                 </div>
 
                 {retellAgents.map(agent => {
-                  const row = agentRows[agent.agent_id] ?? { userId: '', pricePerMinuteCents: '', saving: false, msg: null }
+                  const row = agentRows[agent.agent_id] ?? { userId: '', agentName: agent.agent_name ?? '', pricePerMinuteCents: '', saving: false, msg: null }
                   const isMapped = mappings.some(m => m.agent_id === agent.agent_id)
                   return (
                     <div key={agent.agent_id} className="bg-[#2C2E31] rounded-xl p-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-[1fr_1.5fr_140px_80px] gap-3 items-center">
-                        {/* Agent info */}
+                      <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,170px)_1fr_1.5fr_140px_80px] gap-3 items-center">
+                        {/* Agent ID */}
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-medium text-white truncate">{agent.agent_name}</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             {isMapped && (
                               <span className="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full shrink-0">assegnato</span>
                             )}
                           </div>
-                          <div className="text-xs text-gray-500 font-mono mt-0.5">{agent.agent_id.slice(0, 18)}…</div>
+                          <div className="text-xs text-gray-400 font-mono break-all mt-0.5">{agent.agent_id}</div>
                         </div>
+
+                        {/* Editable name */}
+                        <input
+                          type="text"
+                          value={row.agentName}
+                          onChange={e => setAgentRows(prev => ({ ...prev, [agent.agent_id]: { ...row, agentName: e.target.value } }))}
+                          placeholder="es. Assistente Prenotazioni"
+                          className={inputCls}
+                        />
 
                         {/* Client dropdown */}
                         <select
@@ -453,12 +712,12 @@ export default function AdminBillingPage() {
                           onChange={e => setAgentRows(prev => ({ ...prev, [agent.agent_id]: { ...row, pricePerMinuteCents: e.target.value } }))}
                           placeholder="es. 25"
                           className={inputCls}
-                          title="Centesimi di euro per minuto. Lascia vuoto per usare il margine % globale."
+                          title="Tariffa fissa: centesimi di euro addebitati per ogni minuto di chiamata. Se vuoto, si usa il costo Retell × tasso cambio × (1 + margine%)."
                         />
 
                         {/* Save */}
                         <button
-                          onClick={() => saveAgentRow(agent.agent_id, agent.agent_name)}
+                          onClick={() => saveAgentRow(agent.agent_id)}
                           disabled={row.saving || !row.userId}
                           className="px-3 py-2 bg-[#F59E0B] text-[#1e293b] text-sm font-semibold rounded-lg disabled:opacity-40 hover:bg-[#D97706] transition-colors whitespace-nowrap"
                         >
@@ -516,13 +775,13 @@ export default function AdminBillingPage() {
                     placeholder="60" className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>Prezzo (centesimi €)</label>
-                  <input type="number" value={pkgForm.price_cents} onChange={e => setPkgForm(f => ({ ...f, price_cents: e.target.value }))}
-                    placeholder="2900 = €29.00" className={inputCls} />
+                  <label className={labelCls}>Prezzo (€)</label>
+                  <input type="number" step="0.01" min="0.01" value={pkgForm.price_cents} onChange={e => setPkgForm(f => ({ ...f, price_cents: e.target.value }))}
+                    placeholder="29.00" className={inputCls} />
                 </div>
               </div>
               {pkgMsg && <p className={`text-xs mt-2 ${pkgMsg.includes('creato') ? 'text-green-400' : 'text-red-400'}`}>{pkgMsg}</p>}
-              <button onClick={savePkg} disabled={pkgSaving}
+              <button onClick={savePkg} disabled={pkgSaving || !pkgForm.name || !pkgForm.minutes || !pkgForm.price_cents}
                 className="mt-3 px-4 py-2 bg-[#F59E0B] text-[#1e293b] text-sm font-semibold rounded-lg disabled:opacity-50 hover:bg-[#D97706] transition-colors">
                 {pkgSaving ? 'Creazione...' : 'Crea pacchetto'}
               </button>
@@ -550,6 +809,92 @@ export default function AdminBillingPage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── TAB: FATTURE (admin) ── */}
+        {tab === 'fatture' && (
+          <div className="space-y-4">
+            {/* Filter bar */}
+            <div className="flex gap-2 flex-wrap">
+              {(['', 'issued', 'paid', 'cancelled'] as string[]).map(f => (
+                <button key={f} onClick={() => {
+                  setAdminInvoiceFilter(f)
+                  setAdminInvoicePage(0)
+                  setAdminInvoices([])
+                  fetchAdminInvoices(0, f)
+                }}
+                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${adminInvoiceFilter === f ? 'bg-[#F59E0B] text-[#1e293b] border-[#F59E0B]' : 'border-[#3A3D42] text-gray-400 hover:text-white'}`}>
+                  {f === '' ? 'Tutte' : f === 'issued' ? 'Da pagare' : f === 'paid' ? 'Pagate' : 'Annullate'}
+                </button>
+              ))}
+              <span className="ml-auto text-xs text-gray-500 self-center">{adminInvoicesTotal} fatture</span>
+            </div>
+
+            <div className="bg-[#2C2E31] rounded-2xl overflow-hidden">
+              {adminInvoices.length === 0 && !adminInvoicesLoading ? (
+                <div className="p-6 text-center text-gray-400 text-sm">Nessuna fattura</div>
+              ) : (
+                <div className="divide-y divide-[#3A3D42]">
+                  {adminInvoices.map(inv => (
+                    <div key={inv.id} className="px-5 py-4 flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-white font-mono">{inv.invoice_number}</span>
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${inv.status === 'paid' ? 'bg-green-500/20 text-green-400' : inv.status === 'issued' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400'}`}>
+                            {inv.status === 'paid' ? 'Pagata' : inv.status === 'issued' ? 'Da pagare' : 'Annullata'}
+                          </span>
+                          {inv.type === 'auto_recharge' && (
+                            <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full">auto</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-0.5">
+                          {inv.profiles?.full_name || '—'} · {inv.billing_packages?.name ?? '—'} · {inv.minutes_added} min
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {new Date(inv.created_at).toLocaleDateString('it-IT')}
+                          {inv.due_date && inv.status === 'issued' && <span className="ml-2">Scad.: {new Date(inv.due_date).toLocaleDateString('it-IT')}</span>}
+                          {inv.paid_at && <span className="ml-2 text-green-400">Pag.: {new Date(inv.paid_at).toLocaleDateString('it-IT')}</span>}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-sm font-bold text-white mb-1">€{(inv.amount_cents / 100).toFixed(2)}</div>
+                        {inv.status !== 'paid' && inv.status !== 'cancelled' && (
+                          <button
+                            onClick={() => updateInvoiceStatus(inv.id, 'paid')}
+                            disabled={updatingInvoice === inv.id}
+                            className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 rounded hover:bg-green-500/30 disabled:opacity-50 transition-colors"
+                          >
+                            {updatingInvoice === inv.id ? '...' : 'Segna pagata'}
+                          </button>
+                        )}
+                        {inv.status === 'issued' && (
+                          <button
+                            onClick={() => updateInvoiceStatus(inv.id, 'cancelled')}
+                            disabled={updatingInvoice === inv.id}
+                            className="block mt-1 text-xs px-2 py-0.5 bg-gray-500/20 text-gray-400 rounded hover:bg-gray-500/30 disabled:opacity-50 transition-colors"
+                          >
+                            Annulla
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {adminInvoicesLoading && <div className="p-4 text-center text-gray-400 text-sm">Caricamento...</div>}
+              {adminInvoicesMore && (
+                <div className="px-5 py-4 border-t border-[#3A3D42]">
+                  <button
+                    onClick={() => { const next = adminInvoicePage + 1; setAdminInvoicePage(next); fetchAdminInvoices(next) }}
+                    disabled={adminInvoicesLoading}
+                    className="w-full py-2 text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+                  >
+                    Carica altri
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -647,9 +992,131 @@ export default function AdminBillingPage() {
                 className="flex-1 py-2 text-sm text-gray-400 border border-[#3A3D42] rounded-lg hover:text-white transition-colors">
                 Annulla
               </button>
-              <button onClick={saveCredit} disabled={creditSaving || !creditMinutes || !creditDesc}
+              <button onClick={saveCredit} disabled={creditSaving || !creditMinutes || Number(creditMinutes) <= 0 || !creditDesc}
                 className="flex-1 py-2 text-sm bg-[#F59E0B] text-[#1e293b] font-semibold rounded-lg disabled:opacity-50 hover:bg-[#D97706] transition-colors">
                 {creditSaving ? 'Salvataggio...' : 'Conferma'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal configura cliente ── */}
+      {clientConfigModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#2C2E31] rounded-2xl p-6 w-full max-w-md">
+            <h3 className="font-semibold text-white mb-1">Configura billing</h3>
+            <p className="text-sm text-gray-400 mb-4">{clientConfigModal.full_name}</p>
+
+            <div className="space-y-3">
+              <div>
+                <label className={labelCls}>Modalità billing</label>
+                <select value={clientConfigForm.billing_mode}
+                  onChange={e => setClientConfigForm(f => ({ ...f, billing_mode: e.target.value }))}
+                  className={inputCls}>
+                  <option value="prepaid">Prepagato (pacchetti minuti)</option>
+                  <option value="postpaid">A consumo (pay-per-use)</option>
+                </select>
+              </div>
+
+              {clientConfigForm.billing_mode === 'prepaid' && (
+                <div>
+                  <label className={labelCls}>Quando i minuti finiscono</label>
+                  <select value={clientConfigForm.overflow_mode}
+                    onChange={e => setClientConfigForm(f => ({ ...f, overflow_mode: e.target.value }))}
+                    className={inputCls}>
+                    <option value="block">Blocca le chiamate</option>
+                    <option value="auto_renew">Rinnova automaticamente il pacchetto</option>
+                    <option value="pay_per_use">Continua a consumo (tariffa maggiorata)</option>
+                  </select>
+                </div>
+              )}
+
+              {clientConfigForm.billing_mode === 'prepaid' && clientConfigForm.overflow_mode === 'auto_renew' && (
+                <div>
+                  <label className={labelCls}>Pacchetto da rinnovare automaticamente</label>
+                  <select value={clientConfigForm.auto_recharge_package_id}
+                    onChange={e => setClientConfigForm(f => ({ ...f, auto_recharge_package_id: e.target.value }))}
+                    className={inputCls}>
+                    <option value="">— Seleziona pacchetto —</option>
+                    {packages.filter(p => p.is_active).map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} — {p.minutes} min — €{(p.price_cents / 100).toFixed(2)}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Quando i minuti si esauriscono, questo pacchetto viene aggiunto automaticamente e viene generata una fattura.
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <label className={labelCls}>Margine % personalizzato (lascia vuoto per default globale)</label>
+                <input type="number" value={clientConfigForm.margin_percent}
+                  onChange={e => setClientConfigForm(f => ({ ...f, margin_percent: e.target.value }))}
+                  placeholder={`default globale`} className={inputCls} />
+              </div>
+
+              {clientConfigForm.billing_mode === 'prepaid' && (
+                <div>
+                  <label className={labelCls}>Soglia saldo basso (minuti)</label>
+                  <input type="number" value={clientConfigForm.low_balance_threshold_minutes}
+                    onChange={e => setClientConfigForm(f => ({ ...f, low_balance_threshold_minutes: e.target.value }))}
+                    className={inputCls} />
+                  <p className="text-xs text-gray-500 mt-1">Notifica quando il saldo scende sotto questa soglia</p>
+                </div>
+              )}
+
+              {clientConfigForm.billing_mode !== 'prepaid' && (
+                <>
+                  <div>
+                    <label className={labelCls}>Trigger fatturazione postpaid</label>
+                    <select value={clientConfigForm.invoice_trigger}
+                      onChange={e => setClientConfigForm(f => ({ ...f, invoice_trigger: e.target.value }))}
+                      className={inputCls}>
+                      <option value="monthly">Fine mese</option>
+                      <option value="threshold">Al raggiungimento soglia</option>
+                      <option value="both">Entrambi</option>
+                    </select>
+                  </div>
+
+                  {(clientConfigForm.invoice_trigger === 'threshold' || clientConfigForm.invoice_trigger === 'both') && (
+                    <div>
+                      <label className={labelCls}>Soglia importo fattura (€)</label>
+                      <input type="number" step="0.01" value={clientConfigForm.invoice_threshold_euros}
+                        onChange={e => setClientConfigForm(f => ({ ...f, invoice_threshold_euros: e.target.value }))}
+                        placeholder="50.00" className={inputCls} />
+                      <p className="text-xs text-gray-500 mt-1">Genera fattura automaticamente quando l'outstanding supera questo importo</p>
+                    </div>
+                  )}
+
+                  {(clientConfigForm.invoice_trigger === 'monthly' || clientConfigForm.invoice_trigger === 'both') && (
+                    <div>
+                      <label className={labelCls}>Giorno del mese per fatturazione</label>
+                      <input type="number" min="1" max="28" value={clientConfigForm.billing_period_start_day}
+                        onChange={e => setClientConfigForm(f => ({ ...f, billing_period_start_day: e.target.value }))}
+                        className={inputCls} />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {clientConfigMsg && (
+              <p className={`text-xs mt-3 ${clientConfigMsg === 'Salvato' ? 'text-green-400' : 'text-red-400'}`}>
+                {clientConfigMsg}
+              </p>
+            )}
+
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setClientConfigModal(null)}
+                className="flex-1 py-2 text-sm text-gray-400 border border-[#3A3D42] rounded-lg hover:text-white transition-colors">
+                Annulla
+              </button>
+              <button onClick={saveClientConfig} disabled={clientConfigSaving}
+                className="flex-1 py-2 text-sm bg-[#F59E0B] text-[#1e293b] font-semibold rounded-lg disabled:opacity-50 hover:bg-[#D97706] transition-colors">
+                {clientConfigSaving ? 'Salvataggio...' : 'Salva'}
               </button>
             </div>
           </div>

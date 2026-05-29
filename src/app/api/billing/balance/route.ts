@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, createServiceClient, getBalance } from '@/app/lib/billingApi'
+import { requireAuth, createServiceClient, getBalance, getClientConfig } from '@/app/lib/billingApi'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,6 +8,14 @@ export async function GET(request: NextRequest) {
   if (!auth) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
 
   const sb = createServiceClient()
-  const balance = await getBalance(sb, auth.userId)
-  return NextResponse.json({ balance })
+  const [balance, config] = await Promise.all([
+    getBalance(sb, auth.userId),
+    getClientConfig(sb, auth.userId),
+  ])
+  return NextResponse.json({
+    balance,
+    billing_mode:             config?.billing_mode ?? 'prepaid',
+    invoice_trigger:          config?.invoice_trigger ?? 'monthly',
+    invoice_threshold_cents:  config?.invoice_threshold_cents ?? 5000,
+  })
 }

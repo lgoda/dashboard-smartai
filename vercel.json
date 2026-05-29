@@ -3,11 +3,5 @@
     "src/app/api/campaigns/process/route.ts": { "maxDuration": 60 },
     "src/app/api/ghl/analyze/route.ts": { "maxDuration": 60 },
     "src/app/api/billing/sync-retell/route.ts": { "maxDuration": 60 }
-  },
-  "crons": [
-    {
-      "path": "/api/billing/sync-retell",
-      "schedule": "*/5 * * * *"
-    }
-  ]
+  }
 }

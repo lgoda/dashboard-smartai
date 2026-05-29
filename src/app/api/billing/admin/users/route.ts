@@ -86,7 +86,11 @@ export async function PATCH(request: NextRequest) {
   if (!admin) return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
 
   const body = await request.json()
-  const { user_id, billing_mode, margin_percent, low_balance_threshold_minutes } = body
+  const {
+    user_id, billing_mode, margin_percent, low_balance_threshold_minutes,
+    overflow_mode, auto_recharge_enabled, auto_recharge_package_id,
+    invoice_trigger, invoice_threshold_cents, billing_period_start_day,
+  } = body
 
   if (!user_id) return NextResponse.json({ error: 'user_id obbligatorio' }, { status: 400 })
 
@@ -94,8 +98,14 @@ export async function PATCH(request: NextRequest) {
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (billing_mode !== undefined)                  updates.billing_mode = billing_mode
-  if (margin_percent !== undefined)                updates.margin_percent = margin_percent
+  if (margin_percent !== undefined)                updates.margin_percent = margin_percent === '' ? null : margin_percent
   if (low_balance_threshold_minutes !== undefined) updates.low_balance_threshold_minutes = low_balance_threshold_minutes
+  if (overflow_mode !== undefined)                 updates.overflow_mode = overflow_mode
+  if (auto_recharge_enabled !== undefined)         updates.auto_recharge_enabled = auto_recharge_enabled
+  if (auto_recharge_package_id !== undefined)      updates.auto_recharge_package_id = auto_recharge_package_id || null
+  if (invoice_trigger !== undefined)               updates.invoice_trigger = invoice_trigger
+  if (invoice_threshold_cents !== undefined)       updates.invoice_threshold_cents = invoice_threshold_cents
+  if (billing_period_start_day !== undefined)      updates.billing_period_start_day = billing_period_start_day
 
   const { data, error } = await sb
     .from('billing_client_config')
