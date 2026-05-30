@@ -219,6 +219,26 @@ async function processCampaign(
           excluded++
           continue
         }
+        // tag_only or update: apply list_tag if missing
+        const listTag = String(contact.list_tag ?? '')
+        if (listTag && !existing.tags.includes(listTag)) {
+          const { error: tagErr } = await ghlClient.addTagsToContact(token, locationId, existing.id, [listTag])
+          if (tagErr) console.error('[process] addTagsToContact failed:', tagErr.message)
+        }
+        // update: also push contact fields
+        if (importPolicy === 'update') {
+          const updateData = {
+            firstName: String(contact.first_name || '') || undefined,
+            lastName:  String(contact.last_name  || '') || undefined,
+            email:     String(contact.email      || '') || undefined,
+            companyName: String(contact.company  || '') || undefined,
+            address1:  String(contact.address    || '') || undefined,
+          }
+          if (Object.values(updateData).some(v => v != null)) {
+            const { error: updErr } = await ghlClient.updateContact(token, locationId, existing.id, updateData)
+            if (updErr) console.error('[process] updateContact failed:', updErr.message)
+          }
+        }
         contactId = existing.id
       } else {
         const { data: created, error: createErr } = await ghlClient.createContact(token, locationId, {

@@ -130,6 +130,7 @@ export async function POST(
     }
 
     const excludedTags: string[] = importRecord.excluded_tags ?? []
+    const importPolicy: string = importRecord.existing_contact_policy ?? 'tag_only'
     const workflowId = importRecord.crm_automation_id
 
     // ── Process each contact ──────────────────────────────────────────────────
@@ -161,6 +162,35 @@ export async function POST(
               detail: `${phone} escluso per tag: ${excludedTags.filter((t) => existing.tags.includes(t)).join(', ')}`,
             })
             continue
+          }
+          // Apply existing_contact_policy
+          if (importPolicy === 'exclude') {
+            await supabase.from('campaign_contacts').update({
+              status: 'excluded',
+              exclusion_reason: 'existing_contact',
+              error_detail: 'Contatto già presente nel CRM (policy: escludi)',
+              crm_contact_id: existing.id,
+            }).eq('id', contact.id)
+            excluded++
+            continue
+          }
+          // tag_only or update: apply list_tag if missing
+          if (contact.list_tag && !existing.tags.includes(contact.list_tag)) {
+            const { error: tagErr } = await ghlAPIClient.addTagsToContact(ghlToken, locationId, existing.id, [contact.list_tag])
+            if (tagErr) console.error('[send] addTagsToContact failed:', tagErr.message)
+          }
+          // update: also push contact fields
+          if (importPolicy === 'update') {
+            const updateData = {
+              firstName: contact.first_name || undefined,
+              lastName:  contact.last_name  || undefined,
+              email:     contact.email      || undefined,
+              companyName: contact.company  || undefined,
+            }
+            if (Object.values(updateData).some(v => v != null)) {
+              const { error: updErr } = await ghlAPIClient.updateContact(ghlToken, locationId, existing.id, updateData)
+              if (updErr) console.error('[send] updateContact failed:', updErr.message)
+            }
           }
           contactId = existing.id
         } else {

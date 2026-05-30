@@ -388,6 +388,56 @@ export class GHLAPIClient {
     }
   }
 
+  async addTagsToContact(
+    token: string,
+    locationId: string,
+    contactId: string,
+    tags: string[]
+  ): Promise<{ error: Error | null }> {
+    try {
+      const response = await fetch(`${this.baseURL}/contacts/${contactId}/tags`, {
+        method: 'POST',
+        headers: this.headers(token),
+        body: JSON.stringify({ tags }),
+      })
+      if (!response.ok) {
+        const text = await response.text()
+        return { error: new Error(`GHL addTagsToContact ${response.status}: ${text}`) }
+      }
+      return { error: null }
+    } catch (err) {
+      return { error: err instanceof Error ? err : new Error('Errore addTagsToContact') }
+    }
+  }
+
+  async updateContact(
+    token: string,
+    locationId: string,
+    contactId: string,
+    data: {
+      firstName?: string
+      lastName?: string
+      email?: string
+      companyName?: string
+      address1?: string
+    }
+  ): Promise<{ error: Error | null }> {
+    try {
+      const response = await fetch(`${this.baseURL}/contacts/${contactId}`, {
+        method: 'PUT',
+        headers: this.headers(token),
+        body: JSON.stringify(data),
+      })
+      if (!response.ok) {
+        const text = await response.text()
+        return { error: new Error(`GHL updateContact ${response.status}: ${text}`) }
+      }
+      return { error: null }
+    } catch (err) {
+      return { error: err instanceof Error ? err : new Error('Errore updateContact') }
+    }
+  }
+
   async addContactToWorkflow(
     token: string,
     locationId: string,

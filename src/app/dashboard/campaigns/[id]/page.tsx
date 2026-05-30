@@ -67,6 +67,8 @@ export default function CampaignDetailPage() {
   const [editForm, setEditForm] = useState({ name: '', type: '', notes: '' })
   const [isSavingEdit, setIsSavingEdit] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [backfillingImportId, setBackfillingImportId] = useState<string | null>(null)
+  const [backfillMsg, setBackfillMsg] = useState<{ importId: string; text: string; ok: boolean } | null>(null)
 
 
   const fetchCampaign = useCallback(async () => {
@@ -147,6 +149,28 @@ export default function CampaignDetailPage() {
     await fetchCampaign()
     setIsSavingSchedule(false)
     setShowSchedule(false)
+  }
+
+  const backfillTags = async (importId: string) => {
+    if (!accessToken) return
+    setBackfillingImportId(importId)
+    setBackfillMsg(null)
+    try {
+      const r = await fetch(`/api/campaigns/imports/${importId}/backfill-tags`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      const j = await r.json()
+      if (r.ok) {
+        setBackfillMsg({ importId, text: `Tag applicati: ${j.tagged}/${j.total} (già presenti: ${j.already_had_tag}, errori: ${j.errors})`, ok: true })
+      } else {
+        setBackfillMsg({ importId, text: j.error ?? 'Errore durante il backfill', ok: false })
+      }
+    } catch (e) {
+      setBackfillMsg({ importId, text: e instanceof Error ? e.message : 'Errore di rete', ok: false })
+    }
+    setBackfillingImportId(null)
+    setTimeout(() => setBackfillMsg(null), 8000)
   }
 
   if (isLoading || !campaign) {
@@ -376,13 +400,26 @@ export default function CampaignDetailPage() {
                       <p className="text-xs text-gray-500">Tag esclusi: {imp.excluded_tags.join(', ')}</p>
                     )}
                   </div>
-                  {/* Status pill */}
-                  {imp.queued_contacts === 0 ? (
-                    <span className="px-2.5 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30">Completato</span>
-                  ) : (
-                    <span className="px-2.5 py-1 rounded-full text-xs bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30">{imp.queued_contacts} in coda</span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {/* Status pill */}
+                    {imp.queued_contacts === 0 ? (
+                      <span className="px-2.5 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30">Completato</span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-full text-xs bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30">{imp.queued_contacts} in coda</span>
+                    )}
+                    <button
+                      onClick={() => backfillTags(imp.id)}
+                      disabled={backfillingImportId === imp.id}
+                      title="Riapplica il tag lista ai contatti già inviati che non lo hanno ancora su GHL"
+                      className="px-2.5 py-1 rounded-full text-xs bg-gray-500/10 text-gray-300 border border-gray-500/30 hover:bg-gray-500/20 disabled:opacity-50 transition-colors"
+                    >
+                      {backfillingImportId === imp.id ? 'Sync...' : 'Sincronizza tag CRM'}
+                    </button>
+                  </div>
                 </div>
+                {backfillMsg?.importId === imp.id && (
+                  <p className={`text-xs mb-3 ${backfillMsg.ok ? 'text-green-400' : 'text-red-400'}`}>{backfillMsg.text}</p>
+                )}
 
                 <div className="grid grid-cols-3 md:grid-cols-5 gap-3 text-center">
                   {[
