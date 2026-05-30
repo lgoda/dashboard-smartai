@@ -154,23 +154,46 @@ export default function CampaignDetailPage() {
   const backfillTags = async (importId: string) => {
     if (!accessToken) return
     setBackfillingImportId(importId)
-    setBackfillMsg(null)
+    setBackfillMsg({ importId, text: 'Avvio sincronizzazione...', ok: true })
+
+    let totals = { processed: 0, tagged: 0, already_had_tag: 0, errors: 0 }
+    let cursor: string | null = ''
+    let pageCount = 0
+
     try {
-      const r = await fetch(`/api/campaigns/imports/${importId}/backfill-tags`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
-      const j = await r.json()
-      if (r.ok) {
-        setBackfillMsg({ importId, text: `Tag applicati: ${j.tagged}/${j.total} (già presenti: ${j.already_had_tag}, errori: ${j.errors})`, ok: true })
-      } else {
-        setBackfillMsg({ importId, text: j.error ?? 'Errore durante il backfill', ok: false })
+      while (true) {
+        pageCount++
+        const url = `/api/campaigns/imports/${importId}/backfill-tags${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+        const j = await r.json()
+        if (!r.ok) {
+          setBackfillMsg({ importId, text: `Errore al batch ${pageCount}: ${j.error ?? 'sconosciuto'} (parziale: tag ${totals.tagged}, già ${totals.already_had_tag}, errori ${totals.errors})`, ok: false })
+          break
+        }
+        totals = {
+          processed:       totals.processed       + (j.processed ?? 0),
+          tagged:          totals.tagged          + (j.tagged ?? 0),
+          already_had_tag: totals.already_had_tag + (j.already_had_tag ?? 0),
+          errors:          totals.errors          + (j.errors ?? 0),
+        }
+        setBackfillMsg({ importId, text: `Sync in corso… processati ${totals.processed} (tag ${totals.tagged}, già ${totals.already_had_tag}, errori ${totals.errors})`, ok: true })
+
+        if (j.done) {
+          setBackfillMsg({ importId, text: `Completato: ${totals.tagged} tag applicati, ${totals.already_had_tag} già presenti, ${totals.errors} errori (su ${totals.processed} processati)`, ok: true })
+          break
+        }
+        cursor = j.next_cursor
+        if (!cursor) break
       }
     } catch (e) {
       setBackfillMsg({ importId, text: e instanceof Error ? e.message : 'Errore di rete', ok: false })
     }
+
     setBackfillingImportId(null)
-    setTimeout(() => setBackfillMsg(null), 8000)
+    setTimeout(() => setBackfillMsg(null), 12000)
   }
 
   if (isLoading || !campaign) {
