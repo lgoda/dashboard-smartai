@@ -156,7 +156,7 @@ export default function CampaignDetailPage() {
     setBackfillingImportId(importId)
     setBackfillMsg({ importId, text: 'Avvio sincronizzazione...', ok: true })
 
-    let totals = { processed: 0, tagged: 0, already_had_tag: 0, errors: 0 }
+    let totals = { processed: 0, tagged: 0, errors: 0 }
     let cursor: string | null = ''
     let pageCount = 0
 
@@ -170,19 +170,18 @@ export default function CampaignDetailPage() {
         })
         const j = await r.json()
         if (!r.ok) {
-          setBackfillMsg({ importId, text: `Errore al batch ${pageCount}: ${j.error ?? 'sconosciuto'} (parziale: tag ${totals.tagged}, già ${totals.already_had_tag}, errori ${totals.errors})`, ok: false })
+          setBackfillMsg({ importId, text: `Errore al batch ${pageCount}: ${j.error ?? 'sconosciuto'} (parziale: tag ${totals.tagged}, errori ${totals.errors})`, ok: false })
           break
         }
         totals = {
-          processed:       totals.processed       + (j.processed ?? 0),
-          tagged:          totals.tagged          + (j.tagged ?? 0),
-          already_had_tag: totals.already_had_tag + (j.already_had_tag ?? 0),
-          errors:          totals.errors          + (j.errors ?? 0),
+          processed: totals.processed + (j.processed ?? 0),
+          tagged:    totals.tagged    + (j.tagged ?? 0),
+          errors:    totals.errors    + (j.errors ?? 0),
         }
-        setBackfillMsg({ importId, text: `Sync in corso… processati ${totals.processed} (tag ${totals.tagged}, già ${totals.already_had_tag}, errori ${totals.errors})`, ok: true })
+        setBackfillMsg({ importId, text: `Sync in corso… processati ${totals.processed} (tag ${totals.tagged}, errori ${totals.errors})`, ok: true })
 
         if (j.done) {
-          setBackfillMsg({ importId, text: `Completato: ${totals.tagged} tag applicati, ${totals.already_had_tag} già presenti, ${totals.errors} errori (su ${totals.processed} processati)`, ok: true })
+          setBackfillMsg({ importId, text: `Completato: ${totals.tagged} tag applicati, ${totals.errors} errori (su ${totals.processed} contatti)`, ok: true })
           break
         }
         cursor = j.next_cursor

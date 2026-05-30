@@ -8,8 +8,8 @@ export const maxDuration = 60
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-const BATCH_SIZE = 40            // ~1.1s per contact (2 GHL calls + 150ms breathing) -> 44s
-const RATE_LIMIT_MS = 150
+const BATCH_SIZE = 100           // 1 GHL call per contact (~500ms + 50ms) -> ~55s
+const RATE_LIMIT_MS = 50
 
 export async function POST(
   request: NextRequest,
@@ -65,34 +65,20 @@ export async function POST(
   }
 
   let tagged = 0
-  let alreadyHadTag = 0
   let errors = 0
-  const errorDetails: { phone: string; reason: string }[] = []
+  const errorDetails: { contact_id: string; reason: string }[] = []
   let lastId = cursor
 
   for (const c of contacts) {
     lastId = String(c.id)
-    const phone = String(c.phone_normalized ?? '')
-    if (!phone) { errors++; errorDetails.push({ phone: '', reason: 'phone_normalized mancante' }); continue }
+    const crmContactId = String(c.crm_contact_id ?? '')
+    if (!crmContactId) { errors++; errorDetails.push({ contact_id: String(c.id), reason: 'crm_contact_id mancante' }); continue }
 
-    const { data: existing } = await ghlAPIClient.searchContactByPhone(ghlToken, locationId, phone)
-    if (!existing) {
-      errors++
-      errorDetails.push({ phone, reason: 'non trovato su GHL' })
-      await new Promise((r) => setTimeout(r, RATE_LIMIT_MS))
-      continue
-    }
-
-    if (existing.tags.includes(listTag)) {
-      alreadyHadTag++
-      await new Promise((r) => setTimeout(r, RATE_LIMIT_MS))
-      continue
-    }
-
-    const { error: tagErr } = await ghlAPIClient.addTagsToContact(ghlToken, locationId, existing.id, [listTag])
+    // POST /contacts/{id}/tags appends; idempotent if tag already present.
+    const { error: tagErr } = await ghlAPIClient.addTagsToContact(ghlToken, locationId, crmContactId, [listTag])
     if (tagErr) {
       errors++
-      errorDetails.push({ phone, reason: tagErr.message })
+      errorDetails.push({ contact_id: crmContactId, reason: tagErr.message })
     } else {
       tagged++
     }
@@ -104,7 +90,6 @@ export async function POST(
   return NextResponse.json({
     processed: contacts.length,
     tagged,
-    already_had_tag: alreadyHadTag,
     errors,
     error_details: errorDetails.slice(0, 20),
     next_cursor: done ? null : lastId,
