@@ -17,6 +17,8 @@ type ClientRow = {
     billing_mode: string; margin_percent: number | null; auto_recharge_enabled: boolean
     low_balance_threshold_minutes?: number; overflow_mode?: string; auto_recharge_package_id?: string
     invoice_trigger?: string; invoice_threshold_cents?: number; billing_period_start_day?: number
+    stripe_payment_method_id?: string | null; stripe_mode?: 'test' | 'live' | null
+    card_grace_period_until?: string | null
   } | null
   last_call: { billed_at: string } | null
   minutes_used_30d: number
@@ -550,6 +552,19 @@ export default function AdminBillingPage() {
                       {c.last_call && (
                         <div className="text-xs text-gray-500 mt-0.5">Ultima chiamata: {new Date(c.last_call.billed_at).toLocaleDateString('it-IT')}</div>
                       )}
+                      {c.billing_config && c.billing_config.billing_mode !== 'prepaid' && (() => {
+                        const hasCard = !!c.billing_config.stripe_payment_method_id
+                        const grace   = c.billing_config.card_grace_period_until
+                        const graceActive = !!grace && new Date(grace) > new Date()
+                        if (hasCard) {
+                          return <div className="text-xs mt-0.5 text-green-400">💳 Carta salvata</div>
+                        }
+                        if (graceActive) {
+                          const daysLeft = Math.ceil((new Date(grace!).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                          return <div className="text-xs mt-0.5 text-yellow-400">⏳ Carta mancante — grace period: {daysLeft}gg</div>
+                        }
+                        return <div className="text-xs mt-0.5 text-red-400">⚠ Carta mancante — chiamate bloccate</div>
+                      })()}
                     </div>
 
                     <div className="flex gap-4 text-sm flex-wrap">

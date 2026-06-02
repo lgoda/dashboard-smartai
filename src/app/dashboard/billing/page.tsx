@@ -351,16 +351,27 @@ export default function BillingPage() {
                     </div>
                     <span className="text-xs text-gray-500">scade {String(paymentMethod.exp_month).padStart(2, '0')}/{String(paymentMethod.exp_year).slice(-2)}</span>
                   </div>
-                ) : (
-                  <div className="text-sm text-yellow-400">
-                    Nessuna carta salvata.{' '}
-                    {pmGraceUntil && new Date(pmGraceUntil) > new Date() ? (
-                      <span className="text-gray-400">Periodo di tolleranza fino al {new Date(pmGraceUntil).toLocaleDateString('it-IT')}.</span>
-                    ) : (
-                      <span className="text-red-400">Le prossime chiamate verranno bloccate.</span>
-                    )}
-                  </div>
-                )}
+                ) : (() => {
+                  const graceExpiry = pmGraceUntil ? new Date(pmGraceUntil) : null
+                  const now = new Date()
+                  const graceActive = graceExpiry && graceExpiry > now
+                  const daysLeft = graceActive
+                    ? Math.ceil((graceExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                    : 0
+                  return graceActive ? (
+                    <div className="text-sm">
+                      <span className="text-yellow-400 font-medium">Nessuna carta salvata.</span>{' '}
+                      <span className="text-gray-300">
+                        Aggiungi una carta entro <strong>{daysLeft} {daysLeft === 1 ? 'giorno' : 'giorni'}</strong>
+                        {' '}(scadenza: {graceExpiry!.toLocaleDateString('it-IT')}) o il servizio verrà sospeso.
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-red-400 font-medium">
+                      ⚠ Nessuna carta salvata. Le nuove chiamate vengono bloccate finché non aggiungi un metodo di pagamento valido.
+                    </div>
+                  )
+                })()}
                 {pmStale && (
                   <p className="text-xs text-yellow-500 mt-1">La carta salvata non è più valida (cambio ambiente Stripe). Aggiungine una nuova.</p>
                 )}

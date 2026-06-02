@@ -11,6 +11,7 @@ import {
   generatePostpaidInvoice,
   type BillingAgentConfig,
 } from './billingApi'
+import { getStripeMode } from './stripeApi'
 
 const RETELL_BASE = 'https://api.retellai.com/v2'
 const BATCH_LIMIT = 100
@@ -28,6 +29,7 @@ export type SyncResult = {
   skipped_no_mapping: number
   skipped_duplicate: number
   blocked_no_balance: number
+  blocked_no_payment_method: number
   error: number
   unmapped_agents?: string[]
   error_message?: string
@@ -46,7 +48,8 @@ type RetellCallRaw = {
 }
 
 const emptyStats = (): Omit<SyncResult, 'processed'> => ({
-  synced: 0, skipped_no_cost: 0, skipped_no_mapping: 0, skipped_duplicate: 0, blocked_no_balance: 0, error: 0,
+  synced: 0, skipped_no_cost: 0, skipped_no_mapping: 0, skipped_duplicate: 0,
+  blocked_no_balance: 0, blocked_no_payment_method: 0, error: 0,
 })
 
 export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResult> {
@@ -175,6 +178,32 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
     const overflowMode = clientConfig?.overflow_mode ?? 'block'
     const durationSeconds = call.call_cost.total_duration_seconds ?? 0
     let costEur: number, minutes: number, marginPercent: number
+
+    // Postpaid/hybrid: enforce a valid Stripe payment method (after grace period).
+    // Stale mode (test pm on live server, or vice versa) is treated as missing.
+    if (billingMode !== 'prepaid') {
+      const stripeMode  = getStripeMode()
+      const hasValidPm  = !!clientConfig?.stripe_payment_method_id
+        && (!stripeMode || clientConfig?.stripe_mode === stripeMode)
+      const graceUntil  = clientConfig?.card_grace_period_until
+      const graceActive = !!graceUntil && new Date(graceUntil) > new Date()
+
+      if (!hasValidPm && !graceActive) {
+        await sb.from('retell_call_billing').insert({
+          user_id:          userId,
+          call_id:          call.call_id,
+          agent_id:         call.agent_id,
+          duration_seconds: durationSeconds,
+          cost_retell_usd:  call.call_cost.combined_cost,
+          sync_status:      'blocked_no_payment_method',
+          error_detail:     'Cliente postpaid senza metodo di pagamento Stripe (grace period scaduto)',
+          retell_start_ts:  call.start_timestamp ? new Date(call.start_timestamp).toISOString() : null,
+          retell_end_ts:    call.end_timestamp   ? new Date(call.end_timestamp).toISOString()   : null,
+        })
+        stats.blocked_no_payment_method++
+        return
+      }
+    }
 
     if (billingMode === 'prepaid') {
       minutes       = durationSeconds / 60
