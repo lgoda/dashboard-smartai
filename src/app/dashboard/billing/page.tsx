@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/app/components/AuthProvider'
 import { supabase } from '@/app/lib/supabaseClient'
+import AddCardModal from '@/app/components/AddCardModal'
 
 export const dynamic = 'force-dynamic'
 
@@ -83,6 +84,14 @@ export default function BillingPage() {
   const [invoiceTrigger, setInvoiceTrigger]         = useState<'monthly' | 'threshold' | 'both'>('monthly')
   const [invoiceThresholdCents, setInvoiceThresholdCents] = useState(5000)
   const [monthlyInvoiceDay, setMonthlyInvoiceDay] = useState(27)
+
+  type PaymentMethod = { id: string; brand: string; last4: string; exp_month: number; exp_year: number }
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
+  const [pmLoading, setPmLoading] = useState(true)
+  const [pmGraceUntil, setPmGraceUntil] = useState<string | null>(null)
+  const [pmStale, setPmStale] = useState(false)
+  const [showAddCard, setShowAddCard] = useState(false)
+  const [pmActionMsg, setPmActionMsg] = useState<string | null>(null)
   const [ledger, setLedger]     = useState<LedgerEntry[]>([])
   const [ledgerTotal, setLedgerTotal] = useState(0)
   const [ledgerPage, setLedgerPage]   = useState(0)
@@ -116,6 +125,35 @@ export default function BillingPage() {
       setMonthlyInvoiceDay(j.monthly_invoice_day ?? 27)
     }
   }, [accessToken, headers])
+
+  const fetchPaymentMethod = useCallback(async () => {
+    if (!accessToken) return
+    setPmLoading(true)
+    try {
+      const r = await fetch('/api/billing/stripe/payment-method', { headers: headers() })
+      if (r.ok) {
+        const j = await r.json()
+        setPaymentMethod(j.payment_method ?? null)
+        setPmGraceUntil(j.grace_period_until ?? null)
+        setPmStale(!!j.stale)
+      }
+    } finally { setPmLoading(false) }
+  }, [accessToken, headers])
+
+  const removePaymentMethod = async () => {
+    if (!accessToken) return
+    if (!confirm('Rimuovere il metodo di pagamento? Il servizio postpaid potrebbe essere sospeso.')) return
+    setPmActionMsg(null)
+    const r = await fetch('/api/billing/stripe/payment-method', { method: 'DELETE', headers: headers() })
+    if (r.ok) {
+      setPmActionMsg('Carta rimossa')
+      await fetchPaymentMethod()
+    } else {
+      const j = await r.json().catch(() => ({}))
+      setPmActionMsg(j.error ?? 'Errore rimozione carta')
+    }
+    setTimeout(() => setPmActionMsg(null), 4000)
+  }
 
   const fetchLedger = useCallback(async (p: number) => {
     if (!accessToken) return
@@ -157,7 +195,8 @@ export default function BillingPage() {
     fetchLedger(0)
     fetchPackages()
     fetchInvoices(0)
-  }, [accessToken, fetchBalance, fetchLedger, fetchPackages, fetchInvoices])
+    fetchPaymentMethod()
+  }, [accessToken, fetchBalance, fetchLedger, fetchPackages, fetchInvoices, fetchPaymentMethod])
 
   // Realtime subscription on billing_balance — updates instantly when sync writes to DB
   useEffect(() => {
@@ -288,6 +327,80 @@ export default function BillingPage() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Metodo di pagamento — only for postpaid/hybrid */}
+        {isPostpaid && (
+          <div className="rounded-2xl mb-5 border bg-[#2C2E31] border-[#3A3D42] p-5">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">Metodo di pagamento</div>
+                {pmLoading ? (
+                  <div className="text-sm text-gray-500">Caricamento...</div>
+                ) : paymentMethod ? (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="px-2.5 py-1 rounded bg-[#1e1f22] border border-[#3A3D42] text-sm">
+                      <span className="capitalize font-medium text-white">{paymentMethod.brand}</span>
+                      <span className="text-gray-400 mx-1.5">····</span>
+                      <span className="font-mono text-white">{paymentMethod.last4}</span>
+                    </div>
+                    <span className="text-xs text-gray-500">scade {String(paymentMethod.exp_month).padStart(2, '0')}/{String(paymentMethod.exp_year).slice(-2)}</span>
+                  </div>
+                ) : (
+                  <div className="text-sm text-yellow-400">
+                    Nessuna carta salvata.{' '}
+                    {pmGraceUntil && new Date(pmGraceUntil) > new Date() ? (
+                      <span className="text-gray-400">Periodo di tolleranza fino al {new Date(pmGraceUntil).toLocaleDateString('it-IT')}.</span>
+                    ) : (
+                      <span className="text-red-400">Le prossime chiamate verranno bloccate.</span>
+                    )}
+                  </div>
+                )}
+                {pmStale && (
+                  <p className="text-xs text-yellow-500 mt-1">La carta salvata non è più valida (cambio ambiente Stripe). Aggiungine una nuova.</p>
+                )}
+                {pmActionMsg && <p className="text-xs text-gray-400 mt-1">{pmActionMsg}</p>}
+              </div>
+              <div className="flex gap-2">
+                {paymentMethod ? (
+                  <>
+                    <button
+                      onClick={() => setShowAddCard(true)}
+                      className="px-3 py-1.5 text-xs font-medium text-gray-300 border border-[#3A3D42] rounded-lg hover:bg-[#3A3D42] transition-colors"
+                    >
+                      Sostituisci
+                    </button>
+                    <button
+                      onClick={removePaymentMethod}
+                      className="px-3 py-1.5 text-xs font-medium text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/10 transition-colors"
+                    >
+                      Rimuovi
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setShowAddCard(true)}
+                    className="px-4 py-2 bg-[#F59E0B] text-[#1e293b] text-sm font-semibold rounded-lg hover:bg-[#D97706] transition-colors"
+                  >
+                    Aggiungi carta
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showAddCard && accessToken && (
+          <AddCardModal
+            accessToken={accessToken}
+            onClose={() => setShowAddCard(false)}
+            onSuccess={() => {
+              setShowAddCard(false)
+              setPmActionMsg('Carta salvata con successo')
+              fetchPaymentMethod()
+              setTimeout(() => setPmActionMsg(null), 4000)
+            }}
+          />
         )}
 
         {/* Tabs */}
