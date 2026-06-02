@@ -17,20 +17,17 @@ export async function POST(request: NextRequest) {
 
   const sb = createServiceClient()
 
-  // Find every postpaid/hybrid client with outstanding > 0
-  const { data: candidates, error: candErr } = await sb
-    .from('billing_balance')
-    .select('user_id, outstanding_cents, billing_client_config!inner(billing_mode, user_id)')
-    .gt('outstanding_cents', 0)
+  // No FK between billing_balance and billing_client_config (both reference
+  // profiles) — fetch separately and join in memory.
+  const [{ data: balances, error: balErr }, { data: configs, error: cfgErr }] = await Promise.all([
+    sb.from('billing_balance').select('user_id, outstanding_cents').gt('outstanding_cents', 0),
+    sb.from('billing_client_config').select('user_id, billing_mode').in('billing_mode', ['postpaid', 'hybrid']),
+  ])
+  if (balErr) return NextResponse.json({ error: balErr.message }, { status: 500 })
+  if (cfgErr) return NextResponse.json({ error: cfgErr.message }, { status: 500 })
 
-  if (candErr) return NextResponse.json({ error: candErr.message }, { status: 500 })
-
-  type Row = { user_id: string; outstanding_cents: number; billing_client_config: { billing_mode: string }[] }
-  const rows = (candidates ?? []) as Row[]
-  const eligible = rows.filter((r) => {
-    const cfg = Array.isArray(r.billing_client_config) ? r.billing_client_config[0] : r.billing_client_config
-    return cfg?.billing_mode === 'postpaid' || cfg?.billing_mode === 'hybrid'
-  })
+  const postpaidUserIds = new Set((configs ?? []).map((c: { user_id: string }) => c.user_id))
+  const eligible = (balances ?? []).filter((b: { user_id: string }) => postpaidUserIds.has(b.user_id)) as { user_id: string; outstanding_cents: number }[]
 
   const today = new Date()
   const periodFrom = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10)
