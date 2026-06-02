@@ -39,10 +39,15 @@ type Invoice = {
   amount_cents: number
   minutes_added: number
   status: 'issued' | 'paid' | 'cancelled'
-  type: 'package_purchase' | 'auto_recharge'
+  type: 'package_purchase' | 'auto_recharge' | 'postpaid_period'
   due_date: string | null
   paid_at: string | null
   created_at: string
+  period_from: string | null
+  period_to: string | null
+  stripe_hosted_url: string | null
+  stripe_pdf_url: string | null
+  payment_error_detail: string | null
   billing_packages: { name: string } | null
 }
 
@@ -512,7 +517,7 @@ export default function BillingPage() {
             ) : (
               <div className="divide-y divide-[#3A3D42]">
                 {invoices.map(inv => (
-                  <div key={inv.id} className="px-5 py-4 flex items-center gap-3">
+                  <div key={inv.id} className="px-5 py-4 flex items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-medium text-white font-mono">{inv.invoice_number}</span>
@@ -522,9 +527,14 @@ export default function BillingPage() {
                         {inv.type === 'auto_recharge' && (
                           <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full">auto</span>
                         )}
+                        {inv.type === 'postpaid_period' && (
+                          <span className="text-xs bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full">periodo</span>
+                        )}
                       </div>
                       <div className="text-xs text-gray-400 mt-0.5">
-                        {inv.billing_packages?.name ?? '—'} · {inv.minutes_added} min
+                        {inv.type === 'postpaid_period' && inv.period_from && inv.period_to
+                          ? `Periodo ${new Date(inv.period_from).toLocaleDateString('it-IT')} → ${new Date(inv.period_to).toLocaleDateString('it-IT')}`
+                          : `${inv.billing_packages?.name ?? '—'} · ${inv.minutes_added} min`}
                       </div>
                       <div className="text-xs text-gray-500 mt-0.5">
                         {new Date(inv.created_at).toLocaleDateString('it-IT')}
@@ -535,6 +545,33 @@ export default function BillingPage() {
                           <span className="ml-2 text-green-400">Pagata il {new Date(inv.paid_at).toLocaleDateString('it-IT')}</span>
                         )}
                       </div>
+                      {inv.payment_error_detail && (
+                        <div className="text-xs text-red-400 mt-1">Pagamento fallito: {inv.payment_error_detail}</div>
+                      )}
+                      {(inv.stripe_hosted_url || inv.stripe_pdf_url) && (
+                        <div className="flex gap-2 mt-2">
+                          {inv.stripe_hosted_url && (
+                            <a
+                              href={inv.stripe_hosted_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs px-2 py-1 rounded border border-[#3A3D42] text-gray-300 hover:bg-[#3A3D42] transition-colors"
+                            >
+                              Visualizza
+                            </a>
+                          )}
+                          {inv.stripe_pdf_url && (
+                            <a
+                              href={inv.stripe_pdf_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs px-2 py-1 rounded border border-[#3A3D42] text-gray-300 hover:bg-[#3A3D42] transition-colors"
+                            >
+                              PDF
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-sm font-bold text-white">€{(inv.amount_cents / 100).toFixed(2)}</div>

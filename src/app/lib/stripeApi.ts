@@ -157,6 +157,93 @@ export type PaymentMethodInfo = {
   exp_year: number
 }
 
+/**
+ * Create a Stripe Invoice for a postpaid period, finalize it and attempt
+ * auto-charge against the customer's default payment method.
+ *
+ * Returns the Stripe invoice id + hosted/PDF URLs + the live payment status
+ * (paid | open | failed). The DB record should be updated with this data.
+ */
+export async function createAndChargeStripeInvoice(params: {
+  customerId: string
+  amountCents: number
+  description: string
+  invoiceNumber: string  // our internal invoice number (for memo/metadata)
+  metadata?: Record<string, string>
+}): Promise<{
+  stripeInvoiceId: string | null
+  hostedUrl: string | null
+  pdfUrl: string | null
+  status: 'paid' | 'open' | 'failed'
+  errorDetail: string | null
+}> {
+  if (!stripe) {
+    return { stripeInvoiceId: null, hostedUrl: null, pdfUrl: null, status: 'failed', errorDetail: 'Stripe non configurato' }
+  }
+  try {
+    // 1. Create a draft Invoice (auto_advance=true means Stripe will finalize
+    //    and attempt to pay it on its own after we add items).
+    const invoice = await stripe.invoices.create({
+      customer: params.customerId,
+      collection_method: 'charge_automatically',
+      auto_advance: true,
+      description: params.description,
+      metadata: { invoice_number: params.invoiceNumber, ...(params.metadata ?? {}) },
+    })
+
+    if (!invoice.id) {
+      return { stripeInvoiceId: null, hostedUrl: null, pdfUrl: null, status: 'failed', errorDetail: 'Stripe non ha restituito invoice.id' }
+    }
+
+    // 2. Attach a line item to the draft invoice.
+    await stripe.invoiceItems.create({
+      customer: params.customerId,
+      invoice: invoice.id,
+      amount: params.amountCents,
+      currency: 'eur',
+      description: params.description,
+    })
+
+    // 3. Finalize the invoice — produces hosted_invoice_url + invoice_pdf.
+    const finalized = await stripe.invoices.finalizeInvoice(invoice.id)
+
+    // 4. Trigger immediate payment attempt. With charge_automatically +
+    //    auto_advance, Stripe schedules the charge async, but pay() forces
+    //    the synchronous attempt so we know the result right now.
+    let paid = finalized
+    try {
+      paid = await stripe.invoices.pay(invoice.id)
+    } catch (payErr: unknown) {
+      // pay() throws if charge declines. Surface the reason but keep the
+      // invoice — Stripe will Smart Retry per dashboard config.
+      const msg = payErr instanceof Error ? payErr.message : 'Charge declined'
+      return {
+        stripeInvoiceId: invoice.id,
+        hostedUrl: finalized.hosted_invoice_url ?? null,
+        pdfUrl: finalized.invoice_pdf ?? null,
+        status: 'failed',
+        errorDetail: msg,
+      }
+    }
+
+    return {
+      stripeInvoiceId: invoice.id,
+      hostedUrl: paid.hosted_invoice_url ?? null,
+      pdfUrl: paid.invoice_pdf ?? null,
+      status: paid.status === 'paid' ? 'paid' : 'open',
+      errorDetail: null,
+    }
+  } catch (e) {
+    return {
+      stripeInvoiceId: null,
+      hostedUrl: null,
+      pdfUrl: null,
+      status: 'failed',
+      errorDetail: e instanceof Error ? e.message : 'Errore creazione Stripe Invoice',
+    }
+  }
+}
+
 export async function getPaymentMethodInfo(
   paymentMethodId: string
 ): Promise<{ info: PaymentMethodInfo | null; error: string | null }> {

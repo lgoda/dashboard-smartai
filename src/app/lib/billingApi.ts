@@ -50,6 +50,8 @@ export type BillingClientConfig = {
   billing_period_start_day: number
   stripe_customer_id: string | null
   stripe_payment_method_id: string | null
+  stripe_mode: 'test' | 'live' | null
+  card_grace_period_until: string | null
   created_at: string
   updated_at: string
 }
@@ -112,6 +114,10 @@ export type BillingInvoice = {
   period_from: string | null
   period_to: string | null
   outstanding_before_cents: number | null
+  stripe_invoice_id: string | null
+  stripe_hosted_url: string | null
+  stripe_pdf_url: string | null
+  payment_error_detail: string | null
   created_by: string | null
   created_at: string
 }
@@ -375,6 +381,48 @@ export async function generatePostpaidInvoice(
   // Deduct only the snapshot so any amount accrued concurrently stays in the new cycle.
   const { error: deductErr } = await sb.rpc('deduct_outstanding', { p_user_id: params.userId, p_delta_cents: outstandingSnapshot })
   if (deductErr) console.error('[generatePostpaidInvoice] deduct_outstanding failed:', deductErr)
+
+  // Try to auto-charge via Stripe if the client has a card on file in the
+  // current Stripe mode. On failure (or no card), the DB invoice stays
+  // 'issued' and can be paid manually.
+  const clientConfig = await getClientConfig(sb, params.userId)
+  const { getStripeMode, createAndChargeStripeInvoice } = await import('./stripeApi')
+  const mode = getStripeMode()
+
+  if (
+    mode &&
+    clientConfig?.stripe_customer_id &&
+    clientConfig?.stripe_payment_method_id &&
+    clientConfig?.stripe_mode === mode
+  ) {
+    const result = await createAndChargeStripeInvoice({
+      customerId: clientConfig.stripe_customer_id,
+      amountCents: outstandingSnapshot,
+      description: `Periodo ${params.periodFrom} → ${params.periodTo}`,
+      invoiceNumber: invoiceNumber,
+      metadata: { user_id: params.userId, period_from: params.periodFrom, period_to: params.periodTo },
+    })
+
+    const updates: Record<string, unknown> = {
+      stripe_invoice_id:    result.stripeInvoiceId,
+      stripe_hosted_url:    result.hostedUrl,
+      stripe_pdf_url:       result.pdfUrl,
+      payment_error_detail: result.errorDetail,
+    }
+    if (result.status === 'paid') {
+      updates.status  = 'paid'
+      updates.paid_at = new Date().toISOString()
+    }
+
+    const { data: updated } = await sb
+      .from('billing_invoices')
+      .update(updates)
+      .eq('id', (invoice as BillingInvoice).id)
+      .select()
+      .single()
+
+    return { invoice: (updated ?? invoice) as BillingInvoice, error: null }
+  }
 
   return { invoice: invoice as BillingInvoice, error: null }
 }
