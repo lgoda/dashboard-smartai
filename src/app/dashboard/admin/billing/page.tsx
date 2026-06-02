@@ -136,8 +136,8 @@ export default function AdminBillingPage() {
   const [updatingInvoice, setUpdatingInvoice] = useState<string | null>(null)
   const [generatingInvoice, setGeneratingInvoice] = useState<string | null>(null)
   const [generateInvoiceMsg, setGenerateInvoiceMsg] = useState<{ userId: string; msg: string; ok: boolean } | null>(null)
-  const [generatingAllPending, setGeneratingAllPending] = useState(false)
-  const [allPendingMsg, setAllPendingMsg] = useState<{ text: string; ok: boolean } | null>(null)
+  const [chargingInvoiceId, setChargingInvoiceId] = useState<string | null>(null)
+  const [chargeMsg, setChargeMsg] = useState<{ invoiceId: string; text: string; ok: boolean } | null>(null)
 
   // ── impostazioni ──
   const [config, setConfig] = useState<AdminConfig | null>(null)
@@ -238,32 +238,29 @@ export default function AdminBillingPage() {
     setUpdatingInvoice(null)
   }
 
-  const generateAllPending = async () => {
-    if (!confirm('Generare fatture per TUTTI i clienti postpaid con outstanding > 0? Il pagamento sulla carta verrà tentato immediatamente.')) return
-    setGeneratingAllPending(true)
-    setAllPendingMsg(null)
+  const chargeInvoice = async (invoiceId: string, invoiceNumber: string) => {
+    if (!confirm(`Addebitare la fattura ${invoiceNumber} sulla carta del cliente?`)) return
+    setChargingInvoiceId(invoiceId)
+    setChargeMsg(null)
     try {
-      const r = await fetch('/api/billing/admin/invoices/generate-all-pending', {
+      const r = await fetch(`/api/billing/admin/invoices/${invoiceId}/charge`, {
         method: 'POST',
         headers: headers(),
       })
       const j = await r.json()
       if (r.ok) {
-        setAllPendingMsg({
-          ok: true,
-          text: `Generate ${j.generated}/${j.total_candidates} fatture — ${j.paid_immediately} pagate, ${j.open_pending} in attesa, ${j.charge_failed} charge falliti, ${j.errors} errori.`,
-        })
+        const status = j.stripe_status === 'paid' ? 'Pagata ✓' : j.stripe_status === 'failed' ? `Charge fallito: ${j.error_detail}` : 'Emessa, in attesa di conferma'
+        setChargeMsg({ invoiceId, text: status, ok: j.stripe_status !== 'failed' })
+        fetchAdminInvoices(adminInvoicePage)
         fetchClients()
-        setAdminInvoicePage(0)
-        fetchAdminInvoices(0)
       } else {
-        setAllPendingMsg({ ok: false, text: j.error ?? 'Errore generazione fatture' })
+        setChargeMsg({ invoiceId, text: j.error ?? 'Errore', ok: false })
       }
     } catch (e) {
-      setAllPendingMsg({ ok: false, text: e instanceof Error ? e.message : 'Errore di rete' })
+      setChargeMsg({ invoiceId, text: e instanceof Error ? e.message : 'Errore di rete', ok: false })
     }
-    setGeneratingAllPending(false)
-    setTimeout(() => setAllPendingMsg(null), 12000)
+    setChargingInvoiceId(null)
+    setTimeout(() => setChargeMsg(null), 8000)
   }
 
   const generateInvoice = async (userId: string) => {
@@ -864,21 +861,8 @@ export default function AdminBillingPage() {
                   {f === '' ? 'Tutte' : f === 'issued' ? 'Da pagare' : f === 'paid' ? 'Pagate' : 'Annullate'}
                 </button>
               ))}
-              <button
-                onClick={generateAllPending}
-                disabled={generatingAllPending}
-                title="Genera fatture per tutti i clienti postpaid con outstanding > 0 (ignora il giorno mensile e il trigger)"
-                className="ml-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-[#F59E0B]/30 bg-[#F59E0B]/10 text-[#F59E0B] hover:bg-[#F59E0B]/20 disabled:opacity-50 transition-colors"
-              >
-                {generatingAllPending ? 'Generazione...' : 'Genera fatture arretrate'}
-              </button>
               <span className="ml-auto text-xs text-gray-500 self-center">{adminInvoicesTotal} fatture</span>
             </div>
-            {allPendingMsg && (
-              <div className={`text-xs px-3 py-2 rounded-lg ${allPendingMsg.ok ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
-                {allPendingMsg.text}
-              </div>
-            )}
 
             <div className="bg-[#2C2E31] rounded-2xl overflow-hidden">
               {adminInvoices.length === 0 && !adminInvoicesLoading ? (
@@ -936,11 +920,21 @@ export default function AdminBillingPage() {
                       </div>
                       <div className="text-right shrink-0">
                         <div className="text-sm font-bold text-white mb-1">€{(inv.amount_cents / 100).toFixed(2)}</div>
+                        {inv.status === 'issued' && inv.type === 'postpaid_period' && !inv.stripe_invoice_id && (
+                          <button
+                            onClick={() => chargeInvoice(inv.id, inv.invoice_number)}
+                            disabled={chargingInvoiceId === inv.id}
+                            title="Crea Stripe Invoice e addebita sulla carta del cliente"
+                            className="block w-full text-xs px-2 py-0.5 bg-[#F59E0B]/20 text-[#F59E0B] rounded hover:bg-[#F59E0B]/30 disabled:opacity-50 transition-colors"
+                          >
+                            {chargingInvoiceId === inv.id ? 'Pagamento...' : '💳 Paga ora'}
+                          </button>
+                        )}
                         {inv.status !== 'paid' && inv.status !== 'cancelled' && (
                           <button
                             onClick={() => updateInvoiceStatus(inv.id, 'paid')}
                             disabled={updatingInvoice === inv.id}
-                            className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 rounded hover:bg-green-500/30 disabled:opacity-50 transition-colors"
+                            className="block w-full mt-1 text-xs px-2 py-0.5 bg-green-500/20 text-green-400 rounded hover:bg-green-500/30 disabled:opacity-50 transition-colors"
                           >
                             {updatingInvoice === inv.id ? '...' : 'Segna pagata'}
                           </button>
@@ -949,10 +943,13 @@ export default function AdminBillingPage() {
                           <button
                             onClick={() => updateInvoiceStatus(inv.id, 'cancelled')}
                             disabled={updatingInvoice === inv.id}
-                            className="block mt-1 text-xs px-2 py-0.5 bg-gray-500/20 text-gray-400 rounded hover:bg-gray-500/30 disabled:opacity-50 transition-colors"
+                            className="block w-full mt-1 text-xs px-2 py-0.5 bg-gray-500/20 text-gray-400 rounded hover:bg-gray-500/30 disabled:opacity-50 transition-colors"
                           >
                             Annulla
                           </button>
+                        )}
+                        {chargeMsg?.invoiceId === inv.id && (
+                          <div className={`text-xs mt-1 ${chargeMsg.ok ? 'text-green-400' : 'text-red-400'}`}>{chargeMsg.text}</div>
                         )}
                       </div>
                     </div>
