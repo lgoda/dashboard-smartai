@@ -136,6 +136,8 @@ export default function AdminBillingPage() {
   const [updatingInvoice, setUpdatingInvoice] = useState<string | null>(null)
   const [generatingInvoice, setGeneratingInvoice] = useState<string | null>(null)
   const [generateInvoiceMsg, setGenerateInvoiceMsg] = useState<{ userId: string; msg: string; ok: boolean } | null>(null)
+  const [generatingAllPending, setGeneratingAllPending] = useState(false)
+  const [allPendingMsg, setAllPendingMsg] = useState<{ text: string; ok: boolean } | null>(null)
 
   // ── impostazioni ──
   const [config, setConfig] = useState<AdminConfig | null>(null)
@@ -234,6 +236,34 @@ export default function AdminBillingPage() {
       setAdminInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: status as 'issued' | 'paid' | 'cancelled', paid_at: status === 'paid' ? new Date().toISOString() : null } : inv))
     }
     setUpdatingInvoice(null)
+  }
+
+  const generateAllPending = async () => {
+    if (!confirm('Generare fatture per TUTTI i clienti postpaid con outstanding > 0? Il pagamento sulla carta verrà tentato immediatamente.')) return
+    setGeneratingAllPending(true)
+    setAllPendingMsg(null)
+    try {
+      const r = await fetch('/api/billing/admin/invoices/generate-all-pending', {
+        method: 'POST',
+        headers: headers(),
+      })
+      const j = await r.json()
+      if (r.ok) {
+        setAllPendingMsg({
+          ok: true,
+          text: `Generate ${j.generated}/${j.total_candidates} fatture — ${j.paid_immediately} pagate, ${j.open_pending} in attesa, ${j.charge_failed} charge falliti, ${j.errors} errori.`,
+        })
+        fetchClients()
+        setAdminInvoicePage(0)
+        fetchAdminInvoices(0)
+      } else {
+        setAllPendingMsg({ ok: false, text: j.error ?? 'Errore generazione fatture' })
+      }
+    } catch (e) {
+      setAllPendingMsg({ ok: false, text: e instanceof Error ? e.message : 'Errore di rete' })
+    }
+    setGeneratingAllPending(false)
+    setTimeout(() => setAllPendingMsg(null), 12000)
   }
 
   const generateInvoice = async (userId: string) => {
@@ -822,7 +852,7 @@ export default function AdminBillingPage() {
         {tab === 'fatture' && (
           <div className="space-y-4">
             {/* Filter bar */}
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap items-center">
               {(['', 'issued', 'paid', 'cancelled'] as string[]).map(f => (
                 <button key={f} onClick={() => {
                   setAdminInvoiceFilter(f)
@@ -834,8 +864,21 @@ export default function AdminBillingPage() {
                   {f === '' ? 'Tutte' : f === 'issued' ? 'Da pagare' : f === 'paid' ? 'Pagate' : 'Annullate'}
                 </button>
               ))}
+              <button
+                onClick={generateAllPending}
+                disabled={generatingAllPending}
+                title="Genera fatture per tutti i clienti postpaid con outstanding > 0 (ignora il giorno mensile e il trigger)"
+                className="ml-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-[#F59E0B]/30 bg-[#F59E0B]/10 text-[#F59E0B] hover:bg-[#F59E0B]/20 disabled:opacity-50 transition-colors"
+              >
+                {generatingAllPending ? 'Generazione...' : 'Genera fatture arretrate'}
+              </button>
               <span className="ml-auto text-xs text-gray-500 self-center">{adminInvoicesTotal} fatture</span>
             </div>
+            {allPendingMsg && (
+              <div className={`text-xs px-3 py-2 rounded-lg ${allPendingMsg.ok ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                {allPendingMsg.text}
+              </div>
+            )}
 
             <div className="bg-[#2C2E31] rounded-2xl overflow-hidden">
               {adminInvoices.length === 0 && !adminInvoicesLoading ? (
