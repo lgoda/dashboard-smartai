@@ -25,9 +25,12 @@ export function Navigation() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const isAuthPage = pathname === '/' || pathname === '/login' || pathname === '/signup'
+  // Pagine pubbliche "standalone": nessun redirect, né da loggati né da non loggati
+  // (es. impostazione password via link riutilizzabile, reset sessione).
+  const isStandalonePage = pathname === '/imposta-password' || pathname === '/reset'
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && !isStandalonePage) {
       if (user && isAuthPage) {
         // Non redirigere se siamo in un flow di invito/recovery (l'utente deve impostare la password)
         const inInviteFlow = typeof window !== 'undefined' &&
@@ -37,13 +40,13 @@ export function Navigation() {
         router.push('/')
       }
     }
-  }, [user, loading, isAuthPage, router])
+  }, [user, loading, isAuthPage, isStandalonePage, router])
 
   // Chiudi il menu mobile al cambio pagina
   useEffect(() => { setMobileOpen(false) }, [pathname])
 
   if (loading) return null
-  if (!user || isAuthPage) return null
+  if (!user || isAuthPage || isStandalonePage) return null
 
   const initials = (profile?.full_name || user.email || '?').slice(0, 2).toUpperCase()
   const displayName = profile?.full_name || user.email || ''

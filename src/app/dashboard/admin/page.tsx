@@ -140,7 +140,7 @@ export default function AdminPage() {
             </div>
             {/* Link */}
             <div className="p-3 bg-[#141517] border border-[#F59E0B]/30 rounded-lg">
-              <p className="text-xs text-gray-400 mb-2">Link di invito (valido 24h) — copia e invia all'utente:</p>
+              <p className="text-xs text-gray-400 mb-2">Link di invito (valido 7 giorni, riutilizzabile) — copia e invia all'utente:</p>
               <div className="flex gap-2 items-center">
                 <input
                   readOnly
