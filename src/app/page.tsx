@@ -35,6 +35,18 @@ const authAppearance = {
   },
 }
 
+// Estrae l'email dal payload di un access_token JWT (senza verificarne la firma —
+// serve solo per mostrare all'utente di chi sta impostando la password).
+function decodeJwtEmail(token: string): string | null {
+  try {
+    const payload = token.split('.')[1]
+    const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+    return typeof json.email === 'string' ? json.email : null
+  } catch {
+    return null
+  }
+}
+
 function SetPasswordForm({ accessToken, onSuccess }: { accessToken: string; onSuccess: () => void }) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -120,8 +132,16 @@ export default function LoginPage() {
   const needsPasswordRef = useRef(false)
   const [sessionReady, setSessionReady] = useState(false)
   const [inviteToken, setInviteToken] = useState<string | null>(null)
-  // Se l'utente apre un link invite/recovery mentre è già loggato con un altro account
-  const [sessionConflict, setSessionConflict] = useState<{ existingEmail: string } | null>(null)
+  // Email del destinatario del link (decodificata dal token) e dell'eventuale
+  // sessione già attiva nel browser — mostrate a scopo informativo nel form.
+  const [targetEmail, setTargetEmail] = useState<string | null>(null)
+  const [existingEmail, setExistingEmail] = useState<string | null>(null)
+  // true quando chi apre il link è già loggato: la sua sessione viene preservata,
+  // quindi a fine flusso NON va disconnesso.
+  const existingSessionRef = useRef(false)
+  // true solo nel flusso "code" (PKCE), dove creiamo una sessione temporanea
+  // che va chiusa dopo aver impostato la password.
+  const usedTempSessionRef = useRef(false)
   const [passwordJustSet, setPasswordJustSet] = useState(false)
 
   useEffect(() => {
@@ -153,39 +173,33 @@ export default function LoginPage() {
       const refresh_token = hashParams.get('refresh_token')
 
       if (access_token && refresh_token) {
-        // Controlla sessione esistente prima di sovrascriverla
+        // L'API /api/auth/set-password è stateless: le basta l'access_token come
+        // Bearer per verificare l'utente e aggiornare la password. Quindi NON tocchiamo
+        // la sessione del browser. Così, anche se sei già loggato (es. come admin) e apri
+        // il link nello stesso browser, puoi impostare la password del nuovo utente senza
+        // disconnettere la tua sessione.
+        setTargetEmail(decodeJwtEmail(access_token))
+        setInviteToken(access_token)
+        setSessionReady(true)
+        // Rileva (solo per mostrarlo nel form) se c'è già una sessione attiva.
         supabase.auth.getSession().then(({ data: { session: existing } }) => {
           if (existing?.user) {
-            setSessionConflict({ existingEmail: existing.user.email ?? 'account esistente' })
-            setAuthView('sign_in')
-            return
+            existingSessionRef.current = true
+            setExistingEmail(existing.user.email ?? null)
           }
-          // Setta il flag per bloccare il redirect di Navigation
-          sessionStorage.setItem('smartbot-invite-flow', '1')
-          setInviteToken(access_token)
-          supabase.auth.setSession({ access_token, refresh_token }).then(({ error }) => {
-            if (error) {
-              console.error('[invite] setSession error:', error.message)
-              sessionStorage.removeItem('smartbot-invite-flow')
-              setSessionReady(true)
-            }
-          })
         })
       } else {
         const code = searchParams.get('code')
         if (code) {
-          supabase.auth.getSession().then(({ data: { session: existing } }) => {
-            if (existing?.user) {
-              setSessionConflict({ existingEmail: existing.user.email ?? 'account esistente' })
-              setAuthView('sign_in')
-              return
-            }
-            // Setta il flag per bloccare il redirect di Navigation
-            sessionStorage.setItem('smartbot-invite-flow', '1')
-            supabase.auth.exchangeCodeForSession(code).catch(err => {
-              console.error('[invite] exchangeCodeForSession error:', err)
-              sessionStorage.removeItem('smartbot-invite-flow')
-            })
+          // Flusso PKCE: bisogna scambiare il code per ottenere un access_token, e questo
+          // crea una sessione temporanea (chiusa in onSuccess dopo il salvataggio).
+          // L'access_token e sessionReady arrivano dall'evento SIGNED_IN.
+          sessionStorage.setItem('smartbot-invite-flow', '1')
+          usedTempSessionRef.current = true
+          supabase.auth.exchangeCodeForSession(code).catch(err => {
+            console.error('[invite] exchangeCodeForSession error:', err)
+            sessionStorage.removeItem('smartbot-invite-flow')
+            usedTempSessionRef.current = false
           })
         } else {
           supabase.auth.getSession().then(({ data: { session } }) => {
@@ -225,30 +239,36 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Banner conflitto sessione: link invito aperto nello stesso browser */}
-        {sessionConflict && (
-          <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-sm">
-            <p className="text-amber-400 font-semibold mb-1">⚠️ Sei già loggato come {sessionConflict.existingEmail}</p>
-            <p className="text-amber-300/80 text-xs leading-relaxed">
-              Questo link di invito è per un altro utente. Aprilo in una finestra in <strong>incognito</strong> o in un browser diverso per impostare la password del nuovo account senza disconnettere la sessione corrente.
-            </p>
-          </div>
-        )}
-
         <div className="bg-[#222428] rounded-2xl shadow-xl border border-[#141517] p-8">
           {authView === 'update_password' ? (
             <>
-              <h2 className="text-white font-semibold text-lg mb-1">Imposta la tua password</h2>
-              <p className="text-gray-400 text-sm mb-6">Scegli una password per accedere alla dashboard.</p>
+              <h2 className="text-white font-semibold text-lg mb-1">Imposta la password</h2>
+              <p className="text-gray-400 text-sm mb-6">
+                {targetEmail
+                  ? <>Scegli una password per l&apos;account <strong className="text-gray-200">{targetEmail}</strong>.</>
+                  : 'Scegli una password per accedere alla dashboard.'}
+              </p>
+              {existingEmail && (
+                <div className="mb-6 -mt-2 p-3 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/30 text-xs text-[#F59E0B]/90 leading-relaxed">
+                  Sei attualmente loggato come <strong>{existingEmail}</strong>. Questa operazione imposta solo la password{targetEmail ? <> di <strong>{targetEmail}</strong></> : ' del nuovo utente'} — la tua sessione resterà attiva.
+                </div>
+              )}
               {sessionReady && inviteToken ? (
                 <SetPasswordForm accessToken={inviteToken} onSuccess={async () => {
                   sessionStorage.removeItem('smartbot-invite-flow')
-                  // Sign out della sessione temporanea di invito/recovery.
                   // Usa window.location.replace (full reload) invece di router.replace:
-                  // router.replace non rimonta il componente e lascia authView='update_password',
-                  // impedendo all'utente di vedere il form di login senza ricaricare la pagina.
-                  await supabase.auth.signOut({ scope: 'local' }).catch(console.error)
-                  window.location.replace('/?passwordSet=1')
+                  // router.replace non rimonta il componente e lascerebbe authView='update_password'.
+                  if (usedTempSessionRef.current) {
+                    // Flusso code (PKCE): chiudi la sessione temporanea e vai al login.
+                    await supabase.auth.signOut({ scope: 'local' }).catch(console.error)
+                    window.location.replace('/?passwordSet=1')
+                  } else if (existingSessionRef.current) {
+                    // Eri già loggato: sessione preservata, torna alla dashboard.
+                    window.location.replace('/dashboard/admin')
+                  } else {
+                    // Nessuna sessione creata: vai al login con la conferma.
+                    window.location.replace('/?passwordSet=1')
+                  }
                 }} />
               ) : (
                 <div className="flex items-center justify-center gap-3 py-6 text-gray-400 text-sm">

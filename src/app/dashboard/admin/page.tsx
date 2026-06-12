@@ -129,13 +129,13 @@ export default function AdminPage() {
 
         {inviteLink && (
           <div className="mb-4 space-y-2">
-            {/* Avviso critico */}
-            <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-              <svg className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            {/* Info: ora è sicuro aprire il link anche da loggati */}
+            <div className="flex items-start gap-2 p-3 bg-[#22C55E]/10 border border-[#22C55E]/30 rounded-lg">
+              <svg className="w-4 h-4 text-[#22C55E] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-xs text-amber-300 leading-relaxed">
-                <strong className="text-amber-400">Non aprire questo link in questo browser.</strong> Condividilo con il nuovo utente oppure aprilo in una <strong>finestra incognito</strong> — altrimenti disconnetteresti la tua sessione admin.
+              <p className="text-xs text-[#22C55E]/90 leading-relaxed">
+                Condividi questo link con il nuovo utente. Puoi anche aprirlo <strong>tu stesso in questo browser</strong> per impostare subito la password: la tua sessione admin resterà attiva.
               </p>
             </div>
             {/* Link */}
