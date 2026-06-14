@@ -19,6 +19,7 @@ type Summary = {
   total_seconds: number
   by_day: DayBucket[]
   generated_at: string
+  no_agents?: boolean
 }
 
 const REFRESH_MS = 60_000
@@ -139,8 +140,8 @@ export default function ConsumoPage() {
       if (fetchIdRef.current !== myId) return
       const j = await r.json()
       if (!r.ok) {
+        // Keep the last good data on screen (e.g. transient Retell throttling).
         setError(j.error || 'Errore caricamento dati')
-        setSummary(null)
       } else {
         setSummary(j)
         setLastRefresh(new Date())
@@ -247,6 +248,10 @@ export default function ConsumoPage() {
         {loading && !summary ? (
           <div className="p-6 space-y-3">
             {[...Array(3)].map((_, i) => <div key={i} className="h-8 bg-[#141517] rounded loading" />)}
+          </div>
+        ) : summary?.no_agents ? (
+          <div className="p-8 text-center text-gray-400 text-sm">
+            Nessun agente configurato per il tuo account.
           </div>
         ) : !summary || summary.by_day.length === 0 ? (
           <div className="p-8 text-center text-gray-400 text-sm">

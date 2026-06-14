@@ -15,14 +15,29 @@ export const fetchCache = 'force-no-store'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-const PAGE_LIMIT = 100
-const MAX_PAGES = 30 // up to 3000 calls per window — plenty for a reporting period
+const PAGE_LIMIT = 1000 // Retell max page size — minimise request count vs rate limit
+const MAX_PAGES = 20
+const RETRY_429 = 3
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 type DayBucket = { date: string; eur: number; calls: number; seconds: number }
 
 // Group a call into its local (Europe/Rome) calendar day → YYYY-MM-DD.
 const dayKey = (ts: number) =>
   new Date(ts).toLocaleDateString('en-CA', { timeZone: 'Europe/Rome' })
+
+// list-calls with backoff on Retell throttling (429).
+async function listCallsResilient(
+  token: string,
+  opts: Parameters<typeof retellAPIClient.listCalls>[1],
+) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await retellAPIClient.listCalls(token, opts)
+    const throttled = res.error && /\b429\b/.test(res.error.message)
+    if (!throttled || attempt >= RETRY_429) return res
+    await sleep(500 * 2 ** attempt) // 500ms, 1s, 2s
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -57,7 +72,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Parametri from/to mancanti o non validi' }, { status: 400 })
     }
 
-    // Client's own Retell token → same call scoping as the AI-calls page.
+    const sb = createServiceClient()
+
+    // Attribution: the Retell token may be a shared account, so we MUST restrict
+    // to the agents mapped to this user (same logic as the billing sync).
+    const { data: agentRows } = await sb
+      .from('billing_agent_config')
+      .select('agent_id')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+    const agentIds = (agentRows ?? []).map((a: { agent_id: string }) => a.agent_id)
+
+    if (agentIds.length === 0) {
+      return NextResponse.json({
+        total_eur: 0, total_calls: 0, total_seconds: 0, currency: 'eur',
+        by_day: [], generated_at: new Date().toISOString(), no_agents: true,
+      })
+    }
+
+    // Client's Retell token.
     const { token, error: tokenError } = await retellAPIClient.getActiveToken(user.id, supabase)
     if (tokenError || !token) {
       return NextResponse.json(
@@ -66,10 +99,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Billing config drives the rate + margin (single source of truth: same
-    // calcClientCost the invoicing sync uses). usd_eur_rate lives in the
-    // admin-only billing_admin_config, so read both with the service client.
-    const sb = createServiceClient()
+    // Rate + margin (single source of truth: same calcClientCost as invoicing).
     const [adminConfig, clientConfig] = await Promise.all([
       getAdminConfig(sb),
       getClientConfig(sb, user.id),
@@ -78,13 +108,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Configurazione billing mancante' }, { status: 500 })
     }
 
-    // Pull ended calls in the window, paginating until exhausted.
+    // Pull this client's ended calls in the window, paginating until exhausted.
     const calls: RetellCall[] = []
     let paginationKey: string | undefined
     for (let page = 0; page < MAX_PAGES; page++) {
-      const { data, error } = await retellAPIClient.listCalls(token, {
+      const { data, error } = await listCallsResilient(token, {
         filter_criteria: {
           call_status: ['ended'],
+          agent_id: agentIds,
           start_timestamp_from: fromMs,
           start_timestamp_to: toMs,
         },
