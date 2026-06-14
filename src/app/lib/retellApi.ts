@@ -45,7 +45,7 @@ export type RetellListCallsResponse = {
 
 export type RetellFilterCriteria = {
   agent_id?: string
-  call_status?: string
+  call_status?: string | string[]
   start_timestamp_from?: number
   start_timestamp_to?: number
   end_timestamp_from?: number

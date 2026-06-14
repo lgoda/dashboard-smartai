@@ -5,6 +5,7 @@ import { useAuth } from './AuthProvider'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ProfileModal } from './ProfileModal'
+import { supabase } from '@/app/lib/supabaseClient'
 
 const NAV_LINKS = [
   { href: '/dashboard', label: 'Dashboard', exact: true },
@@ -23,6 +24,18 @@ export function Navigation() {
   const pathname = usePathname()
   const [showProfile, setShowProfile] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [hasConsumo, setHasConsumo] = useState(false)
+
+  // Consumo view is opt-in per client → only show the link when enabled.
+  useEffect(() => {
+    if (!user?.id) { setHasConsumo(false); return }
+    supabase
+      .from('user_services')
+      .select('has_consumo')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => setHasConsumo(!!data?.has_consumo), () => {})
+  }, [user?.id])
 
   const isAuthPage = pathname === '/' || pathname === '/login' || pathname === '/signup'
   // Pagine pubbliche "standalone": nessun redirect, né da loggati né da non loggati
@@ -85,6 +98,11 @@ export function Navigation() {
                     {l.label}
                   </Link>
                 ))}
+                {hasConsumo && (
+                  <Link href="/dashboard/consumo" className={linkClass('/dashboard/consumo', true)}>
+                    Consumo
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -154,6 +172,11 @@ export function Navigation() {
                 {l.label}
               </Link>
             ))}
+            {hasConsumo && (
+              <Link href="/dashboard/consumo" className={mobileLinkClass('/dashboard/consumo', true)}>
+                Consumo
+              </Link>
+            )}
             {profile?.role === 'admin' && (
               <>
                 <Link href="/dashboard/admin/billing" className={mobileLinkClass('/dashboard/admin/billing', false)}>
