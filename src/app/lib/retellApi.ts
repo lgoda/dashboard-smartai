@@ -43,9 +43,16 @@ export type RetellListCallsResponse = {
   hasMore: boolean
 }
 
+// Retell range filter: { type: 'range', op: 'bt', value: [lowerMs, upperMs] }.
+// NOTE: the flat start_timestamp_from/to fields are silently IGNORED by Retell —
+// always use the structured `start_timestamp` below for time windows.
+export type RetellRangeFilter = { type: 'range'; op: string; value: number[] }
+
 export type RetellFilterCriteria = {
   agent_id?: string | string[]
   call_status?: string | string[]
+  start_timestamp?: RetellRangeFilter
+  end_timestamp?: RetellRangeFilter
   start_timestamp_from?: number
   start_timestamp_to?: number
   end_timestamp_from?: number

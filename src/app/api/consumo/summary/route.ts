@@ -116,8 +116,9 @@ export async function GET(request: NextRequest) {
         filter_criteria: {
           call_status: ['ended'],
           agent_id: agentIds,
-          start_timestamp_from: fromMs,
-          start_timestamp_to: toMs,
+          // Retell requires the structured range filter; the flat
+          // start_timestamp_from/to fields are silently ignored.
+          start_timestamp: { type: 'range', op: 'bt', value: [fromMs, toMs] },
         },
         sort_order: 'ascending',
         limit: PAGE_LIMIT,
@@ -145,10 +146,15 @@ export async function GET(request: NextRequest) {
       const cost = c.call_cost?.combined_cost
       if (!cost || cost <= 0) continue
 
+      // Defense-in-depth: ignore anything outside the requested window even if
+      // Retell ever returns extra calls.
+      const startTs = c.start_timestamp
+      if (startTs != null && (startTs < fromMs || startTs >= toMs)) continue
+
       const { costEur } = calcClientCost(cost, adminConfig, clientConfig)
       const seconds = c.call_cost?.total_duration_seconds
         ?? (c.duration_ms ? c.duration_ms / 1000 : 0)
-      const day = dayKey(c.start_timestamp ?? fromMs)
+      const day = dayKey(startTs ?? fromMs)
 
       const bucket = byDay.get(day) ?? { date: day, eur: 0, calls: 0, seconds: 0 }
       bucket.eur += costEur
