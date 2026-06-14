@@ -105,6 +105,7 @@ export default function DateRangePicker({ value, onChange, presets }: DateRangeP
     const range = preset.value()
     onChange(range)
     setCustomMode(false)
+    setIsOpen(false)
   }
 
   const handleCustomDateChange = (type: 'from' | 'to', dateString: string) => {
