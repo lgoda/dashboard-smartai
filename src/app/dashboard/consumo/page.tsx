@@ -26,6 +26,14 @@ const REFRESH_MS = 60_000
 
 // ── Period presets ────────────────────────────────────────────────────────────
 
+function todayRange(): DateRange {
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  const end = new Date()
+  end.setHours(23, 59, 59, 999)
+  return { from: start, to: end }
+}
+
 // Current weekend if today is Sat/Sun, otherwise the most recent past weekend.
 function weekendRange(): DateRange {
   const now = new Date()
@@ -72,6 +80,7 @@ function thisMonthRange(): DateRange {
 }
 
 const PRESETS = [
+  { label: 'Oggi', value: todayRange },
   { label: 'Fine settimana', value: weekendRange },
   { label: 'Questa settimana', value: thisWeekRange },
   { label: 'Ultimi 7 giorni', value: () => lastNDays(7) },
@@ -106,7 +115,7 @@ export default function ConsumoPage() {
   const { user, accessToken, loading: authLoading } = useAuth()
 
   const [enabled, setEnabled] = useState<boolean | null>(null)
-  const [range, setRange] = useState<DateRange>(weekendRange())
+  const [range, setRange] = useState<DateRange>(todayRange())
   const [summary, setSummary] = useState<Summary | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
