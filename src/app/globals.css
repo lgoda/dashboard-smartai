@@ -65,6 +65,22 @@ body {
   background: var(--smartservice-orange-dark);
 }
 
+/* Date inputs on the dark theme: color-scheme:dark makes the browser render the
+   native control AND the calendar popup in dark mode (light text + light icon),
+   otherwise they render light-on-dark and look invisible/broken. The picker is
+   also opened by clicking anywhere on the field via showPicker() in the component. */
+input[type="date"] {
+  color-scheme: dark;
+  cursor: pointer;
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.85;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
 /* Card hover effects */
 .card-hover {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
