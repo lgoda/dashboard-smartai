@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
-import { supabase } from '@/app/lib/supabaseClient'
+import { supabase, getValidSession } from '@/app/lib/supabaseClient'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
@@ -48,8 +48,8 @@ export default function AICallDetailPage() {
         }
         setUser(userData.user)
 
-        const { data: sessionData } = await supabase.auth.getSession()
-        const token = sessionData?.session?.access_token
+        const session = await getValidSession()
+        const token = session.access_token
 
         if (!token) {
           console.error('No access token available')
@@ -103,8 +103,8 @@ export default function AICallDetailPage() {
 
     setIsLoadingAudio(true)
     try {
-      const { data: sessionData } = await supabase.auth.getSession()
-      const token = sessionData?.session?.access_token
+      const session = await getValidSession()
+      const token = session.access_token
 
       if (!token) {
         console.error('No access token available')

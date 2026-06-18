@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, Session } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -40,3 +40,34 @@ export const supabase = createClient(
     },
   }
 )
+
+// Shared in-flight refresh so concurrent callers (e.g. the calls list and the
+// summary firing together) don't trigger parallel refreshSession() calls — with
+// refresh-token rotation, a second concurrent refresh can invalidate the session.
+let inflightRefresh: Promise<Session> | null = null
+
+/**
+ * Returns a session with a non-expired access token, refreshing proactively when
+ * it's missing, expired, or within 60s of expiry. `getSession()` alone returns
+ * the stored (possibly expired) session, which API routes reject with 401.
+ */
+export async function getValidSession(): Promise<Session> {
+  const { data } = await supabase.auth.getSession()
+  const current = data?.session
+  const expiresAtMs = current?.expires_at ? current.expires_at * 1000 : 0
+  if (current && expiresAtMs >= Date.now() + 60_000) {
+    return current
+  }
+  if (!inflightRefresh) {
+    inflightRefresh = (async () => {
+      try {
+        const { data: refreshData, error } = await supabase.auth.refreshSession()
+        if (error || !refreshData?.session) throw new Error('Session expired')
+        return refreshData.session
+      } finally {
+        inflightRefresh = null
+      }
+    })()
+  }
+  return inflightRefresh
+}

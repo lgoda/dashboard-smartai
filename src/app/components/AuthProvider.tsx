@@ -134,7 +134,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // TOKEN_REFRESHED always carries a valid token and will unblock pages.
         const tokenExpired = !session.expires_at ||
           (Date.now() / 1000) > (session.expires_at - 30)
-        setUser(session.user)
+        // Keep the SAME user object reference when the id is unchanged. Supabase
+        // re-emits auth events on tab focus/visibility; replacing the reference
+        // would re-run every `user`-dependent effect and needlessly reload pages.
+        setUser(prev => (prev && prev.id === session.user.id ? prev : session.user))
         if (!tokenExpired) {
           setAccessToken(session.access_token)
           // On TOKEN_REFRESHED, clear the in-memory page cache so stale
