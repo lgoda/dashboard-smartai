@@ -35,12 +35,22 @@ export async function GET(request: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    // Real-time queued count per campaign (overrides cached queued_contacts on imports)
-    const { data: queuedStats } = await supabase
-      .from('campaign_contacts')
-      .select('campaign_id')
-      .eq('user_id', user.id)
-      .eq('status', 'queued')
+    // Real-time queued count per campaign (overrides cached queued_contacts on imports).
+    // PostgREST caps each select at 1000 rows, so paginate to count users with >1000 queued contacts.
+    const PAGE_SIZE = 1000
+    const queuedStats: { campaign_id: string }[] = []
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data: page, error: pageErr } = await supabase
+        .from('campaign_contacts')
+        .select('campaign_id')
+        .eq('user_id', user.id)
+        .eq('status', 'queued')
+        .range(from, from + PAGE_SIZE - 1)
+      if (pageErr) return NextResponse.json({ error: pageErr.message }, { status: 500 })
+      if (!page || page.length === 0) break
+      queuedStats.push(...page)
+      if (page.length < PAGE_SIZE) break
+    }
 
     const queuedByCampaign = (queuedStats ?? []).reduce<Record<string, number>>((acc, r) => {
       acc[r.campaign_id] = (acc[r.campaign_id] ?? 0) + 1

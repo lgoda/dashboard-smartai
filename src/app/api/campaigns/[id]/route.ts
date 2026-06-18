@@ -42,12 +42,22 @@ export async function GET(
 
     if (error) return NextResponse.json({ error: error.message }, { status: error.code === 'PGRST116' ? 404 : 500 })
 
-    // Count contacts by status for this campaign + queued/excluded counts per import (real-time)
-    const { data: stats } = await supabase
-      .from('campaign_contacts')
-      .select('status, import_id, exclusion_reason')
-      .eq('campaign_id', id)
-      .eq('user_id', user.id)
+    // Count contacts by status for this campaign + queued/excluded counts per import (real-time).
+    // PostgREST caps each select at 1000 rows, so paginate to count campaigns with >1000 contacts.
+    const PAGE_SIZE = 1000
+    const stats: { status: string; import_id: string | null; exclusion_reason: string | null }[] = []
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data: page, error: pageErr } = await supabase
+        .from('campaign_contacts')
+        .select('status, import_id, exclusion_reason')
+        .eq('campaign_id', id)
+        .eq('user_id', user.id)
+        .range(from, from + PAGE_SIZE - 1)
+      if (pageErr) return NextResponse.json({ error: pageErr.message }, { status: 500 })
+      if (!page || page.length === 0) break
+      stats.push(...page)
+      if (page.length < PAGE_SIZE) break
+    }
 
     const statusCounts = (stats ?? []).reduce<Record<string, number>>((acc, r) => {
       acc[r.status] = (acc[r.status] ?? 0) + 1
