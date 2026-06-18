@@ -146,7 +146,7 @@ export default function SettingsPage() {
   const verifyRetellToken = async (token: string) => {
     try {
       setIsVerifyingRetell(true)
-      const response = await fetch('https://api.retellai.com/v2/list-calls', {
+      const response = await fetch('https://api.retellai.com/v3/list-calls', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

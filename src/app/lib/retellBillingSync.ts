@@ -13,7 +13,8 @@ import {
 } from './billingApi'
 import { getStripeMode } from './stripeApi'
 
-const RETELL_BASE = 'https://api.retellai.com/v2'
+// v3 list-calls endpoint (legacy /v2/list-calls deprecated as of 2026-06-15).
+const RETELL_LIST_CALLS_URL = 'https://api.retellai.com/v3/list-calls'
 const BATCH_LIMIT = 100
 const CONCURRENCY = 10
 const FETCH_TIMEOUT_MS = 20_000
@@ -88,11 +89,11 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
 
   do {
     const body: Record<string, unknown> = {
+      // v3 filter format: agent[], enum call_status, structured time range.
       filter_criteria: {
-        call_status: ['ended'],
-        agent_id: mappedAgentIds,
-        start_timestamp_from: fromTs,
-        start_timestamp_to: toTs,
+        call_status: { op: 'in', type: 'enum', value: ['ended'] },
+        agent: mappedAgentIds.map((agent_id) => ({ agent_id })),
+        start_timestamp: { op: 'bt', type: 'range', value: [fromTs, toTs] },
       },
       sort_order: 'ascending',
       limit: BATCH_LIMIT,
@@ -101,7 +102,7 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
 
     let resp: Response
     try {
-      resp = await fetch(`${RETELL_BASE}/list-calls`, {
+      resp = await fetch(RETELL_LIST_CALLS_URL, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${adminConfig.retell_billing_api_token}`,
@@ -122,9 +123,11 @@ export async function runRetellBillingSync(sb: SupabaseClient): Promise<SyncResu
       return { processed: allCalls.length, ...emptyStats(), error: 1, error_message: `Retell API ${resp.status}: ${text}` }
     }
 
-    const calls: RetellCallRaw[] = await resp.json()
+    // v3 wraps results in { items, pagination_key, has_more }.
+    const json: { items?: RetellCallRaw[]; pagination_key?: string; has_more?: boolean } = await resp.json()
+    const calls: RetellCallRaw[] = json.items ?? []
     allCalls.push(...calls)
-    paginationKey = calls.length === BATCH_LIMIT && calls.length > 0 ? calls[calls.length - 1].call_id : undefined
+    paginationKey = json.has_more ? json.pagination_key : undefined
     page++
   } while (paginationKey && page < 20)
 

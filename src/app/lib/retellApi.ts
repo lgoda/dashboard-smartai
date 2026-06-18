@@ -41,11 +41,15 @@ export type RetellListCallsResponse = {
   calls: RetellCall[]
   pagination_key?: string
   hasMore: boolean
+  // Total count of calls matching filter_criteria (ignores limit/pagination).
+  // Only present when the request opts in via `include_total`.
+  total?: number
 }
 
 // Retell range filter: { type: 'range', op: 'bt', value: [lowerMs, upperMs] }.
-// NOTE: the flat start_timestamp_from/to fields are silently IGNORED by Retell —
-// always use the structured `start_timestamp` below for time windows.
+// This is the friendly INPUT shape callers use; `toV3FilterCriteria` below
+// translates it into the v3 wire format. The flat start_timestamp_from/to
+// fields are also accepted and converted to range/number filters for v3.
 export type RetellRangeFilter = { type: 'range'; op: string; value: number[] }
 
 export type RetellFilterCriteria = {
@@ -57,6 +61,46 @@ export type RetellFilterCriteria = {
   start_timestamp_to?: number
   end_timestamp_from?: number
   end_timestamp_to?: number
+}
+
+// v3 list-calls endpoint (the legacy /v2/list-calls is deprecated as of 2026-06-15).
+// https://docs.retellai.com/deprecation-notice/2026/06-15_legacy_list_endpoints
+const RETELL_LIST_CALLS_URL = 'https://api.retellai.com/v3/list-calls'
+
+// v3 replaces flat *_from/_to with a structured range/number filter.
+function timeFilter(
+  structured: RetellRangeFilter | undefined,
+  from: number | undefined,
+  to: number | undefined,
+): Record<string, unknown> | undefined {
+  if (structured) return structured // already { type:'range', op:'bt', value:[lo,hi] }
+  if (from != null && to != null) return { op: 'bt', type: 'range', value: [from, to] }
+  if (from != null) return { op: 'ge', type: 'number', value: from }
+  if (to != null) return { op: 'le', type: 'number', value: to }
+  return undefined
+}
+
+// Translate the friendly v2-style filter into the v3 wire format:
+// agent_id → agent[], call_status string(s) → enum filter, flat timestamps → range.
+function toV3FilterCriteria(fc: RetellFilterCriteria): Record<string, unknown> {
+  const v3: Record<string, unknown> = {}
+
+  if (fc.agent_id != null) {
+    const ids = Array.isArray(fc.agent_id) ? fc.agent_id : [fc.agent_id]
+    if (ids.length > 0) v3.agent = ids.map((agent_id) => ({ agent_id }))
+  }
+
+  if (fc.call_status != null) {
+    const statuses = Array.isArray(fc.call_status) ? fc.call_status : [fc.call_status]
+    if (statuses.length > 0) v3.call_status = { op: 'in', type: 'enum', value: statuses }
+  }
+
+  const start = timeFilter(fc.start_timestamp, fc.start_timestamp_from, fc.start_timestamp_to)
+  if (start) v3.start_timestamp = start
+  const end = timeFilter(fc.end_timestamp, fc.end_timestamp_from, fc.end_timestamp_to)
+  if (end) v3.end_timestamp = end
+
+  return v3
 }
 
 export class RetellAPIClient {
@@ -106,6 +150,7 @@ export class RetellAPIClient {
       sort_order?: 'ascending' | 'descending'
       limit?: number
       pagination_key?: string
+      include_total?: boolean
     } = {}
   ): Promise<{ data: RetellListCallsResponse | null; error: Error | null }> {
     try {
@@ -113,7 +158,8 @@ export class RetellAPIClient {
         filter_criteria = {},
         sort_order = 'descending',
         limit = 50,
-        pagination_key
+        pagination_key,
+        include_total
       } = options
 
       const body: any = {
@@ -121,15 +167,20 @@ export class RetellAPIClient {
         limit
       }
 
-      if (Object.keys(filter_criteria).length > 0) {
-        body.filter_criteria = filter_criteria
+      const v3Filter = toV3FilterCriteria(filter_criteria)
+      if (Object.keys(v3Filter).length > 0) {
+        body.filter_criteria = v3Filter
       }
 
       if (pagination_key) {
         body.pagination_key = pagination_key
       }
 
-      const response = await fetch(`${this.baseURL}/list-calls`, {
+      if (include_total) {
+        body.include_total = true
+      }
+
+      const response = await fetch(RETELL_LIST_CALLS_URL, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiToken}`,
@@ -147,21 +198,21 @@ export class RetellAPIClient {
         }
       }
 
-      const calls: RetellCall[] = await response.json()
-      
-      // Retell returns array directly, not wrapped in object
-      // If we got a full page (equal to limit), there might be more
-      // Use the last call_id as pagination key for next request
-      const hasMore = calls.length === limit && calls.length > 0
-      const nextPaginationKey = hasMore && calls.length > 0 
-        ? calls[calls.length - 1].call_id 
-        : undefined
+      // v3 wraps results in { items, pagination_key, has_more, total? }.
+      const json = await response.json()
+      const calls: RetellCall[] = json.items ?? []
+      const hasMore = Boolean(json.has_more)
+      const nextPaginationKey = hasMore ? (json.pagination_key ?? undefined) : undefined
+
+      // v3 returns `total` as a string (e.g. "1403") — coerce to a number.
+      const totalNum = json.total != null ? Number(json.total) : NaN
 
       return {
         data: {
           calls,
           pagination_key: nextPaginationKey,
-          hasMore
+          hasMore,
+          total: Number.isFinite(totalNum) ? totalNum : undefined
         },
         error: null
       }
@@ -204,7 +255,7 @@ export class RetellAPIClient {
 
   async verifyToken(apiToken: string): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseURL}/list-calls`, {
+      const response = await fetch(RETELL_LIST_CALLS_URL, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiToken}`,
