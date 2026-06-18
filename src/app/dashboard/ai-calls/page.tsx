@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
-import { supabase } from '@/app/lib/supabaseClient'
+import { supabase, getValidSession } from '@/app/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/app/components/AuthProvider'
 import Link from 'next/link'
@@ -40,6 +40,15 @@ type Filters = {
   sortOrder: 'asc' | 'desc'
 }
 
+// Default period: today (00:00 → 23:59:59.999), same convention as the consumo page.
+function todayRange(): DateRange {
+  const from = new Date()
+  from.setHours(0, 0, 0, 0)
+  const to = new Date()
+  to.setHours(23, 59, 59, 999)
+  return { from, to }
+}
+
 export default function AICallsPage() {
   const { user, loading: authLoading } = useAuth()
   const [hasElevenLabsToken, setHasElevenLabsToken] = useState(false)
@@ -53,13 +62,25 @@ export default function AICallsPage() {
   const [nextCursor, setNextCursor] = useState<string | undefined>(undefined)
   const [nextPaginationKey, setNextPaginationKey] = useState<string | undefined>(undefined)
   const [hasMore, setHasMore] = useState(false)
+  // Aggregate totals across ALL matching Retell calls (not just the loaded page),
+  // fetched from /api/retell/calls/summary. The list below stays paginated.
+  const [retellSummary, setRetellSummary] = useState<{
+    total_calls: number
+    processed_calls: number
+    successful_calls: number
+    total_cost_eur: number | null
+    total_cost_usd: number
+    total_seconds: number
+    capped: boolean
+  } | null>(null)
+  const [summaryLoading, setSummaryLoading] = useState(false)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [loadingAudio, setLoadingAudio] = useState<Record<string, boolean>>({})
   const [audioUrls, setAudioUrls] = useState<Record<string, string>>({})
   const [filters, setFilters] = useState<Filters>({
     search: '',
-    dateRange: { from: null, to: null },
+    dateRange: todayRange(),
     outcome: '',
     agentId: '',
     direction: '',
@@ -125,25 +146,6 @@ export default function AICallsPage() {
     }
     checkTokens()
   }, [user?.id])
-
-  const getValidSession = useCallback(async () => {
-    try {
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-
-      if (sessionError || !sessionData?.session) {
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
-        if (refreshError || !refreshData?.session) {
-          throw new Error('Session expired')
-        }
-        return refreshData.session
-      }
-
-      return sessionData.session
-    } catch (error) {
-      console.error('Error getting valid session:', error)
-      throw error
-    }
-  }, [])
 
   const loadRetellCalls = useCallback(async (reset: boolean = false, skipStateUpdate: boolean = false): Promise<UnifiedAICall[] | void> => {
     if (!user || !hasRetellToken) return
@@ -352,6 +354,48 @@ export default function AICallsPage() {
     }
   }, [user, hasElevenLabsToken, debouncedSearch, filters, getValidSession])
 
+  // Aggregate totals (count + EUR spent) across ALL Retell calls matching the
+  // server-side filters (agent/status/date). Independent of the paginated list.
+  // Only the server-side filters apply here; client-side-only filters (search,
+  // sentiment, duration/cost ranges) are not reflected in these totals.
+  const loadRetellSummary = useCallback(async () => {
+    // Only fetch when Retell totals will actually be shown (see summaryActive).
+    if (!user || !hasRetellToken || !(provider === 'retell' || !hasElevenLabsToken)) {
+      setRetellSummary(null)
+      return
+    }
+    try {
+      setSummaryLoading(true)
+      const session = await getValidSession()
+      const token = session?.access_token
+      if (!token) return
+
+      const filterCriteria: any = {}
+      if (filters.agentId) filterCriteria.agent_id = filters.agentId
+      if (filters.callStatus) filterCriteria.call_status = filters.callStatus
+      if (filters.dateRange.from) filterCriteria.start_timestamp_from = filters.dateRange.from.getTime()
+      if (filters.dateRange.to) filterCriteria.start_timestamp_to = filters.dateRange.to.getTime()
+
+      const response = await fetch('/api/retell/calls/summary', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filter_criteria: Object.keys(filterCriteria).length > 0 ? filterCriteria : undefined,
+        }),
+      })
+      if (!response.ok) {
+        setRetellSummary(null)
+        return
+      }
+      setRetellSummary(await response.json())
+    } catch (e) {
+      console.error('Error loading Retell summary:', e)
+      setRetellSummary(null)
+    } finally {
+      setSummaryLoading(false)
+    }
+  }, [user, hasRetellToken, hasElevenLabsToken, provider, filters.agentId, filters.callStatus, filters.dateRange, getValidSession])
+
   const loadCalls = useCallback(async (reset: boolean = false) => {
     if (!user) return
     if (!hasElevenLabsToken && !hasRetellToken) return
@@ -475,6 +519,12 @@ export default function AICallsPage() {
     }
   }, [user, hasElevenLabsToken, hasRetellToken, provider, debouncedSearch, filters.dateRange, filters.outcome, filters.agentId, filters.direction, filters.callStatus, filters.terminationReason, filters.sentiment, filters.minRating, filters.minDuration, filters.maxDuration, filters.minCost, filters.maxCost, filters.sortBy, filters.sortOrder, loadCalls])
 
+  // Reload aggregate totals only when a server-side filter changes (not on every
+  // keystroke/sort), since the summary endpoint paginates all matching calls.
+  useEffect(() => {
+    if (user && hasRetellToken) loadRetellSummary()
+  }, [user, hasRetellToken, loadRetellSummary])
+
   useEffect(() => {
     // Don't set up observer if we're loading or there's no more data
     if (isLoadingMoreRef.current || isLoadingRef.current || !hasMoreRef.current) {
@@ -520,7 +570,7 @@ export default function AICallsPage() {
   const clearAllFilters = useCallback(() => {
     setFilters({
       search: '',
-      dateRange: { from: null, to: null },
+      dateRange: todayRange(),
       outcome: '',
       agentId: '',
       direction: '',
@@ -540,7 +590,8 @@ export default function AICallsPage() {
   const getActiveFiltersCount = useMemo(() => {
     let count = 0
     if (filters.search) count++
-    if (filters.dateRange.from || filters.dateRange.to) count++
+    // Period is a primary control (always set, shown in the date picker), not a
+    // clearable chip — so it's intentionally excluded from the active-filter count.
     if (filters.outcome) count++
     if (filters.agentId) count++
     if (filters.direction) count++
@@ -554,16 +605,6 @@ export default function AICallsPage() {
     if (filters.maxCost > 0) count++
     return count
   }, [filters])
-
-  const formatDateRange = useCallback((range: DateRange) => {
-    if (!range.from && !range.to) return ''
-    if (range.from && range.to) {
-      return `${range.from.toLocaleDateString('it-IT')} - ${range.to.toLocaleDateString('it-IT')}`
-    }
-    if (range.from) return `Dal ${range.from.toLocaleDateString('it-IT')}`
-    if (range.to) return `Fino al ${range.to.toLocaleDateString('it-IT')}`
-    return ''
-  }, [])
 
   const formatDuration = useCallback((seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -726,6 +767,30 @@ export default function AICallsPage() {
     return totalCost / callsWithCost.length
   }, [calls, totalCost])
 
+  // Headline totals: prefer the server-side aggregate (all matching Retell calls)
+  // over the count of the currently-loaded page. Only when Retell is the sole
+  // source shown — otherwise (mixed 'all' with ElevenLabs) the totals would
+  // disagree with the list, so we fall back to the loaded-page figures.
+  const summaryRelevant = hasRetellToken && (provider === 'retell' || !hasElevenLabsToken)
+  const summaryActive = !!retellSummary && summaryRelevant
+  const summaryPending = summaryLoading && summaryRelevant
+  const showEurSpent = summaryActive && retellSummary!.total_cost_eur != null
+
+  // Stat-card values: use the server-side aggregate (ALL matching calls) when
+  // available, otherwise fall back to the loaded page. Denominator for rate/avg
+  // is processed_calls (== total_calls unless the rare page cap was hit).
+  const summaryDen = summaryActive ? (retellSummary!.processed_calls || retellSummary!.total_calls) : 0
+  const statCalls = summaryActive ? retellSummary!.total_calls : calls.length
+  const statSuccessRate = summaryActive && summaryDen
+    ? Math.round((retellSummary!.successful_calls / summaryDen) * 100)
+    : successRate
+  const statSuccessSub = summaryActive && summaryDen
+    ? `${retellSummary!.successful_calls}/${retellSummary!.total_calls}`
+    : `${successfulCalls}/${calls.length}`
+  const statAvgDuration = summaryActive && summaryDen
+    ? formatDuration(Math.round(retellSummary!.total_seconds / summaryDen))
+    : (calls.length > 0 ? formatDuration(Math.round(calls.reduce((acc, c) => acc + (c.duration_secs || 0), 0) / calls.length)) : '—')
+
   if (isLoading && !user) {
     return (
       <div className="space-y-6">
@@ -826,7 +891,9 @@ export default function AICallsPage() {
       )}
 
       {/* ── Filter bar (sempre visibile) ── */}
-      <div className="bg-[#222428] rounded-xl border border-[#141517] overflow-hidden">
+      {/* No overflow-hidden: it would clip the DateRangePicker calendar dropdown
+          that opens below the toolbar (invisible at desktop where the bar is one row). */}
+      <div className="bg-[#222428] rounded-xl border border-[#141517]">
         <div className="flex flex-wrap items-center gap-2 p-3">
           {/* Search */}
           <div className="relative flex-1 min-w-[180px]">
@@ -899,7 +966,6 @@ export default function AICallsPage() {
         {activeFiltersCount > 0 && (
           <div className="flex flex-wrap gap-1.5 px-3 pb-3">
             {filters.search && <FilterBadge label="Ricerca" value={filters.search} onRemove={() => updateFilter('search', '')} />}
-            {(filters.dateRange.from || filters.dateRange.to) && <FilterBadge label="Periodo" value={formatDateRange(filters.dateRange)} onRemove={() => updateFilter('dateRange', { from: null, to: null })} />}
             {filters.outcome && <FilterBadge label="Outcome" value={getOutcomeLabel(filters.outcome)} onRemove={() => updateFilter('outcome', '')} />}
             {filters.agentId && <FilterBadge label="Agente" value={agents.find(a => a.id === filters.agentId)?.name || filters.agentId.substring(0, 8) + '...'} onRemove={() => updateFilter('agentId', '')} />}
             {filters.callStatus && <FilterBadge label="Stato" value={filters.callStatus} onRemove={() => updateFilter('callStatus', '')} />}
@@ -1001,9 +1067,9 @@ export default function AICallsPage() {
       {/* ── Stat cards (compatte) ── */}
       <div className={`grid grid-cols-2 ${hasRetellToken || provider === 'retell' || provider === 'all' ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3`}>
         {[
-          { label: 'Chiamate', value: calls.length, sub: null, color: '#F59E0B' },
-          { label: 'Successo', value: `${successRate}%`, sub: `${successfulCalls}/${calls.length}`, color: '#22C55E' },
-          { label: 'Durata media', value: calls.length > 0 ? formatDuration(Math.round(calls.reduce((acc, c) => acc + (c.duration_secs || 0), 0) / calls.length)) : '—', sub: null, color: '#F59E0B' },
+          { label: 'Chiamate', value: statCalls.toLocaleString('it-IT'), sub: summaryPending ? 'aggiornamento…' : (summaryActive && retellSummary!.total_calls > calls.length ? `${calls.length} caricate` : null), color: '#F59E0B' },
+          { label: 'Successo', value: `${statSuccessRate}%`, sub: statSuccessSub, color: '#22C55E' },
+          { label: 'Durata media', value: statAvgDuration, sub: null, color: '#F59E0B' },
           { label: 'Messaggi', value: calls.reduce((acc, c) => acc + (c.message_count || 0), 0).toLocaleString('it-IT'), sub: null, color: '#F59E0B' },
         ].map(stat => (
           <div key={stat.label} className="bg-[#222428] rounded-xl px-4 py-3.5 border border-[#141517] flex items-center justify-between gap-3">
@@ -1019,11 +1085,21 @@ export default function AICallsPage() {
         ))}
         {(hasRetellToken || provider === 'retell' || provider === 'all') && (
           <div className="bg-[#222428] rounded-xl px-4 py-3.5 border border-[#141517] flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Costo totale</p>
-              <p className="text-xl font-bold text-white mt-0.5">{calls.some(c => c.provider === 'retell') ? '$' : '€'}{totalCost.toFixed(2)}</p>
-              <p className="text-xs text-gray-500 mt-0.5">media {calls.some(c => c.provider === 'retell') ? '$' : '€'}{averageCost.toFixed(2)}</p>
-            </div>
+            {showEurSpent ? (
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Importo speso</p>
+                <p className="text-xl font-bold text-white mt-0.5">€{retellSummary!.total_cost_eur!.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {retellSummary!.total_calls.toLocaleString('it-IT')} chiamate{retellSummary!.capped ? ' · parziale' : ''}{summaryPending ? ' · aggiornamento…' : ''}
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{summaryRelevant ? 'Importo speso' : 'Costo totale'}</p>
+                <p className="text-xl font-bold text-white mt-0.5">{calls.some(c => c.provider === 'retell') ? '$' : '€'}{totalCost.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{summaryPending ? 'calcolo…' : `media ${calls.some(c => c.provider === 'retell') ? '$' : '€'}${averageCost.toFixed(2)}`}</p>
+              </div>
+            )}
             <div className="w-8 h-8 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center shrink-0">
               <div className="w-2 h-2 rounded-full bg-[#F59E0B]" />
             </div>
