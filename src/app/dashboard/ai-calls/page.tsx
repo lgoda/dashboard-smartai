@@ -78,6 +78,10 @@ export default function AICallsPage() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [loadingAudio, setLoadingAudio] = useState<Record<string, boolean>>({})
   const [audioUrls, setAudioUrls] = useState<Record<string, string>>({})
+  // Retell transcripts are not in the list response (v3 list-calls omits them);
+  // fetched lazily per-call from /api/retell/calls/[id] when a row is expanded.
+  const [retellTranscripts, setRetellTranscripts] = useState<Record<string, string>>({})
+  const [loadingTranscript, setLoadingTranscript] = useState<Record<string, boolean>>({})
   const [filters, setFilters] = useState<Filters>({
     search: '',
     dateRange: todayRange(),
@@ -675,6 +679,33 @@ export default function AICallsPage() {
     }
   }, [audioUrls, loadingAudio, getValidSession])
 
+  const loadRetellTranscript = useCallback(async (callId: string) => {
+    if (retellTranscripts[callId] || loadingTranscript[callId]) return
+
+    setLoadingTranscript(prev => ({ ...prev, [callId]: true }))
+    try {
+      const session = await getValidSession()
+      const token = session?.access_token
+      if (!token) {
+        setError('Session expired. Please refresh the page.')
+        return
+      }
+
+      const response = await fetch(`/api/retell/calls/${callId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+      if (!response.ok) throw new Error('Failed to fetch transcript')
+
+      const data = await response.json()
+      setRetellTranscripts(prev => ({ ...prev, [callId]: data.transcript || '' }))
+    } catch (error) {
+      console.error('Error loading Retell transcript:', error)
+      setError('Impossibile caricare il transcript. Riprova.')
+    } finally {
+      setLoadingTranscript(prev => ({ ...prev, [callId]: false }))
+    }
+  }, [retellTranscripts, loadingTranscript, getValidSession])
+
   const getDirectionBadge = useCallback((direction?: string) => {
     if (!direction) return null
 
@@ -1139,7 +1170,10 @@ export default function AICallsPage() {
                 <div key={call.id}>
                   {/* ── Riga chiamata ── */}
                   <div
-                    onClick={() => toggleRowExpansion(call.id)}
+                    onClick={() => {
+                      toggleRowExpansion(call.id)
+                      if (isRetell && !isExpanded && !call.transcript) loadRetellTranscript(call.id)
+                    }}
                     className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-colors group ${isExpanded ? 'bg-[#141517]' : 'hover:bg-[#1a1b1e]'}`}
                   >
                     {/* Status dot */}
@@ -1216,15 +1250,31 @@ export default function AICallsPage() {
                         </div>
                       )}
 
-                      {/* Transcript (Retell) */}
-                      {isRetell && call.transcript && (
-                        <div>
-                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Transcript</p>
-                          <div className="bg-[#18191C] rounded-lg p-3 max-h-64 overflow-y-auto">
-                            <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{call.transcript}</p>
+                      {/* Transcript (Retell) — lazy-loaded, not present in list response */}
+                      {isRetell && (() => {
+                        const transcriptText = call.transcript || retellTranscripts[call.id]
+                        return (
+                          <div>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Transcript</p>
+                            {transcriptText ? (
+                              <div className="bg-[#18191C] rounded-lg p-3 max-h-64 overflow-y-auto">
+                                <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{transcriptText}</p>
+                              </div>
+                            ) : loadingTranscript[call.id] ? (
+                              <p className="text-sm text-gray-500">Caricamento transcript…</p>
+                            ) : retellTranscripts[call.id] === '' ? (
+                              <p className="text-sm text-gray-500">Nessun transcript disponibile per questa chiamata.</p>
+                            ) : (
+                              <button
+                                onClick={() => loadRetellTranscript(call.id)}
+                                className="text-sm text-[#F59E0B] hover:underline"
+                              >
+                                Carica transcript
+                              </button>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        )
+                      })()}
 
                       {/* Dettagli grid */}
                       {isRetell && (terminationReason || sentiment || call.call_analysis?.call_successful !== undefined) && (
@@ -1313,16 +1363,21 @@ export default function AICallsPage() {
                           </>
                         )}
 
-                        <button
-                          onClick={() => {
-                            const text = isRetell && call.transcript ? call.transcript : call.transcript_summary || ''
-                            if (text) navigator.clipboard.writeText(text)
-                          }}
-                          className="flex items-center gap-2 px-3 py-2 bg-[#18191C] text-gray-300 rounded-lg text-sm hover:text-white hover:bg-[#222428] transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                          {isRetell && call.transcript ? 'Copia transcript' : 'Copia summary'}
-                        </button>
+                        {(() => {
+                          const retellTranscript = isRetell ? (call.transcript || retellTranscripts[call.id]) : ''
+                          return (
+                            <button
+                              onClick={() => {
+                                const text = retellTranscript || call.transcript_summary || ''
+                                if (text) navigator.clipboard.writeText(text)
+                              }}
+                              className="flex items-center gap-2 px-3 py-2 bg-[#18191C] text-gray-300 rounded-lg text-sm hover:text-white hover:bg-[#222428] transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                              {retellTranscript ? 'Copia transcript' : 'Copia summary'}
+                            </button>
+                          )
+                        })()}
                       </div>
 
                       {call.provider === 'elevenlabs' && audioUrls[call.id] && (
