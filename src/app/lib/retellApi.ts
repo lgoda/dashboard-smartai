@@ -227,7 +227,7 @@ export class RetellAPIClient {
 
   async getCall(apiToken: string, callId: string): Promise<{ data: RetellCall | null; error: Error | null }> {
     try {
-      const response = await fetch(`${this.baseURL}/get-call?call_id=${callId}`, {
+      const response = await fetch(`${this.baseURL}/get-call/${callId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${apiToken}`
