@@ -49,7 +49,8 @@ Browser (Client Components)
 
 | Table | Purpose |
 |---|---|
-| `user_services` | Feature flags per user (`has_chatbot`, `has_ai_calls`) |
+| `user_services` | Feature flags per user (`has_chatbot`, `has_ai_calls`, `has_consumo`, `has_whatsapp`) |
+| `whatsapp_instances` | Per-user WhatsApp (OpenWA) session + associated n8n agent webhook |
 | `elevenlabs_tokens` | Encrypted ElevenLabs API keys |
 | `retell_tokens` | Active Retell API keys |
 | `leads` | Customer lead records |
@@ -62,6 +63,8 @@ Browser (Client Components)
 ```
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
+OPENWA_API_BASE_URL          # WhatsApp (OpenWA) service base URL — server-side only
+OPENWA_API_KEY               # OpenWA X-API-Key — server-side only
 ```
 
 ### UI Conventions

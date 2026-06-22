@@ -25,16 +25,20 @@ export function Navigation() {
   const [showProfile, setShowProfile] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [hasConsumo, setHasConsumo] = useState(false)
+  const [hasWhatsapp, setHasWhatsapp] = useState(false)
 
-  // Consumo view is opt-in per client → only show the link when enabled.
+  // Consumo view and WhatsApp are opt-in per client → only show the links when enabled.
   useEffect(() => {
-    if (!user?.id) { setHasConsumo(false); return }
+    if (!user?.id) { setHasConsumo(false); setHasWhatsapp(false); return }
     supabase
       .from('user_services')
-      .select('has_consumo')
+      .select('has_consumo, has_whatsapp')
       .eq('user_id', user.id)
       .maybeSingle()
-      .then(({ data }) => setHasConsumo(!!data?.has_consumo), () => {})
+      .then(({ data }) => {
+        setHasConsumo(!!data?.has_consumo)
+        setHasWhatsapp(!!data?.has_whatsapp)
+      }, () => {})
   }, [user?.id])
 
   const isAuthPage = pathname === '/' || pathname === '/login' || pathname === '/signup'
@@ -101,6 +105,11 @@ export function Navigation() {
                 {hasConsumo && (
                   <Link href="/dashboard/consumo" className={linkClass('/dashboard/consumo', true)}>
                     Consumo
+                  </Link>
+                )}
+                {hasWhatsapp && (
+                  <Link href="/dashboard/whatsapp" className={linkClass('/dashboard/whatsapp', false)}>
+                    WhatsApp
                   </Link>
                 )}
               </div>
@@ -175,6 +184,11 @@ export function Navigation() {
             {hasConsumo && (
               <Link href="/dashboard/consumo" className={mobileLinkClass('/dashboard/consumo', true)}>
                 Consumo
+              </Link>
+            )}
+            {hasWhatsapp && (
+              <Link href="/dashboard/whatsapp" className={mobileLinkClass('/dashboard/whatsapp', false)}>
+                WhatsApp
               </Link>
             )}
             {profile?.role === 'admin' && (
