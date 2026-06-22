@@ -169,6 +169,27 @@ async function deleteOpenWaSessionsByName(name: string, extraSessionId?: string 
   )
 }
 
+// Strict purge: throws if OpenWA is unreachable or a session can't be removed.
+// Used by disconnect/delete so we never drop the DB row leaving an orphaned,
+// still-active OpenWA session/webhook.
+async function purgeOpenWaSessionsStrict(name: string, extraSessionId?: string | null) {
+  const sessions = await openWaClient.listSessions() // throws if env missing / unreachable
+  const sessionIds = new Set<string>()
+  if (extraSessionId) sessionIds.add(extraSessionId)
+  for (const session of sessions) {
+    if (session.name === name) sessionIds.add(session.id)
+  }
+  for (const sessionId of sessionIds) {
+    try {
+      await openWaClient.deleteSession(sessionId)
+    } catch (error) {
+      // tolerate "already gone"; otherwise surface the failure
+      const still = await openWaClient.getSession(sessionId).catch(() => null)
+      if (still) throw error
+    }
+  }
+}
+
 async function resolveOpenWaSession(
   sessionName: string,
   sessionId: string | null
@@ -368,7 +389,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'disconnect') {
-      await deleteOpenWaSessionsByName(sessionName, row.session_id)
+      try {
+        await purgeOpenWaSessionsStrict(sessionName, row.session_id)
+      } catch (error) {
+        return NextResponse.json(
+          {
+            error:
+              'Impossibile scollegare la sessione su OpenWA (servizio non raggiungibile). Riprova: la connessione NON è stata rimossa.',
+          },
+          { status: 502 }
+        )
+      }
       const updated = await updateInstance(supabase, row.id, {
         session_id: null,
         phone: null,
@@ -447,10 +478,24 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'delete') {
-      if (row.session_id && row.n8n_webhook_id) {
-        await openWaClient.deleteWebhook(row.session_id, row.n8n_webhook_id).catch(() => undefined)
+      // Only require OpenWA cleanup if this instance was actually connected.
+      // For a never-connected instance we just remove the empty DB row.
+      if (row.session_id) {
+        try {
+          if (row.n8n_webhook_id) {
+            await openWaClient.deleteWebhook(row.session_id, row.n8n_webhook_id).catch(() => undefined)
+          }
+          await purgeOpenWaSessionsStrict(sessionName, row.session_id)
+        } catch (error) {
+          return NextResponse.json(
+            {
+              error:
+                'Impossibile rimuovere la sessione su OpenWA (servizio non raggiungibile). Riprova: la configurazione NON è stata rimossa.',
+            },
+            { status: 502 }
+          )
+        }
       }
-      await deleteOpenWaSessionsByName(sessionName, row.session_id)
       const { error: deleteError } = await supabase
         .from('whatsapp_instances')
         .delete()
