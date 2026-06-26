@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { signWaConnectToken } from '@/app/lib/waConnectToken'
+import { getOpenWaSessionName } from '@/app/lib/openwaApi'
+import { purgeOpenWaSessionsStrict } from '@/app/lib/openwaSession'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,13 +54,40 @@ export async function POST(request: NextRequest) {
   const supabaseAdmin = getSupabaseAdmin()
   const { data: instance, error } = await supabaseAdmin
     .from('whatsapp_instances')
-    .select('id, user_id, label')
+    .select('id, user_id, label, session_id, session_name')
     .eq('id', instanceId)
     .maybeSingle()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!instance || instance.user_id !== admin.id) {
     return NextResponse.json({ error: 'Istanza non trovata' }, { status: 404 })
   }
+
+  // Generare un link significa "preparare una nuova scansione": scolleghiamo la
+  // sessione OpenWA eventualmente attiva e azzeriamo la riga, così la pagina
+  // pubblica mostra SEMPRE un QR fresco (e non il numero collegato in precedenza).
+  const sessionName = instance.session_name ?? getOpenWaSessionName(instance.id)
+  try {
+    await purgeOpenWaSessionsStrict(sessionName, instance.session_id)
+  } catch {
+    return NextResponse.json(
+      { error: 'Servizio WhatsApp non raggiungibile: riprova tra poco.' },
+      { status: 502 }
+    )
+  }
+  await supabaseAdmin
+    .from('whatsapp_instances')
+    .update({
+      session_id: null,
+      phone: null,
+      push_name: null,
+      profile_image_url: null,
+      status: 'not_connected',
+      remote_status: null,
+      session_name: getOpenWaSessionName(instance.id),
+      last_error: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', instance.id)
 
   const origin = request.headers.get('origin')
     ?? request.headers.get('referer')?.split('/').slice(0, 3).join('/')

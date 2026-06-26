@@ -330,6 +330,16 @@ function InstanceCard({
   }
 
   const handleGenerateLink = async () => {
+    // Generare il link prepara una NUOVA scansione: se c'è già un numero
+    // collegato verrà scollegato per permettere il nuovo QR.
+    if (inst.status === 'connected') {
+      const ok = confirm(
+        `Generando il link, il numero attualmente collegato${
+          inst.phone ? ` (+${inst.phone})` : ''
+        } verrà scollegato per consentire una nuova scansione. Continuare?`
+      )
+      if (!ok) return
+    }
     setGenerating(true)
     onMessage(null)
     setShareLink(null)
@@ -342,6 +352,17 @@ function InstanceCard({
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Errore.')
       setShareLink(data.link as string)
+      // L'istanza è stata azzerata lato server: rifletti lo stato non collegato.
+      apply({
+        ...inst,
+        status: 'not_connected',
+        phone: null,
+        pushName: null,
+        profileImageUrl: null,
+        sessionId: null,
+        aiPaused: false,
+      })
+      setQr(null)
       onMessage({ type: 'success', text: data.message || 'Link generato.' })
     } catch (error) {
       onMessage({ type: 'error', text: error instanceof Error ? error.message : 'Errore.' })
