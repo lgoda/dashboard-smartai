@@ -44,7 +44,7 @@ export function Navigation() {
   const isAuthPage = pathname === '/' || pathname === '/login' || pathname === '/signup'
   // Pagine pubbliche "standalone": nessun redirect, né da loggati né da non loggati
   // (es. impostazione password via link riutilizzabile, reset sessione).
-  const isStandalonePage = pathname === '/imposta-password' || pathname === '/reset'
+  const isStandalonePage = pathname === '/imposta-password' || pathname === '/reset' || pathname === '/collega-whatsapp'
 
   useEffect(() => {
     if (!loading && !isStandalonePage) {
@@ -72,7 +72,7 @@ export function Navigation() {
     exact ? pathname === href : pathname?.startsWith(href)
 
   const linkClass = (href: string, exact: boolean) =>
-    `px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+    `px-2.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
       isActive(href, exact)
         ? 'bg-[#F59E0B] text-[#1e293b]'
         : 'text-white hover:bg-[#222428] hover:text-[#F59E0B]'
@@ -88,15 +88,15 @@ export function Navigation() {
   return (
     <>
       <nav className="bg-[#18191C] border-b border-[#222428] sticky top-0 z-50 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16 gap-3">
 
             {/* Logo + desktop links */}
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center gap-3 min-w-0">
               <Link href="/dashboard" className="flex items-center space-x-2 shrink-0">
                 <img src="/logo-smartservice.png" alt="SmartService" className="h-8 w-auto" />
               </Link>
-              <div className="hidden md:flex space-x-0.5">
+              <div className="hidden xl:flex items-center space-x-0.5">
                 {NAV_LINKS.map(l => (
                   <Link key={l.href} href={l.href} className={linkClass(l.href, l.exact)}>
                     {l.label}
@@ -116,11 +116,11 @@ export function Navigation() {
             </div>
 
             {/* Right side */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               {profile?.role === 'admin' && (
                 <>
                   <Link href="/dashboard/admin/billing"
-                    className={`hidden sm:block px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                    className={`hidden xl:block px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                       pathname?.startsWith('/dashboard/admin/billing')
                         ? 'bg-[#F59E0B]/20 text-[#F59E0B] border-[#F59E0B]/40'
                         : 'text-gray-400 border-[#222428] hover:bg-[#222428] hover:text-white'
@@ -128,7 +128,7 @@ export function Navigation() {
                     Billing
                   </Link>
                   <Link href="/dashboard/admin"
-                    className={`hidden sm:block px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                    className={`hidden xl:block px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                       pathname === '/dashboard/admin'
                         ? 'bg-red-500/20 text-red-400 border-red-500/40'
                         : 'text-gray-400 border-[#222428] hover:bg-[#222428] hover:text-white'
@@ -156,7 +156,7 @@ export function Navigation() {
               {/* Hamburger */}
               <button
                 onClick={() => setMobileOpen(o => !o)}
-                className="md:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-[#222428] transition-colors"
+                className="xl:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-[#222428] transition-colors"
                 aria-label="Menu"
               >
                 {mobileOpen ? (
@@ -175,7 +175,7 @@ export function Navigation() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="md:hidden border-t border-[#222428] bg-[#18191C] px-4 py-3 space-y-1">
+          <div className="xl:hidden border-t border-[#222428] bg-[#18191C] px-4 py-3 space-y-1">
             {NAV_LINKS.map(l => (
               <Link key={l.href} href={l.href} className={mobileLinkClass(l.href, l.exact)}>
                 {l.label}

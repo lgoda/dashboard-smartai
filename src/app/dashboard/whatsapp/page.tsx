@@ -26,7 +26,8 @@ type WhatsAppInstance = {
 type Msg = { type: 'success' | 'error'; text: string } | null
 
 export default function WhatsAppPage() {
-  const { user, accessToken, loading: authLoading } = useAuth()
+  const { user, profile, accessToken, loading: authLoading } = useAuth()
+  const isAdmin = profile?.role === 'admin'
   const [hasWhatsapp, setHasWhatsapp] = useState<boolean | null>(null)
   const [instances, setInstances] = useState<WhatsAppInstance[]>([])
   const [loading, setLoading] = useState(true)
@@ -177,6 +178,7 @@ export default function WhatsAppPage() {
             key={inst.id}
             instance={inst}
             headers={headers}
+            isAdmin={isAdmin}
             onChange={updateInState}
             onDeleted={removeFromState}
             onMessage={setMessage}
@@ -190,12 +192,14 @@ export default function WhatsAppPage() {
 function InstanceCard({
   instance,
   headers,
+  isAdmin,
   onChange,
   onDeleted,
   onMessage,
 }: {
   instance: WhatsAppInstance
   headers: () => Record<string, string>
+  isAdmin: boolean
   onChange: (i: WhatsAppInstance) => void
   onDeleted: (id: string) => void
   onMessage: (m: Msg) => void
@@ -206,6 +210,9 @@ function InstanceCard({
   const [webhookUrl, setWebhookUrl] = useState(instance.n8nWebhookUrl || '')
   const [agentName, setAgentName] = useState(instance.n8nAgentName || '')
   const [savingAgent, setSavingAgent] = useState(false)
+  const [linkDays, setLinkDays] = useState(7)
+  const [generating, setGenerating] = useState(false)
+  const [shareLink, setShareLink] = useState<string | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const apply = useCallback(
@@ -319,6 +326,37 @@ function InstanceCard({
       onMessage({ type: 'error', text: error instanceof Error ? error.message : 'Errore.' })
     } finally {
       setSavingAgent(false)
+    }
+  }
+
+  const handleGenerateLink = async () => {
+    setGenerating(true)
+    onMessage(null)
+    setShareLink(null)
+    try {
+      const res = await fetch('/api/admin/whatsapp/connect-link', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ instanceId: inst.id, days: linkDays }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || 'Errore.')
+      setShareLink(data.link as string)
+      onMessage({ type: 'success', text: data.message || 'Link generato.' })
+    } catch (error) {
+      onMessage({ type: 'error', text: error instanceof Error ? error.message : 'Errore.' })
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const copyLink = async () => {
+    if (!shareLink) return
+    try {
+      await navigator.clipboard.writeText(shareLink)
+      onMessage({ type: 'success', text: 'Link copiato negli appunti.' })
+    } catch {
+      onMessage({ type: 'error', text: 'Copia non riuscita: seleziona e copia manualmente.' })
     }
   }
 
@@ -454,6 +492,52 @@ function InstanceCard({
           </div>
         )}
       </div>
+
+      {/* Admin: link di scansione per il cliente */}
+      {isAdmin && (
+        <div className="px-6 py-5 border-t border-[#141517]">
+          <h3 className="text-base font-semibold text-white mb-1">Link di scansione per il cliente</h3>
+          <p className="text-gray-400 text-sm mb-4">
+            Genera un link da inviare al cliente: lo apre senza accedere alla dashboard, scansiona il QR e
+            collega il suo WhatsApp. Il numero collegato comparirà qui sopra.
+          </p>
+          <div className="flex items-end gap-3">
+            <div className="shrink-0">
+              <label className="block text-sm text-gray-300 mb-1">Validità (giorni)</label>
+              <input
+                type="number"
+                min={1}
+                max={30}
+                value={linkDays}
+                onChange={(e) => setLinkDays(Math.min(30, Math.max(1, Number(e.target.value) || 7)))}
+                className="w-20 px-3 py-2 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] text-white"
+              />
+            </div>
+            <button
+              onClick={handleGenerateLink}
+              disabled={generating}
+              className="flex-1 bg-[#F59E0B] text-[#1e293b] px-5 py-2.5 rounded-lg font-medium disabled:opacity-50 hover:bg-[#D97706] transition-colors whitespace-nowrap"
+            >
+              {generating ? 'Generazione…' : 'Genera link di scansione'}
+            </button>
+          </div>
+          {shareLink && (
+            <div className="mt-3 rounded-lg border border-[#141517] bg-[#141517] p-3">
+              <div className="flex items-start gap-2">
+                <code className="flex-1 min-w-0 break-all text-xs text-gray-300 leading-relaxed">
+                  {shareLink}
+                </code>
+                <button
+                  onClick={copyLink}
+                  className="shrink-0 px-3 py-1.5 text-xs rounded-md font-medium bg-[#222428] text-white border border-[#141517] hover:bg-[#2C2E31] transition-colors"
+                >
+                  Copia
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* n8n agent */}
       <div className="px-6 py-5 border-t border-[#141517]">
