@@ -8,6 +8,7 @@ import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
 import Pagination from '@/app/components/Pagination'
 import { useDebounce } from '@/app/lib/useDebounce'
+import { MessageSquare, FileText, MessageCircle, BarChart3, TrendingUp } from '@/app/components/icons'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -254,22 +255,22 @@ export default function ConversationsPage() {
       {/* Header */}
       <div className="flex items-center space-x-3">
         <div className="w-10 h-10 bg-[#F59E0B] rounded-xl flex items-center justify-center">
-          <span className="text-[#1e293b] text-lg">💬</span>
+          <MessageSquare className="w-5 h-5 text-[#1b1d20]" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-white">Conversazioni</h1>
+          <h1 className="font-display text-3xl font-bold text-white">Conversazioni</h1>
           <p className="text-gray-300 mt-1">
-            Mostrando {startItem}-{endItem} di {filteredSessions.length} sessioni ({totalSessions} totali) • {filteredMessages} messaggi
+            Mostrando <span className="font-mono tabular-nums">{startItem}-{endItem}</span> di <span className="font-mono tabular-nums">{filteredSessions.length}</span> sessioni (<span className="font-mono tabular-nums">{totalSessions}</span> totali) · <span className="font-mono tabular-nums">{filteredMessages}</span> messaggi
             {activeFiltersCount > 0 && (
-              <span className="text-[#F59E0B] font-medium"> • {activeFiltersCount} filtri attivi</span>
+              <span className="text-[#F59E0B] font-medium"> · {activeFiltersCount} filtri attivi</span>
             )}
           </p>
         </div>
       </div>
 
       {/* Filtri Avanzati */}
-      <div className="bg-gradient-to-br from-[#222428] to-[#18191C] rounded-xl p-6 shadow-lg border border-[#141517] hover:border-[#F59E0B]/20 transition-all duration-300">
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#141517]">
+      <div className="bg-gradient-to-br from-[var(--surface)] to-[var(--ink)] rounded-xl p-6 shadow-lg border border-[var(--line)] hover:border-[#F59E0B]/20 transition-all duration-300">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-[var(--line)]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#F59E0B]/10 rounded-lg flex items-center justify-center border border-[#F59E0B]/20">
               <svg className="w-5 h-5 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -277,14 +278,14 @@ export default function ConversationsPage() {
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Filtri e Ricerca</h3>
+              <h3 className="font-display text-lg font-semibold text-white">Filtri e ricerca</h3>
               <p className="text-xs text-gray-400 mt-0.5">Trova le conversazioni che stai cercando</p>
             </div>
           </div>
           {activeFiltersCount > 0 && (
             <button
               onClick={clearAllFilters}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-[#F59E0B] font-medium rounded-lg hover:bg-[#141517] transition-all duration-200"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-[#F59E0B] font-medium rounded-lg hover:bg-[var(--ink)] transition-all duration-200"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -310,7 +311,7 @@ export default function ConversationsPage() {
                 placeholder="Cerca in ID sessione, messaggi o mittente..."
                 value={filters.search}
                 onChange={(e) => updateFilter('search', e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white placeholder-gray-500 shadow-sm hover:shadow-md"
+                className="w-full pl-11 pr-4 py-2.5 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white placeholder-gray-500 shadow-sm hover:shadow-md"
               />
               <svg className="absolute left-3.5 top-3 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -344,7 +345,7 @@ export default function ConversationsPage() {
               id="sender"
               value={filters.sender}
               onChange={(e) => updateFilter('sender', e.target.value)}
-              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 font-medium text-white shadow-sm hover:shadow-md"
+              className="w-full px-4 py-2.5 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 font-medium text-white shadow-sm hover:shadow-md"
             >
               <option value="all">Tutti i messaggi</option>
               <option value="user">Solo utente</option>
@@ -353,7 +354,7 @@ export default function ConversationsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-5 border-t border-[#141517]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-5 border-t border-[var(--line)]">
           {/* Filtro Numero Messaggi */}
           <div>
             <label htmlFor="minMessages" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
@@ -368,7 +369,7 @@ export default function ConversationsPage() {
               min="0"
               value={filters.minMessages}
               onChange={(e) => updateFilter('minMessages', parseInt(e.target.value) || 0)}
-              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
+              className="w-full px-4 py-2.5 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
             />
           </div>
 
@@ -384,7 +385,7 @@ export default function ConversationsPage() {
               id="sortBy"
               value={filters.sortBy}
               onChange={(e) => updateFilter('sortBy', e.target.value as 'date' | 'messages' | 'session')}
-              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 font-medium text-white shadow-sm hover:shadow-md"
+              className="w-full px-4 py-2.5 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 font-medium text-white shadow-sm hover:shadow-md"
             >
               <option value="date">Data ultima attività</option>
               <option value="messages">Numero messaggi</option>
@@ -403,7 +404,7 @@ export default function ConversationsPage() {
               id="sortOrder"
               value={filters.sortOrder}
               onChange={(e) => updateFilter('sortOrder', e.target.value as 'asc' | 'desc')}
-              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 font-medium text-white shadow-sm hover:shadow-md"
+              className="w-full px-4 py-2.5 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 font-medium text-white shadow-sm hover:shadow-md"
             >
               <option value="desc">Decrescente</option>
               <option value="asc">Crescente</option>
@@ -413,7 +414,7 @@ export default function ConversationsPage() {
 
         {/* Filtri Attivi */}
         {activeFiltersCount > 0 && (
-          <div className="mt-6 pt-5 border-t border-[#141517]">
+          <div className="mt-6 pt-5 border-t border-[var(--line)]">
             <div className="flex items-center gap-2 mb-3">
               <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
@@ -455,58 +456,23 @@ export default function ConversationsPage() {
       </div>
 
       {/* Statistiche Filtrate */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Sessioni Visibili</p>
-              <p className="text-2xl font-bold text-white mt-1">{filteredSessions.length}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Sessioni visibili', value: filteredSessions.length, Icon: FileText },
+          { label: 'Messaggi visibili', value: filteredMessages, Icon: MessageCircle },
+          { label: 'Media per sessione', value: filteredSessions.length > 0 ? Math.round(filteredMessages / filteredSessions.length) : 0, Icon: BarChart3 },
+          { label: '% del totale', value: `${totalSessions > 0 ? Math.round((filteredSessions.length / totalSessions) * 100) : 0}%`, Icon: TrendingUp },
+        ].map(({ label, value, Icon }) => (
+          <div key={label} className="bg-[var(--surface)] rounded-2xl p-[18px] border border-[var(--line)]">
+            <div className="font-mono text-[10.5px] tracking-[.12em] uppercase text-[var(--mute)] flex items-center gap-2">
+              <Icon className="w-3.5 h-3.5 text-[var(--mute-2)]" />
+              {label}
             </div>
-            <div className="w-10 h-10 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
-              <span className="text-[#F59E0B]">🗂️</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Messaggi Visibili</p>
-              <p className="text-2xl font-bold text-white mt-1">{filteredMessages}</p>
-            </div>
-            <div className="w-10 h-10 bg-[#22C55E]/20 rounded-lg flex items-center justify-center">
-              <span className="text-[#22C55E]">💭</span>
+            <div className="font-mono font-semibold text-[30px] leading-none tracking-tight mt-3 tabular-nums text-[var(--text)]">
+              {value}
             </div>
           </div>
-        </div>
-
-        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Media per Sessione</p>
-              <p className="text-2xl font-bold text-white mt-1">
-                {filteredSessions.length > 0 ? Math.round(filteredMessages / filteredSessions.length) : 0}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
-              <span className="text-[#F59E0B]">📊</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">% del Totale</p>
-              <p className="text-2xl font-bold text-white mt-1">
-                {totalSessions > 0 ? Math.round((filteredSessions.length / totalSessions) * 100) : 0}%
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-[#222428] rounded-lg flex items-center justify-center border border-[#141517]">
-              <span className="text-gray-300">📈</span>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Pagination Top */}
@@ -525,18 +491,18 @@ export default function ConversationsPage() {
       <div className="space-y-4">
         {isLoading ? (
           [...Array(3)].map((_, i) => (
-            <div key={i} className="bg-[#222428] rounded-xl p-6 border border-[#141517]">
+            <div key={i} className="bg-[var(--surface)] rounded-xl p-6 border border-[var(--line)]">
               <div className="h-5 bg-[#141517] rounded w-64 mb-3 loading"></div>
               <div className="h-4 bg-[#141517] rounded w-full mb-2 loading"></div>
               <div className="h-4 bg-[#141517] rounded w-3/4 loading"></div>
             </div>
           ))
         ) : paginatedSessions.length === 0 && filteredSessions.length === 0 ? (
-          <div className="bg-[#222428] rounded-xl p-12 text-center shadow-sm border border-[#141517]">
-            <div className="w-16 h-16 bg-[#141517] rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-gray-500 text-2xl">💬</span>
+          <div className="bg-[var(--surface)] rounded-xl p-12 text-center shadow-sm border border-[var(--line)]">
+            <div className="w-16 h-16 bg-[#141517] rounded-full flex items-center justify-center mx-auto mb-4 border border-[var(--line)]">
+              <MessageSquare className="w-7 h-7 text-[var(--mute-2)]" />
             </div>
-            <h3 className="text-lg font-medium text-white mb-2">
+            <h3 className="font-display text-lg font-medium text-white mb-2">
               {activeFiltersCount > 0 ? 'Nessun risultato trovato' : 'Nessuna conversazione ancora'}
             </h3>
             <p className="text-gray-400">
@@ -547,11 +513,11 @@ export default function ConversationsPage() {
             </p>
           </div>
         ) : paginatedSessions.length === 0 ? (
-          <div className="bg-[#222428] rounded-xl p-12 text-center shadow-sm border border-[#141517]">
-            <div className="w-16 h-16 bg-[#141517] rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-gray-500 text-2xl">📄</span>
+          <div className="bg-[var(--surface)] rounded-xl p-12 text-center shadow-sm border border-[var(--line)]">
+            <div className="w-16 h-16 bg-[#141517] rounded-full flex items-center justify-center mx-auto mb-4 border border-[var(--line)]">
+              <FileText className="w-7 h-7 text-[var(--mute-2)]" />
             </div>
-            <h3 className="text-lg font-medium text-white mb-2">
+            <h3 className="font-display text-lg font-medium text-white mb-2">
               Nessun risultato in questa pagina
             </h3>
             <p className="text-gray-400">
@@ -565,9 +531,9 @@ export default function ConversationsPage() {
             const isExpanded = expandedSessions.has(sessionId)
             
             return (
-              <div key={sessionId} className="bg-[#222428] rounded-xl shadow-sm border border-[#141517] overflow-hidden card-hover">
+              <div key={sessionId} className="bg-[var(--surface)] rounded-xl shadow-sm border border-[var(--line)] overflow-hidden card-hover">
                 <div 
-                  className="p-6 cursor-pointer hover:bg-[#141517] transition-colors"
+                  className="p-6 cursor-pointer hover:bg-[var(--ink)] transition-colors"
                   onClick={() => toggleSession(sessionId)}
                 >
                   <div className="flex items-center justify-between">
@@ -610,7 +576,7 @@ export default function ConversationsPage() {
                 </div>
 
                 {isExpanded && (
-                  <div className="border-t border-[#141517] bg-[#141517]">
+                  <div className="border-t border-[var(--line)] bg-[#141517]">
                     <div className="p-6">
                       <h4 className="text-sm font-medium text-white mb-4">Cronologia completa</h4>
                       <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -622,7 +588,7 @@ export default function ConversationsPage() {
                             <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                               msg.sender === 'user' 
                                 ? 'bg-[#F59E0B] text-[#1e293b]' 
-                                : 'bg-[#222428] text-white border border-[#141517]'
+                                : 'bg-[var(--surface)] text-white border border-[var(--line)]'
                             }`}>
                               <div className="flex items-center space-x-2 mb-1">
                                 <span className="text-xs font-medium opacity-75">

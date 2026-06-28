@@ -8,6 +8,7 @@ import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
 import Pagination from '@/app/components/Pagination'
 import { useDebounce } from '@/app/lib/useDebounce'
+import { Users, MessageSquare, Target, BarChart3, Download, Inbox } from '@/app/components/icons'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -256,34 +257,29 @@ export default function LeadsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-[#F59E0B] rounded-xl flex items-center justify-center">
-            <span className="text-[#1e293b] text-lg">📇</span>
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-white">Lead Raccolti</h1>
-            <p className="text-gray-300 mt-1">
-              {totalCount} lead totali
-              {getActiveFiltersCount > 0 && (
-                <span className="text-[#F59E0B] font-medium"> • {getActiveFiltersCount} filtri attivi</span>
-              )}
-            </p>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <h1 className="font-display font-bold text-[34px] leading-[1.05] tracking-tight text-[var(--text)]">Lead raccolti</h1>
+          <p className="text-[var(--mute)] text-sm mt-1.5">
+            <span className="font-mono tabular-nums text-[var(--text)]">{totalCount}</span> lead totali
+            {getActiveFiltersCount > 0 && (
+              <span className="text-[var(--amber)] font-medium"> · {getActiveFiltersCount} filtri attivi</span>
+            )}
+          </p>
         </div>
 
         <button
           onClick={exportCSV}
           disabled={totalCount === 0}
-          className="btn-primary text-white px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-xl transition-shadow"
+          className="btn-primary px-5 py-2.5 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-shadow"
         >
-          <span>📥</span>
-          <span>Esporta CSV ({totalCount})</span>
+          <Download className="w-4 h-4" />
+          <span>Esporta CSV (<span className="font-mono tabular-nums">{totalCount}</span>)</span>
         </button>
       </div>
 
-      <div className="bg-gradient-to-br from-[#222428] to-[#18191C] rounded-xl p-6 shadow-lg border border-[#141517] hover:border-[#F59E0B]/20 transition-all duration-300">
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#141517]">
+      <div className="bg-gradient-to-br from-[var(--surface)] to-[var(--ink)] rounded-xl p-6 shadow-lg border border-[var(--line)] hover:border-[#F59E0B]/20 transition-all duration-300">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-[var(--line)]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#F59E0B]/10 rounded-lg flex items-center justify-center border border-[#F59E0B]/20">
               <svg className="w-5 h-5 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -291,14 +287,14 @@ export default function LeadsPage() {
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Filtri e Ricerca</h3>
+              <h3 className="font-display text-lg font-semibold text-[var(--text)]">Filtri e ricerca</h3>
               <p className="text-xs text-gray-400 mt-0.5">Trova i lead che stai cercando</p>
             </div>
           </div>
           {getActiveFiltersCount > 0 && (
             <button
               onClick={clearAllFilters}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-[#F59E0B] font-medium rounded-lg hover:bg-[#141517] transition-all duration-200"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-[#F59E0B] font-medium rounded-lg hover:bg-[var(--ink)] transition-all duration-200"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -323,7 +319,7 @@ export default function LeadsPage() {
                 placeholder="Cerca in nome, email, telefono, messaggio..."
                 value={filters.search}
                 onChange={(e) => updateFilter('search', e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white placeholder-gray-500 shadow-sm hover:shadow-md"
+                className="w-full pl-11 pr-4 py-2.5 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white placeholder-gray-500 shadow-sm hover:shadow-md"
               />
               <svg className="absolute left-3.5 top-3 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -355,7 +351,7 @@ export default function LeadsPage() {
               id="source"
               value={filters.source}
               onChange={(e) => updateFilter('source', e.target.value)}
-              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
+              className="w-full px-4 py-2.5 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
             >
               <option value="">Tutte le fonti</option>
               {sources.map(source => (
@@ -365,7 +361,7 @@ export default function LeadsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-5 border-t border-[#141517]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-5 border-t border-[var(--line)]">
           <div>
             <label htmlFor="hasMessage" className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
               <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -377,7 +373,7 @@ export default function LeadsPage() {
               id="hasMessage"
               value={filters.hasMessage}
               onChange={(e) => updateFilter('hasMessage', e.target.value)}
-              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
+              className="w-full px-4 py-2.5 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
             >
               <option value="all">Tutti i lead</option>
               <option value="with">Con messaggio</option>
@@ -396,7 +392,7 @@ export default function LeadsPage() {
               id="sortBy"
               value={filters.sortBy}
               onChange={(e) => updateFilter('sortBy', e.target.value as 'date' | 'name' | 'source')}
-              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
+              className="w-full px-4 py-2.5 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
             >
               <option value="date">Data</option>
               <option value="name">Nome</option>
@@ -415,7 +411,7 @@ export default function LeadsPage() {
               id="sortOrder"
               value={filters.sortOrder}
               onChange={(e) => updateFilter('sortOrder', e.target.value as 'asc' | 'desc')}
-              className="w-full px-4 py-2.5 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
+              className="w-full px-4 py-2.5 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] transition-all duration-200 text-white shadow-sm hover:shadow-md"
             >
               <option value="desc">Decrescente</option>
               <option value="asc">Crescente</option>
@@ -424,7 +420,7 @@ export default function LeadsPage() {
         </div>
 
         {getActiveFiltersCount > 0 && (
-          <div className="mt-6 pt-5 border-t border-[#141517]">
+          <div className="mt-6 pt-5 border-t border-[var(--line)]">
             <div className="flex items-center gap-2 mb-3">
               <svg className="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
@@ -465,54 +461,23 @@ export default function LeadsPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Lead Visibili</p>
-              <p className="text-2xl font-bold text-white mt-1">{leads.length}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Lead visibili', value: leads.length, Icon: Users },
+          { label: 'Con messaggio', value: leadsWithMessage, Icon: MessageSquare },
+          { label: 'Fonti uniche', value: uniqueSources, Icon: Target },
+          { label: 'Totale', value: totalCount, Icon: BarChart3 },
+        ].map(({ label, value, Icon }) => (
+          <div key={label} className="bg-[var(--surface)] rounded-2xl p-[18px] border border-[var(--line)]">
+            <div className="font-mono text-[10.5px] tracking-[.12em] uppercase text-[var(--mute)] flex items-center gap-2">
+              <Icon className="w-3.5 h-3.5 text-[var(--mute-2)]" />
+              {label}
             </div>
-            <div className="w-10 h-10 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
-              <span className="text-[#F59E0B]">📇</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Con Messaggio</p>
-              <p className="text-2xl font-bold text-white mt-1">{leadsWithMessage}</p>
-            </div>
-            <div className="w-10 h-10 bg-[#22C55E]/20 rounded-lg flex items-center justify-center">
-              <span className="text-[#22C55E]">💬</span>
+            <div className="font-mono font-semibold text-[30px] leading-none tracking-tight mt-3 tabular-nums text-[var(--text)]">
+              {value}
             </div>
           </div>
-        </div>
-
-        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Fonti Uniche</p>
-              <p className="text-2xl font-bold text-white mt-1">{uniqueSources}</p>
-            </div>
-            <div className="w-10 h-10 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
-              <span className="text-[#F59E0B]">🎯</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Totale</p>
-              <p className="text-2xl font-bold text-white mt-1">{totalCount}</p>
-            </div>
-            <div className="w-10 h-10 bg-[#222428] rounded-lg flex items-center justify-center border border-[#141517]">
-              <span className="text-gray-300">📊</span>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
       {totalCount > itemsPerPage && (
@@ -529,7 +494,7 @@ export default function LeadsPage() {
         />
       )}
 
-      <div className="bg-[#222428] rounded-xl shadow-sm border border-[#141517] overflow-hidden">
+      <div className="bg-[var(--surface)] rounded-xl shadow-sm border border-[var(--line)] overflow-hidden">
         {isLoading ? (
           <div className="p-6">
             <div className="space-y-4">
@@ -540,10 +505,10 @@ export default function LeadsPage() {
           </div>
         ) : leads.length === 0 ? (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-[#141517] rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-gray-500 text-2xl">📇</span>
+            <div className="w-16 h-16 bg-[#141517] rounded-full flex items-center justify-center mx-auto mb-4 border border-[var(--line)]">
+              <Inbox className="w-7 h-7 text-[var(--mute-2)]" />
             </div>
-            <h3 className="text-lg font-medium text-white mb-2">
+            <h3 className="font-display text-lg font-medium text-white mb-2">
               {getActiveFiltersCount > 0 ? 'Nessun risultato trovato' : 'Nessun lead ancora'}
             </h3>
             <p className="text-gray-400">
@@ -556,7 +521,7 @@ export default function LeadsPage() {
         ) : (
           <>
             {/* Mobile card view */}
-            <div className="md:hidden divide-y divide-[#141517]">
+            <div className="md:hidden divide-y divide-[var(--line-soft)]">
               {leads.map((lead) => (
                 <div key={lead.id} className="p-4 space-y-2">
                   <div className="flex items-center justify-between">
@@ -594,7 +559,7 @@ export default function LeadsPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Data</th>
                   </tr>
                 </thead>
-                <tbody className="bg-[#222428] divide-y divide-[#141517]">
+                <tbody className="bg-[var(--surface)] divide-y divide-[var(--line-soft)]">
                   {leads.map((lead) => (
                     <tr key={lead.id} className="table-row">
                       <td className="px-6 py-4">
@@ -626,8 +591,8 @@ export default function LeadsPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-white">{new Date(lead.created_at).toLocaleDateString('it-IT')}</div>
-                        <div className="text-sm text-gray-400">{new Date(lead.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</div>
+                        <div className="font-mono text-sm tabular-nums text-white">{new Date(lead.created_at).toLocaleDateString('it-IT')}</div>
+                        <div className="font-mono text-sm tabular-nums text-gray-400">{new Date(lead.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</div>
                       </td>
                     </tr>
                   ))}

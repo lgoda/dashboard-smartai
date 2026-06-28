@@ -261,31 +261,31 @@ export default function BillingPage() {
   const tabBtn = (t: Tab, label: string) => (
     <button
       onClick={() => setTab(t)}
-      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${tab === t ? 'bg-[#F59E0B] text-[#1e293b]' : 'text-gray-400 hover:text-white hover:bg-[#222428]'}`}
+      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${tab === t ? 'bg-[#F59E0B] text-[#1e293b]' : 'text-gray-400 hover:text-white hover:bg-[var(--surface-2)]'}`}
     >
       {label}
     </button>
   )
 
   return (
-    <div className="min-h-screen bg-[#1e1f22] text-white p-4 sm:p-6">
+    <div className="min-h-screen bg-[var(--ink)] text-white p-4 sm:p-6">
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-xl font-bold text-white mb-1">Fatturazione</h1>
+        <h1 className="font-display text-2xl font-bold text-white mb-1">Fatturazione</h1>
         <p className="text-gray-400 text-sm mb-5">
           {isPostpaid ? 'Consumo a chiamata — fatturazione mensile' : 'Saldo minuti, acquisto pacchetti e fatture'}
         </p>
 
         {/* Balance summary always visible */}
         {isPostpaid ? (
-          <div className="rounded-2xl mb-5 border bg-[#2C2E31] border-[#3A3D42] overflow-hidden">
+          <div className="signal-top relative rounded-2xl mb-5 border bg-[var(--surface)] border-[var(--line)] overflow-hidden">
             {/* Main spend row */}
             <div className="p-5 flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs text-gray-400 uppercase tracking-wide">Spesa attuale</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" title="Aggiornamento automatico ogni 30s" />
+                <div className="flex items-center gap-2 mb-1.5">
+                <span className="font-mono text-[10.5px] text-[var(--mute)] uppercase tracking-[.14em]">Spesa attuale</span>
+                <span className="live-dot" title="Aggiornamento automatico ogni 30s" />
               </div>
-                <div className={`text-4xl font-bold tabular-nums ${outstandingCents > 0 ? 'text-white' : 'text-gray-500'}`}>
+                <div className={`font-mono text-4xl font-semibold tracking-tight tabular-nums ${outstandingCents > 0 ? 'text-white' : 'text-[var(--mute-2)]'}`}>
                   €{(outstandingCents / 100).toFixed(2)}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">{fmt(Math.abs(balanceMin))} consumati</div>
@@ -298,7 +298,7 @@ export default function BillingPage() {
               )}
             </div>
             {/* Payment terms note */}
-            <div className="px-5 py-3 bg-[#1e1f22] border-t border-[#3A3D42] flex items-start gap-2">
+            <div className="px-5 py-3 bg-[var(--ink)] border-t border-[var(--line)] flex items-start gap-2">
               <svg className="w-3.5 h-3.5 text-gray-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -315,9 +315,9 @@ export default function BillingPage() {
             </div>
           </div>
         ) : (
-          <div className={`rounded-2xl p-5 mb-5 border flex items-center justify-between ${isLow ? 'bg-red-900/20 border-red-500/30' : 'bg-[#2C2E31] border-[#3A3D42]'}`}>
+          <div className={`rounded-2xl p-5 mb-5 border flex items-center justify-between ${isLow ? 'bg-red-900/20 border-red-500/30' : 'bg-[var(--surface)] border-[var(--line)]'}`}>
             <div>
-              <div className={`text-3xl font-bold ${isLow ? 'text-red-400' : 'text-[#F59E0B]'}`}>
+              <div className={`font-mono text-3xl font-semibold tracking-tight tabular-nums ${isLow ? 'text-red-400' : 'text-[#F59E0B]'}`}>
                 {fmt(balanceMin)}
               </div>
               <div className="text-xs text-gray-400 mt-0.5">minuti disponibili</div>
@@ -336,7 +336,7 @@ export default function BillingPage() {
 
         {/* Metodo di pagamento — only for postpaid/hybrid */}
         {isPostpaid && (
-          <div className="rounded-2xl mb-5 border bg-[#2C2E31] border-[#3A3D42] p-5">
+          <div className="rounded-2xl mb-5 border bg-[var(--surface)] border-[var(--line)] p-5">
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="flex-1 min-w-0">
                 <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">Metodo di pagamento</div>
@@ -344,7 +344,7 @@ export default function BillingPage() {
                   <div className="text-sm text-gray-500">Caricamento...</div>
                 ) : paymentMethod ? (
                   <div className="flex items-center gap-3 flex-wrap">
-                    <div className="px-2.5 py-1 rounded bg-[#1e1f22] border border-[#3A3D42] text-sm">
+                    <div className="px-2.5 py-1 rounded bg-[var(--ink)] border border-[var(--line)] text-sm">
                       <span className="capitalize font-medium text-white">{paymentMethod.brand}</span>
                       <span className="text-gray-400 mx-1.5">····</span>
                       <span className="font-mono text-white">{paymentMethod.last4}</span>
@@ -382,7 +382,7 @@ export default function BillingPage() {
                   <>
                     <button
                       onClick={() => setShowAddCard(true)}
-                      className="px-3 py-1.5 text-xs font-medium text-gray-300 border border-[#3A3D42] rounded-lg hover:bg-[#3A3D42] transition-colors"
+                      className="px-3 py-1.5 text-xs font-medium text-gray-300 border border-[var(--line)] rounded-lg hover:bg-[var(--surface-2)] transition-colors"
                     >
                       Sostituisci
                     </button>
@@ -420,7 +420,7 @@ export default function BillingPage() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-5 bg-[#2C2E31] p-1 rounded-xl w-fit">
+        <div className="flex gap-1 mb-5 bg-[var(--surface)] p-1 rounded-xl w-fit">
           {tabBtn('saldo',    'Movimenti')}
           {!isPostpaid && tabBtn('pacchetti','Pacchetti')}
           {tabBtn('fatture',  'Fatture')}
@@ -428,15 +428,15 @@ export default function BillingPage() {
 
         {/* ── TAB: MOVIMENTI ── */}
         {tab === 'saldo' && (
-          <div className="bg-[#2C2E31] rounded-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#3A3D42] flex items-center justify-between">
-              <h2 className="font-semibold text-white text-sm">Storico movimenti</h2>
+          <div className="bg-[var(--surface)] rounded-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[var(--line)] flex items-center justify-between">
+              <h2 className="font-display font-semibold text-white text-sm">Storico movimenti</h2>
               <span className="text-xs text-gray-400">{ledgerTotal} totali</span>
             </div>
             {ledger.length === 0 && !ledgerLoading ? (
               <div className="p-6 text-center text-gray-400 text-sm">Nessun movimento ancora</div>
             ) : (
-              <div className="divide-y divide-[#3A3D42]">
+              <div className="divide-y divide-[var(--line-soft)]">
                 {ledger.map(e => {
                   const meta = TYPE_LABEL[e.type] ?? { label: e.type, color: 'text-gray-400' }
                   const isCredit = e.minutes_delta >= 0
@@ -466,7 +466,7 @@ export default function BillingPage() {
               </div>
             )}
             {ledgerMore && (
-              <div className="px-5 py-4 border-t border-[#3A3D42]">
+              <div className="px-5 py-4 border-t border-[var(--line)]">
                 <button
                   onClick={() => { const next = ledgerPage + 1; setLedgerPage(next); fetchLedger(next) }}
                   disabled={ledgerLoading}
@@ -488,16 +488,16 @@ export default function BillingPage() {
               </div>
             )}
             {packages.length === 0 ? (
-              <div className="bg-[#2C2E31] rounded-xl p-6 text-gray-400 text-sm text-center">
+              <div className="bg-[var(--surface)] rounded-xl p-6 text-gray-400 text-sm text-center">
                 Nessun pacchetto disponibile al momento
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {packages.map(pkg => (
-                  <div key={pkg.id} className="bg-[#2C2E31] rounded-xl p-5 border border-[#3A3D42] flex flex-col gap-3 hover:border-[#F59E0B]/40 transition-colors">
+                  <div key={pkg.id} className="bg-[var(--surface)] rounded-xl p-5 border border-[var(--line)] flex flex-col gap-3 hover:border-[#F59E0B]/40 transition-colors">
                     <div>
-                      <div className="font-semibold text-white">{pkg.name}</div>
-                      <div className="text-2xl font-bold text-[#F59E0B] mt-1">{pkg.minutes} min</div>
+                      <div className="font-display font-semibold text-white">{pkg.name}</div>
+                      <div className="font-mono text-2xl font-semibold tabular-nums text-[#F59E0B] mt-1">{pkg.minutes} min</div>
                       <div className="text-sm text-gray-400 mt-0.5">
                         €{(pkg.price_cents / 100).toFixed(2)} — €{(pkg.price_cents / pkg.minutes / 100).toFixed(3)}/min
                       </div>
@@ -518,15 +518,15 @@ export default function BillingPage() {
 
         {/* ── TAB: FATTURE ── */}
         {tab === 'fatture' && (
-          <div className="bg-[#2C2E31] rounded-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#3A3D42] flex items-center justify-between">
-              <h2 className="font-semibold text-white text-sm">Fatture</h2>
+          <div className="bg-[var(--surface)] rounded-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[var(--line)] flex items-center justify-between">
+              <h2 className="font-display font-semibold text-white text-sm">Fatture</h2>
               <span className="text-xs text-gray-400">{invoicesTotal} totali</span>
             </div>
             {invoices.length === 0 && !invoicesLoading ? (
               <div className="p-6 text-center text-gray-400 text-sm">Nessuna fattura ancora</div>
             ) : (
-              <div className="divide-y divide-[#3A3D42]">
+              <div className="divide-y divide-[var(--line-soft)]">
                 {invoices.map(inv => (
                   <div key={inv.id} className="px-5 py-4 flex items-start gap-3">
                     <div className="flex-1 min-w-0">
@@ -566,7 +566,7 @@ export default function BillingPage() {
                               href={inv.stripe_hosted_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs px-2 py-1 rounded border border-[#3A3D42] text-gray-300 hover:bg-[#3A3D42] transition-colors"
+                              className="text-xs px-2 py-1 rounded border border-[var(--line)] text-gray-300 hover:bg-[var(--surface-2)] transition-colors"
                             >
                               Visualizza
                             </a>
@@ -576,7 +576,7 @@ export default function BillingPage() {
                               href={inv.stripe_pdf_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs px-2 py-1 rounded border border-[#3A3D42] text-gray-300 hover:bg-[#3A3D42] transition-colors"
+                              className="text-xs px-2 py-1 rounded border border-[var(--line)] text-gray-300 hover:bg-[var(--surface-2)] transition-colors"
                             >
                               PDF
                             </a>
@@ -592,7 +592,7 @@ export default function BillingPage() {
               </div>
             )}
             {invoicesMore && (
-              <div className="px-5 py-4 border-t border-[#3A3D42]">
+              <div className="px-5 py-4 border-t border-[var(--line)]">
                 <button
                   onClick={() => { const next = invoicePage + 1; setInvoicePage(next); fetchInvoices(next) }}
                   disabled={invoicesLoading}

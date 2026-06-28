@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/app/lib/supabaseClient'
 import { useAuth } from '@/app/components/AuthProvider'
 import { pageCache } from '@/app/lib/pageCache'
+import { Settings, MessageSquare, Phone } from '@/app/components/icons'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -522,10 +523,10 @@ export default function SettingsPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-[#222428] rounded-lg loading"></div>
-          <div className="h-8 bg-[#222428] rounded w-48 loading"></div>
+          <div className="w-8 h-8 bg-[var(--surface)] rounded-lg loading"></div>
+          <div className="h-8 bg-[var(--surface)] rounded w-48 loading"></div>
         </div>
-        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
+        <div className="bg-[var(--surface)] rounded-xl p-6 shadow-sm border border-[var(--line)]">
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="h-16 bg-[#141517] rounded loading"></div>
@@ -542,10 +543,10 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div className="flex items-center space-x-3">
         <div className="w-10 h-10 bg-[#F59E0B] rounded-xl flex items-center justify-center">
-          <span className="text-[#1e293b] text-lg">⚙️</span>
+          <Settings className="w-5 h-5 text-[#1b1d20]" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-white">Impostazioni</h1>
+          <h1 className="font-display text-3xl font-bold text-white">Impostazioni</h1>
           <p className="text-gray-300 mt-1">Gestisci i tuoi servizi e configurazioni</p>
         </div>
       </div>
@@ -560,13 +561,13 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
-        <h2 className="text-xl font-semibold text-white mb-4">Servizi Attivi</h2>
+      <div className="bg-[var(--surface)] rounded-xl p-6 shadow-sm border border-[var(--line)]">
+        <h2 className="font-display text-xl font-semibold text-white mb-4">Servizi Attivi</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex items-center justify-between p-4 bg-[#141517] rounded-lg">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
-                <span className="text-[#F59E0B]">💬</span>
+                <MessageSquare className="w-5 h-5 text-[#F59E0B]" />
               </div>
               <div>
                 <p className="font-medium text-white">Chatbot</p>
@@ -576,7 +577,7 @@ export default function SettingsPage() {
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
               services?.has_chatbot
                 ? 'bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30'
-                : 'bg-[#141517] text-gray-500 border border-[#141517]'
+                : 'bg-[#141517] text-gray-500 border border-[var(--line)]'
             }`}>
               {services?.has_chatbot ? 'Attivo' : 'Disabilitato'}
             </span>
@@ -585,7 +586,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between p-4 bg-[#141517] rounded-lg">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
-                <span className="text-[#F59E0B]">📞</span>
+                <Phone className="w-5 h-5 text-[#F59E0B]" />
               </div>
               <div>
                 <p className="font-medium text-white">Chiamate IA</p>
@@ -595,7 +596,7 @@ export default function SettingsPage() {
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
               services?.has_ai_calls || tokenData || retellTokenData
                 ? 'bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30'
-                : 'bg-[#141517] text-gray-500 border border-[#141517]'
+                : 'bg-[#141517] text-gray-500 border border-[var(--line)]'
             }`}>
               {services?.has_ai_calls || tokenData || retellTokenData ? 'Attivo' : 'Disabilitato'}
             </span>
@@ -603,8 +604,8 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
-        <h2 className="text-xl font-semibold text-white mb-4">Configurazione ElevenLabs</h2>
+      <div className="bg-[var(--surface)] rounded-xl p-6 shadow-sm border border-[var(--line)]">
+        <h2 className="font-display text-xl font-semibold text-white mb-4">Configurazione ElevenLabs</h2>
 
         {tokenData && (
           <div className="mb-6 p-4 bg-[#F59E0B]/20 border border-[#F59E0B]/30 rounded-lg">
@@ -639,7 +640,7 @@ export default function SettingsPage() {
                 value={apiToken}
                 onChange={(e) => setApiToken(e.target.value)}
                 placeholder="Inserisci il tuo token ElevenLabs"
-                className="w-full px-4 py-2 pr-24 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] transition-colors text-white placeholder-gray-500"
+                className="w-full px-4 py-2 pr-24 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] transition-colors text-white placeholder-gray-500"
               />
               <button
                 type="button"
@@ -683,8 +684,8 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
-        <h2 className="text-xl font-semibold text-white mb-4">Configurazione Retell AI</h2>
+      <div className="bg-[var(--surface)] rounded-xl p-6 shadow-sm border border-[var(--line)]">
+        <h2 className="font-display text-xl font-semibold text-white mb-4">Configurazione Retell AI</h2>
 
         {retellTokenData && (
           <div className="mb-6 p-4 bg-[#F59E0B]/20 border border-[#F59E0B]/30 rounded-lg">
@@ -719,7 +720,7 @@ export default function SettingsPage() {
                 value={retellApiToken}
                 onChange={(e) => setRetellApiToken(e.target.value)}
                 placeholder="Inserisci il tuo token Retell AI"
-                className="w-full px-4 py-2 pr-24 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] transition-colors text-white placeholder-gray-500"
+                className="w-full px-4 py-2 pr-24 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] transition-colors text-white placeholder-gray-500"
               />
               <button
                 type="button"
@@ -763,8 +764,8 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
-        <h2 className="text-xl font-semibold text-white mb-4">Configurazione GoHighLevel (CRM)</h2>
+      <div className="bg-[var(--surface)] rounded-xl p-6 shadow-sm border border-[var(--line)]">
+        <h2 className="font-display text-xl font-semibold text-white mb-4">Configurazione GoHighLevel (CRM)</h2>
 
         {ghlTokenData && (
           <div className="mb-6 p-4 bg-[#F59E0B]/20 border border-[#F59E0B]/30 rounded-lg">
@@ -798,7 +799,7 @@ export default function SettingsPage() {
                 value={ghlApiToken}
                 onChange={(e) => setGhlApiToken(e.target.value)}
                 placeholder="Inserisci il tuo token GHL"
-                className="w-full px-4 py-2 pr-24 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] transition-colors text-white placeholder-gray-500"
+                className="w-full px-4 py-2 pr-24 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] transition-colors text-white placeholder-gray-500"
               />
               <button
                 type="button"
@@ -820,7 +821,7 @@ export default function SettingsPage() {
               value={ghlLocationId}
               onChange={(e) => setGhlLocationId(e.target.value)}
               placeholder="Es. abc123xyz"
-              className="w-full px-4 py-2 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] transition-colors text-white placeholder-gray-500"
+              className="w-full px-4 py-2 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] transition-colors text-white placeholder-gray-500"
             />
             <p className="text-xs text-gray-400 mt-2">
               Trovi il Location ID in GoHighLevel → Impostazioni → Business Info
@@ -848,8 +849,8 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
-        <h2 className="text-xl font-semibold text-white mb-1">Configurazione OpenAI</h2>
+      <div className="bg-[var(--surface)] rounded-xl p-6 shadow-sm border border-[var(--line)]">
+        <h2 className="font-display text-xl font-semibold text-white mb-1">Configurazione OpenAI</h2>
         <p className="text-sm text-gray-400 mb-4">Necessario per l&apos;analisi automatica delle opportunità CRM</p>
 
         {openaiTokenData && (
@@ -883,7 +884,7 @@ export default function SettingsPage() {
                 value={openaiApiToken}
                 onChange={(e) => setOpenaiApiToken(e.target.value)}
                 placeholder="sk-..."
-                className="w-full px-4 py-2 pr-24 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] transition-colors text-white placeholder-gray-500"
+                className="w-full px-4 py-2 pr-24 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] transition-colors text-white placeholder-gray-500"
               />
               <button
                 type="button"
@@ -927,8 +928,8 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="bg-[#222428] rounded-xl p-6 border border-[#141517]">
-        <h3 className="text-lg font-semibold text-white mb-3">Come configurare ElevenLabs</h3>
+      <div className="bg-[var(--surface)] rounded-xl p-6 border border-[var(--line)]">
+        <h3 className="font-display text-lg font-semibold text-white mb-3">Come configurare ElevenLabs</h3>
         <ol className="space-y-2 text-sm text-gray-300">
           <li className="flex items-start">
             <span className="font-medium mr-2">1.</span>

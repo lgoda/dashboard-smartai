@@ -72,23 +72,23 @@ export function Navigation() {
     exact ? pathname === href : pathname?.startsWith(href)
 
   const linkClass = (href: string, exact: boolean) =>
-    `px-2.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+    `px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
       isActive(href, exact)
-        ? 'bg-[#F59E0B] text-[#1e293b]'
-        : 'text-white hover:bg-[#222428] hover:text-[#F59E0B]'
+        ? 'bg-[rgba(245,158,11,0.12)] text-[var(--amber)]'
+        : 'text-[var(--mute)] hover:text-[var(--text)]'
     }`
 
   const mobileLinkClass = (href: string, exact: boolean) =>
     `block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
       isActive(href, exact)
-        ? 'bg-[#F59E0B] text-[#1e293b]'
-        : 'text-white hover:bg-[#222428] hover:text-[#F59E0B]'
+        ? 'bg-[rgba(245,158,11,0.12)] text-[var(--amber)]'
+        : 'text-white hover:bg-[var(--surface-2)] hover:text-[var(--amber)]'
     }`
 
   return (
     <>
-      <nav className="bg-[#18191C] border-b border-[#222428] sticky top-0 z-50 shadow-lg">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+      <nav className="bg-[var(--ink)] border-b border-[var(--line)] sticky top-0 z-50 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 gap-3">
 
             {/* Logo + desktop links */}
@@ -96,7 +96,8 @@ export function Navigation() {
               <Link href="/dashboard" className="flex items-center space-x-2 shrink-0">
                 <img src="/logo-smartservice.png" alt="SmartService" className="h-8 w-auto" />
               </Link>
-              <div className="hidden xl:flex items-center space-x-0.5">
+              <span className="hidden xl:block w-px h-7 bg-[var(--line)]" />
+              <div className="hidden xl:flex items-center gap-0.5 bg-[var(--surface)] border border-[var(--line)] rounded-xl p-1">
                 {NAV_LINKS.map(l => (
                   <Link key={l.href} href={l.href} className={linkClass(l.href, l.exact)}>
                     {l.label}
@@ -123,7 +124,7 @@ export function Navigation() {
                     className={`hidden xl:block px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                       pathname?.startsWith('/dashboard/admin/billing')
                         ? 'bg-[#F59E0B]/20 text-[#F59E0B] border-[#F59E0B]/40'
-                        : 'text-gray-400 border-[#222428] hover:bg-[#222428] hover:text-white'
+                        : 'text-gray-400 border-[var(--line)] hover:bg-[var(--surface-2)] hover:text-white'
                     }`}>
                     Billing
                   </Link>
@@ -131,24 +132,26 @@ export function Navigation() {
                     className={`hidden xl:block px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                       pathname === '/dashboard/admin'
                         ? 'bg-red-500/20 text-red-400 border-red-500/40'
-                        : 'text-gray-400 border-[#222428] hover:bg-[#222428] hover:text-white'
+                        : 'text-gray-400 border-[var(--line)] hover:bg-[var(--surface-2)] hover:text-white'
                     }`}>
                     Admin
                   </Link>
                 </>
               )}
 
+              <span className="hidden sm:block w-px h-6 bg-[var(--line)] mx-0.5" />
+
               <button
                 onClick={() => setShowProfile(true)}
                 title={displayName}
-                className="w-8 h-8 bg-[#F59E0B] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-xs hover:bg-[#D97706] transition-colors shrink-0"
+                className="w-8 h-8 bg-[#F59E0B] rounded-full flex items-center justify-center text-[#1b1d20] font-mono font-semibold text-xs hover:bg-[var(--amber-deep)] transition-colors shrink-0"
               >
                 {initials}
               </button>
 
               <button
                 onClick={async () => { await signOut(); router.push('/') }}
-                className="hidden sm:block px-3 py-1.5 text-sm font-medium text-white hover:text-[#F59E0B] hover:bg-[#222428] rounded-lg transition-colors"
+                className="hidden sm:block px-3 py-1.5 text-sm font-medium text-[var(--mute)] hover:text-[var(--amber)] hover:bg-[var(--surface-2)] rounded-lg transition-colors"
               >
                 Logout
               </button>
@@ -156,7 +159,7 @@ export function Navigation() {
               {/* Hamburger */}
               <button
                 onClick={() => setMobileOpen(o => !o)}
-                className="xl:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-[#222428] transition-colors"
+                className="xl:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-[var(--surface-2)] transition-colors"
                 aria-label="Menu"
               >
                 {mobileOpen ? (
@@ -175,7 +178,7 @@ export function Navigation() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="xl:hidden border-t border-[#222428] bg-[#18191C] px-4 py-3 space-y-1">
+          <div className="xl:hidden border-t border-[var(--line)] bg-[var(--ink)] px-4 py-3 space-y-1">
             {NAV_LINKS.map(l => (
               <Link key={l.href} href={l.href} className={mobileLinkClass(l.href, l.exact)}>
                 {l.label}
@@ -201,10 +204,10 @@ export function Navigation() {
                 </Link>
               </>
             )}
-            <div className="pt-2 border-t border-[#222428]">
+            <div className="pt-2 border-t border-[var(--line)]">
               <button
                 onClick={async () => { await signOut(); router.push('/') }}
-                className="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-red-400 hover:bg-[#222428] transition-colors"
+                className="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-red-400 hover:bg-[var(--surface-2)] transition-colors"
               >
                 Logout
               </button>

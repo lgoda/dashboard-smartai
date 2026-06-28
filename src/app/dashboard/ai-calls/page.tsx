@@ -7,6 +7,7 @@ import { useAuth } from '@/app/components/AuthProvider'
 import Link from 'next/link'
 import DateRangePicker from '@/app/components/DateRangePicker'
 import FilterBadge from '@/app/components/FilterBadge'
+import { Phone } from '@/app/components/icons'
 import { useDebounce } from '@/app/lib/useDebounce'
 import { getConversationsFromAPI, AICall } from '@/app/lib/conversationsApi'
 import { RetellCall } from '@/app/lib/retellApi'
@@ -826,10 +827,10 @@ export default function AICallsPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-[#222428] rounded-lg loading"></div>
-          <div className="h-8 bg-[#222428] rounded w-48 loading"></div>
+          <div className="w-8 h-8 bg-[var(--surface)] rounded-lg loading"></div>
+          <div className="h-8 bg-[var(--surface)] rounded w-48 loading"></div>
         </div>
-        <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
+        <div className="bg-[var(--surface)] rounded-xl p-6 shadow-sm border border-[var(--line)]">
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="h-16 bg-[#141517] rounded loading"></div>
@@ -845,19 +846,19 @@ export default function AICallsPage() {
       <div className="space-y-6">
         <div className="flex items-center space-x-3">
           <div className="w-12 h-12 bg-[#F59E0B] rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-[#1e293b] text-xl">📞</span>
+            <Phone className="w-6 h-6 text-[#1b1d20]" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Chiamate IA</h1>
+            <h1 className="font-display text-3xl font-bold text-white">Chiamate IA</h1>
             <p className="text-gray-300 mt-1">Gestione chiamate ElevenLabs / Retell AI</p>
           </div>
         </div>
 
-        <div className="bg-[#222428] rounded-xl p-12 text-center shadow-sm border border-[#141517]">
+        <div className="bg-[var(--surface)] rounded-xl p-12 text-center shadow-sm border border-[var(--line)]">
           <div className="w-16 h-16 bg-[#F59E0B]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-[#F59E0B] text-2xl">📞</span>
+            <Phone className="w-7 h-7 text-[#F59E0B]" />
           </div>
-          <h3 className="text-lg font-medium text-white mb-2">
+          <h3 className="font-display text-lg font-medium text-white mb-2">
             Servizio non configurato
           </h3>
           <p className="text-gray-300 mb-6">
@@ -885,9 +886,9 @@ export default function AICallsPage() {
             </svg>
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Chiamate IA</h1>
+            <h1 className="font-display text-2xl font-bold text-white">Chiamate IA</h1>
             <p className="text-sm text-gray-400 mt-0.5">
-              {calls.length} chiamate
+              <span className="font-mono tabular-nums text-gray-300">{calls.length}</span> chiamate
               {activeFiltersCount > 0 && <span className="text-[#F59E0B]"> · {activeFiltersCount} filtri attivi</span>}
             </p>
           </div>
@@ -899,7 +900,7 @@ export default function AICallsPage() {
             <select
               value={provider}
               onChange={(e) => setProvider(e.target.value as Provider)}
-              className="px-3 py-1.5 bg-[#222428] border border-[#141517] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B]"
+              className="px-3 py-1.5 bg-[var(--surface)] border border-[var(--line)] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B]"
             >
               <option value="all">Tutti</option>
               {hasElevenLabsToken && <option value="elevenlabs">ElevenLabs</option>}
@@ -924,7 +925,7 @@ export default function AICallsPage() {
       {/* ── Filter bar (sempre visibile) ── */}
       {/* No overflow-hidden: it would clip the DateRangePicker calendar dropdown
           that opens below the toolbar (invisible at desktop where the bar is one row). */}
-      <div className="bg-[#222428] rounded-xl border border-[#141517]">
+      <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)]">
         <div className="flex flex-wrap items-center gap-2 p-3">
           {/* Search */}
           <div className="relative flex-1 min-w-[180px]">
@@ -936,7 +937,7 @@ export default function AICallsPage() {
               placeholder="Cerca agent, titolo..."
               value={filters.search}
               onChange={(e) => updateFilter('search', e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
+              className="w-full pl-9 pr-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
             />
           </div>
 
@@ -951,7 +952,7 @@ export default function AICallsPage() {
             className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors shrink-0 ${
               filtersOpen || activeFiltersCount > 0
                 ? 'bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30'
-                : 'bg-[#141517] text-gray-300 border border-[#141517] hover:text-white'
+                : 'bg-[#141517] text-gray-300 border border-[var(--line)] hover:text-white'
             }`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -970,7 +971,7 @@ export default function AICallsPage() {
           <select
             value={filters.sortBy}
             onChange={(e) => updateFilter('sortBy', e.target.value as 'date' | 'duration' | 'messages' | 'cost')}
-            className="shrink-0 px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B] transition-colors"
+            className="shrink-0 px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B] transition-colors"
           >
             <option value="date">↓ Data</option>
             <option value="duration">↓ Durata</option>
@@ -980,7 +981,7 @@ export default function AICallsPage() {
           <select
             value={filters.sortOrder}
             onChange={(e) => updateFilter('sortOrder', e.target.value as 'asc' | 'desc')}
-            className="shrink-0 px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B] transition-colors"
+            className="shrink-0 px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B] transition-colors"
           >
             <option value="desc">Desc</option>
             <option value="asc">Asc</option>
@@ -1013,11 +1014,11 @@ export default function AICallsPage() {
 
         {/* ── Pannello filtri avanzati (collassabile) ── */}
         {filtersOpen && (
-          <div className="border-t border-[#141517] p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="border-t border-[var(--line)] p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {/* Outcome */}
             <div>
               <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Outcome</label>
-              <select value={filters.outcome} onChange={(e) => updateFilter('outcome', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
+              <select value={filters.outcome} onChange={(e) => updateFilter('outcome', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
                 <option value="">Tutti</option>
                 <option value="successful">Successo</option>
                 <option value="failed">Fallito</option>
@@ -1027,7 +1028,7 @@ export default function AICallsPage() {
             {/* Agente */}
             <div>
               <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Agente</label>
-              <select value={filters.agentId} onChange={(e) => updateFilter('agentId', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
+              <select value={filters.agentId} onChange={(e) => updateFilter('agentId', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
                 <option value="">Tutti</option>
                 {agents.map(agent => <option key={agent.id} value={agent.id}>{agent.name || agent.id.substring(0, 8) + '...'}</option>)}
               </select>
@@ -1035,7 +1036,7 @@ export default function AICallsPage() {
             {/* Direzione */}
             <div>
               <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Direzione</label>
-              <select value={filters.direction} onChange={(e) => updateFilter('direction', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
+              <select value={filters.direction} onChange={(e) => updateFilter('direction', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
                 <option value="">Tutte</option>
                 <option value="inbound">Inbound</option>
                 <option value="outbound">Outbound</option>
@@ -1044,37 +1045,37 @@ export default function AICallsPage() {
             {/* Rating min */}
             <div>
               <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Rating minimo</label>
-              <input type="number" min="0" max="5" step="0.1" value={filters.minRating} onChange={(e) => updateFilter('minRating', parseFloat(e.target.value) || 0)} placeholder="0" className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]" />
+              <input type="number" min="0" max="5" step="0.1" value={filters.minRating} onChange={(e) => updateFilter('minRating', parseFloat(e.target.value) || 0)} placeholder="0" className="w-full px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]" />
             </div>
             {/* Durata min/max */}
             <div>
               <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Durata min (sec)</label>
-              <input type="number" min="0" value={filters.minDuration} onChange={(e) => updateFilter('minDuration', parseInt(e.target.value) || 0)} placeholder="0" className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]" />
+              <input type="number" min="0" value={filters.minDuration} onChange={(e) => updateFilter('minDuration', parseInt(e.target.value) || 0)} placeholder="0" className="w-full px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]" />
             </div>
             <div>
               <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Durata max (sec)</label>
-              <input type="number" min="0" value={filters.maxDuration} onChange={(e) => updateFilter('maxDuration', parseInt(e.target.value) || 0)} placeholder="0" className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]" />
+              <input type="number" min="0" value={filters.maxDuration} onChange={(e) => updateFilter('maxDuration', parseInt(e.target.value) || 0)} placeholder="0" className="w-full px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]" />
             </div>
             {/* Retell-specific */}
             {(provider === 'retell' || provider === 'all') && (
               <>
                 <div>
                   <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Stato Chiamata</label>
-                  <select value={filters.callStatus} onChange={(e) => updateFilter('callStatus', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
+                  <select value={filters.callStatus} onChange={(e) => updateFilter('callStatus', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
                     <option value="">Tutti</option>
                     {callStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Terminazione</label>
-                  <select value={filters.terminationReason} onChange={(e) => updateFilter('terminationReason', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
+                  <select value={filters.terminationReason} onChange={(e) => updateFilter('terminationReason', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
                     <option value="">Tutti</option>
                     {terminationReasons.map(r => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Sentiment</label>
-                  <select value={filters.sentiment} onChange={(e) => updateFilter('sentiment', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
+                  <select value={filters.sentiment} onChange={(e) => updateFilter('sentiment', e.target.value)} className="w-full px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]">
                     <option value="">Tutti</option>
                     {sentiments.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
@@ -1082,11 +1083,11 @@ export default function AICallsPage() {
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Costo min</label>
-                    <input type="number" min="0" step="0.01" value={filters.minCost} onChange={(e) => updateFilter('minCost', parseFloat(e.target.value) || 0)} placeholder="0" className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]" />
+                    <input type="number" min="0" step="0.01" value={filters.minCost} onChange={(e) => updateFilter('minCost', parseFloat(e.target.value) || 0)} placeholder="0" className="w-full px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]" />
                   </div>
                   <div className="flex-1">
                     <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">Costo max</label>
-                    <input type="number" min="0" step="0.01" value={filters.maxCost} onChange={(e) => updateFilter('maxCost', parseFloat(e.target.value) || 0)} placeholder="0" className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]" />
+                    <input type="number" min="0" step="0.01" value={filters.maxCost} onChange={(e) => updateFilter('maxCost', parseFloat(e.target.value) || 0)} placeholder="0" className="w-full px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]" />
                   </div>
                 </div>
               </>
@@ -1103,10 +1104,10 @@ export default function AICallsPage() {
           { label: 'Durata media', value: statAvgDuration, sub: null, color: '#F59E0B' },
           { label: 'Messaggi', value: calls.reduce((acc, c) => acc + (c.message_count || 0), 0).toLocaleString('it-IT'), sub: null, color: '#F59E0B' },
         ].map(stat => (
-          <div key={stat.label} className="bg-[#222428] rounded-xl px-4 py-3.5 border border-[#141517] flex items-center justify-between gap-3">
+          <div key={stat.label} className="bg-[var(--surface)] rounded-xl px-4 py-3.5 border border-[var(--line)] flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{stat.label}</p>
-              <p className="text-xl font-bold text-white mt-0.5">{stat.value}</p>
+              <p className="font-mono text-[10.5px] font-medium text-[var(--mute)] uppercase tracking-[.12em]">{stat.label}</p>
+              <p className="font-mono text-xl font-semibold text-white mt-1 tabular-nums">{stat.value}</p>
               {stat.sub && <p className="text-xs text-gray-500 mt-0.5">{stat.sub}</p>}
             </div>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${stat.color}20` }}>
@@ -1115,19 +1116,19 @@ export default function AICallsPage() {
           </div>
         ))}
         {(hasRetellToken || provider === 'retell' || provider === 'all') && (
-          <div className="bg-[#222428] rounded-xl px-4 py-3.5 border border-[#141517] flex items-center justify-between gap-3">
+          <div className="bg-[var(--surface)] rounded-xl px-4 py-3.5 border border-[var(--line)] flex items-center justify-between gap-3">
             {showEurSpent ? (
               <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Importo speso</p>
-                <p className="text-xl font-bold text-white mt-0.5">€{retellSummary!.total_cost_eur!.toFixed(2)}</p>
+                <p className="font-mono text-[10.5px] font-medium text-[var(--mute)] uppercase tracking-[.12em]">Importo speso</p>
+                <p className="font-mono text-xl font-semibold text-white mt-1 tabular-nums">€{retellSummary!.total_cost_eur!.toFixed(2)}</p>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {retellSummary!.total_calls.toLocaleString('it-IT')} chiamate{retellSummary!.capped ? ' · parziale' : ''}{summaryPending ? ' · aggiornamento…' : ''}
                 </p>
               </div>
             ) : (
               <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{summaryRelevant ? 'Importo speso' : 'Costo totale'}</p>
-                <p className="text-xl font-bold text-white mt-0.5">{calls.some(c => c.provider === 'retell') ? '$' : '€'}{totalCost.toFixed(2)}</p>
+                <p className="font-mono text-[10.5px] font-medium text-[var(--mute)] uppercase tracking-[.12em]">{summaryRelevant ? 'Importo speso' : 'Costo totale'}</p>
+                <p className="font-mono text-xl font-semibold text-white mt-1 tabular-nums">{calls.some(c => c.provider === 'retell') ? '$' : '€'}{totalCost.toFixed(2)}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{summaryPending ? 'calcolo…' : `media ${calls.some(c => c.provider === 'retell') ? '$' : '€'}${averageCost.toFixed(2)}`}</p>
               </div>
             )}
@@ -1139,7 +1140,7 @@ export default function AICallsPage() {
       </div>
 
       {/* ── Lista chiamate ── */}
-      <div className="bg-[#222428] rounded-xl border border-[#141517] overflow-hidden">
+      <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] overflow-hidden">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <div className="w-8 h-8 border-2 border-[#F59E0B] border-t-transparent rounded-full animate-spin" />
@@ -1156,7 +1157,7 @@ export default function AICallsPage() {
             <p className="text-xs text-gray-500">{activeFiltersCount > 0 ? 'Prova a modificare i filtri' : 'Le chiamate appariranno qui'}</p>
           </div>
         ) : (
-          <div className="divide-y divide-[#141517]">
+          <div className="divide-y divide-[var(--line-soft)]">
             {calls.map((call) => {
               const callDate = new Date(call.start_time * 1000)
               const isExpanded = expandedRow === call.id
@@ -1240,7 +1241,7 @@ export default function AICallsPage() {
 
                   {/* ── Panel espanso ── */}
                   {isExpanded && (
-                    <div className="bg-[#141517] border-t border-[#18191C] px-4 py-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-[#141517] border-t border-[var(--line)] px-4 py-5 space-y-4" onClick={(e) => e.stopPropagation()}>
 
                       {/* Summary */}
                       {call.transcript_summary && (
@@ -1257,7 +1258,7 @@ export default function AICallsPage() {
                           <div>
                             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Transcript</p>
                             {transcriptText ? (
-                              <div className="bg-[#18191C] rounded-lg p-3 max-h-64 overflow-y-auto">
+                              <div className="bg-[var(--ink)] rounded-lg p-3 max-h-64 overflow-y-auto">
                                 <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{transcriptText}</p>
                               </div>
                             ) : loadingTranscript[call.id] ? (
@@ -1280,19 +1281,19 @@ export default function AICallsPage() {
                       {isRetell && (terminationReason || sentiment || call.call_analysis?.call_successful !== undefined) && (
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                           {terminationReason && terminationReason !== 'unknown' && (
-                            <div className="bg-[#18191C] rounded-lg px-3 py-2">
+                            <div className="bg-[var(--ink)] rounded-lg px-3 py-2">
                               <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-0.5">Terminazione</p>
                               <p className="text-sm text-white font-medium">{getDisconnectionReasonLabel(terminationReason)}</p>
                             </div>
                           )}
                           {sentiment && (
-                            <div className="bg-[#18191C] rounded-lg px-3 py-2">
+                            <div className="bg-[var(--ink)] rounded-lg px-3 py-2">
                               <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-0.5">Sentiment</p>
                               <p className="text-sm text-white font-medium">{sentiment}</p>
                             </div>
                           )}
                           {call.call_analysis?.call_successful !== undefined && (
-                            <div className="bg-[#18191C] rounded-lg px-3 py-2">
+                            <div className="bg-[var(--ink)] rounded-lg px-3 py-2">
                               <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-0.5">Esito</p>
                               <p className={`text-sm font-medium ${call.call_analysis.call_successful ? 'text-[#22C55E]' : 'text-red-400'}`}>
                                 {call.call_analysis.call_successful ? '✓ Successo' : '✗ Fallita'}
@@ -1304,7 +1305,7 @@ export default function AICallsPage() {
 
                       {/* Costo breakdown (Retell) */}
                       {isRetell && call.call_cost && cost && (
-                        <div className="bg-[#18191C] rounded-lg p-3">
+                        <div className="bg-[var(--ink)] rounded-lg p-3">
                           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Costo dettagliato (USD)</p>
                           <div className="space-y-1">
                             {call.call_cost.product_costs?.map((product, idx) => {
@@ -1316,7 +1317,7 @@ export default function AICallsPage() {
                                 </div>
                               )
                             })}
-                            <div className="flex justify-between text-sm pt-1.5 border-t border-[#141517] font-semibold">
+                            <div className="flex justify-between text-sm pt-1.5 border-t border-[var(--line)] font-semibold">
                               <span className="text-gray-300">Totale</span>
                               <span className="text-[#F59E0B]">${cost.toFixed(4)}</span>
                             </div>
@@ -1356,7 +1357,7 @@ export default function AICallsPage() {
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M12 6v12m-3.536-9.536a5 5 0 000 7.072" /></svg>
                               {loadingAudio[call.id] ? 'Caricamento...' : 'Ascolta Audio'}
                             </button>
-                            <Link href={`/dashboard/ai-calls/${call.id}`} className="flex items-center gap-2 px-3 py-2 bg-[#18191C] text-white rounded-lg text-sm font-medium hover:bg-[#222428] transition-colors">
+                            <Link href={`/dashboard/ai-calls/${call.id}`} className="flex items-center gap-2 px-3 py-2 bg-[var(--ink)] text-white rounded-lg text-sm font-medium hover:bg-[var(--surface-2)] transition-colors">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                               Transcript completo
                             </Link>
@@ -1371,7 +1372,7 @@ export default function AICallsPage() {
                                 const text = retellTranscript || call.transcript_summary || ''
                                 if (text) navigator.clipboard.writeText(text)
                               }}
-                              className="flex items-center gap-2 px-3 py-2 bg-[#18191C] text-gray-300 rounded-lg text-sm hover:text-white hover:bg-[#222428] transition-colors"
+                              className="flex items-center gap-2 px-3 py-2 bg-[var(--ink)] text-gray-300 rounded-lg text-sm hover:text-white hover:bg-[var(--surface-2)] transition-colors"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                               {retellTranscript ? 'Copia transcript' : 'Copia summary'}
@@ -1395,7 +1396,7 @@ export default function AICallsPage() {
 
         {/* Load more */}
         {!isLoading && calls.length > 0 && (
-          <div className="px-4 py-5 border-t border-[#141517] flex items-center justify-center">
+          <div className="px-4 py-5 border-t border-[var(--line)] flex items-center justify-center">
             {hasMore ? (
               <div ref={observerTarget}>
                 {isLoadingMore ? (
@@ -1404,7 +1405,7 @@ export default function AICallsPage() {
                     Caricamento...
                   </div>
                 ) : (
-                  <button onClick={() => loadCalls(false)} className="px-5 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm font-medium hover:text-white hover:bg-[#18191C] border border-[#141517] transition-colors">
+                  <button onClick={() => loadCalls(false)} className="px-5 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm font-medium hover:text-white hover:bg-[var(--ink)] border border-[var(--line)] transition-colors">
                     Carica altre chiamate
                   </button>
                 )}

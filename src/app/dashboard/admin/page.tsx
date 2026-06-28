@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/app/components/AuthProvider'
+import { Key } from '@/app/components/icons'
 
 export const dynamic = 'force-dynamic'
 
@@ -104,23 +105,23 @@ export default function AdminPage() {
 
   if (isLoading) return (
     <div className="space-y-4">
-      {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-[#222428] rounded-xl loading" />)}
+      {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-[var(--surface)] rounded-xl loading" />)}
     </div>
   )
 
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-red-500/80 rounded-xl flex items-center justify-center text-white text-lg">🔑</div>
+        <div className="w-10 h-10 bg-red-500/80 rounded-xl flex items-center justify-center text-white"><Key className="w-5 h-5" /></div>
         <div>
-          <h1 className="text-3xl font-bold text-white">Admin</h1>
+          <h1 className="font-display text-3xl font-bold text-white">Admin</h1>
           <p className="text-gray-400">Gestione accessi e inviti</p>
         </div>
       </div>
 
       {/* Invite */}
-      <div className="bg-[#222428] rounded-xl border border-[#141517] p-6">
-        <h2 className="text-white font-semibold mb-4">Invita nuovo utente</h2>
+      <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] p-6">
+        <h2 className="font-display text-white font-semibold mb-4">Invita nuovo utente</h2>
         {inviteMsg && (
           <div className={`p-3 rounded-lg text-sm mb-3 ${inviteMsg.type === 'ok' ? 'bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
             {inviteMsg.text}
@@ -165,7 +166,7 @@ export default function AdminPage() {
             onChange={e => setInviteEmail(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleInvite()}
             placeholder="email@esempio.com"
-            className="flex-1 px-4 py-2.5 bg-[#141517] border border-[#141517] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
+            className="flex-1 px-4 py-2.5 bg-[#141517] border border-[var(--line)] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
           />
           <button
             onClick={handleInvite}
@@ -179,11 +180,11 @@ export default function AdminPage() {
       </div>
 
       {/* Users list */}
-      <div className="bg-[#222428] rounded-xl border border-[#141517] overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#141517]">
-          <h2 className="text-white font-semibold">Utenti registrati ({users.length})</h2>
+      <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] overflow-hidden">
+        <div className="px-6 py-4 border-b border-[var(--line)]">
+          <h2 className="font-display text-white font-semibold">Utenti registrati (<span className="font-mono tabular-nums">{users.length}</span>)</h2>
         </div>
-        <div className="divide-y divide-[#141517]">
+        <div className="divide-y divide-[var(--line-soft)]">
           {users.map(u => (
             <div key={u.id} className="flex items-center justify-between px-6 py-4">
               <div className="flex items-center gap-3">
@@ -201,7 +202,7 @@ export default function AdminPage() {
                 </span>
                 <button
                   onClick={() => toggleRole(u.id, u.role)}
-                  className="text-xs text-gray-400 hover:text-white px-2 py-1 hover:bg-[#141517] rounded transition-colors"
+                  className="text-xs text-gray-400 hover:text-white px-2 py-1 hover:bg-[var(--ink)] rounded transition-colors"
                 >
                   {u.role === 'admin' ? '→ user' : '→ admin'}
                 </button>

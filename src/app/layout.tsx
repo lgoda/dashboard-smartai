@@ -4,11 +4,29 @@ import { Navigation } from './components/Navigation'
 import { NavigationProgress } from './components/NavigationProgress'
 import { ChatWidget } from './components/ChatWidget'
 import { ReactNode } from 'react'
-import { Inter } from 'next/font/google'
+import { Inter, Bricolage_Grotesque, Geist_Mono } from 'next/font/google'
 
+// Body / UI — dense, neutral, legible.
 const inter = Inter({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-inter',
+  display: 'swap',
+})
+
+// Display — page titles and panel headings. Carries the personality.
+const bricolage = Bricolage_Grotesque({
+  subsets: ['latin'],
+  weight: ['600', '700'],
+  variable: '--font-bricolage',
+  display: 'swap',
+})
+
+// Data — every number that is content (metrics, durations, counts, IDs).
+const geistMono = Geist_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-geist-mono',
   display: 'swap',
 })
 
@@ -19,9 +37,9 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="it" className={inter.className}>
+    <html lang="it" className={`${inter.variable} ${bricolage.variable} ${geistMono.variable}`}>
       <head />
-      <body className="bg-[#18191C] min-h-screen">
+      <body className="bg-[#141517] min-h-screen">
         <AuthProvider>
           <NavigationProgress />
           <Navigation />

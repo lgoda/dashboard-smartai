@@ -46,8 +46,8 @@ export default function AddCardModal({ accessToken, onClose, onSuccess }: AddCar
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#2C2E31] rounded-2xl border border-[#3A3D42] w-full max-w-md shadow-2xl">
-        <div className="px-5 py-4 border-b border-[#3A3D42] flex items-center justify-between">
+      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--line)] w-full max-w-md shadow-2xl">
+        <div className="px-5 py-4 border-b border-[var(--line)] flex items-center justify-between">
           <h2 className="font-semibold text-white">Aggiungi metodo di pagamento</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-xl leading-none">×</button>
         </div>

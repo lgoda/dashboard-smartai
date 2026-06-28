@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/app/components/AuthProvider'
 import Link from 'next/link'
+import { FolderOpen } from '@/app/components/icons'
 
 export const dynamic = 'force-dynamic'
 
@@ -214,8 +215,8 @@ export default function ImportWizardPage() {
 
   if (isLoading) return (
     <div className="space-y-6">
-      <div className="h-8 bg-[#222428] rounded w-64 loading" />
-      <div className="h-64 bg-[#222428] rounded-xl loading" />
+      <div className="h-8 bg-[var(--surface)] rounded w-64 loading" />
+      <div className="h-64 bg-[var(--surface)] rounded-xl loading" />
     </div>
   )
 
@@ -247,8 +248,8 @@ export default function ImportWizardPage() {
 
       {/* ── STEP 0: Campagna + automazione ── */}
       {step === 0 && campaign && (
-        <div className="bg-[#222428] rounded-xl border border-[#141517] p-6 space-y-5">
-          <h2 className="text-lg font-semibold text-white">Campagna e automazione CRM</h2>
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] p-6 space-y-5">
+          <h2 className="font-display text-lg font-semibold text-white">Campagna e automazione CRM</h2>
           <div className="bg-[#141517] rounded-lg p-4 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-white">{campaign.name}</span>
@@ -269,7 +270,7 @@ export default function ImportWizardPage() {
                   const isSelected = selectedWorkflow?.id === w.id
                   return (
                     <button key={w.id} onClick={() => setSelectedWorkflow(w)}
-                      className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${isSelected ? 'border-[#F59E0B] bg-[#F59E0B]/10 text-white' : 'border-[#141517] bg-[#141517] text-gray-300 hover:border-[#F59E0B]/40'}`}>
+                      className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${isSelected ? 'border-[#F59E0B] bg-[#F59E0B]/10 text-white' : 'border-[var(--line)] bg-[#141517] text-gray-300 hover:border-[#F59E0B]/40'}`}>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">{w.name}</span>
                         <div className="flex items-center gap-1">
@@ -302,12 +303,12 @@ export default function ImportWizardPage() {
 
       {/* ── STEP 1: File + tag lista ── */}
       {step === 1 && (
-        <div className="bg-[#222428] rounded-xl border border-[#141517] p-6 space-y-5">
-          <h2 className="text-lg font-semibold text-white">Carica file e nomina la lista</h2>
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] p-6 space-y-5">
+          <h2 className="font-display text-lg font-semibold text-white">Carica file e nomina la lista</h2>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">File contatti (CSV o Excel) *</label>
             <div onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${file ? 'border-[#22C55E]/50 bg-[#22C55E]/5' : 'border-[#141517] hover:border-[#F59E0B]/40'}`}>
+              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${file ? 'border-[#22C55E]/50 bg-[#22C55E]/5' : 'border-[var(--line)] hover:border-[#F59E0B]/40'}`}>
               {file ? (
                 <>
                   <p className="text-[#22C55E] font-semibold">✓ {file.name}</p>
@@ -321,7 +322,7 @@ export default function ImportWizardPage() {
                 </>
               ) : (
                 <>
-                  <p className="text-gray-400 text-lg mb-1">📁</p>
+                  <FolderOpen className="w-7 h-7 text-[var(--mute-2)] mx-auto mb-2" />
                   <p className="text-white font-medium">Clicca per selezionare il file</p>
                   <p className="text-sm text-gray-400 mt-1">Supportati: CSV, XLSX, XLS</p>
                 </>
@@ -333,11 +334,11 @@ export default function ImportWizardPage() {
             <label className="block text-sm font-medium text-gray-300 mb-1">Nome lista (tag) *</label>
             <input type="text" value={listTag} onChange={e => setListTag(e.target.value)}
               placeholder="es. lista_sumup_maggio_2026"
-              className="w-full px-4 py-2 bg-[#141517] border border-[#141517] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B]" />
+              className="w-full px-4 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B]" />
             <p className="text-xs text-gray-500 mt-1">Questo tag verrà assegnato a tutti i contatti di questa lista.</p>
           </div>
           <div className="flex justify-between">
-            <button onClick={() => setStep(0)} className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[#18191C] transition-colors">← Indietro</button>
+            <button onClick={() => setStep(0)} className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[var(--ink)] transition-colors">← Indietro</button>
             <button onClick={() => setStep(2)} disabled={!file || !listTag.trim() || loadingHeaders}
               className="px-6 py-2.5 bg-[#F59E0B] text-[#1e293b] rounded-lg font-semibold disabled:opacity-40 hover:bg-[#D97706] transition-colors">
               Continua →
@@ -348,9 +349,9 @@ export default function ImportWizardPage() {
 
       {/* ── STEP 2: Mappatura colonne ── */}
       {step === 2 && (
-        <div className="bg-[#222428] rounded-xl border border-[#141517] p-6 space-y-5">
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] p-6 space-y-5">
           <div>
-            <h2 className="text-lg font-semibold text-white">Mappa le colonne del file</h2>
+            <h2 className="font-display text-lg font-semibold text-white">Mappa le colonne del file</h2>
             <p className="text-sm text-gray-400 mt-1">
               Abbina le colonne del tuo file <span className="text-white">{file?.name}</span> ai campi del sistema.
               Le colonne rilevate automaticamente sono già pre-selezionate.
@@ -382,7 +383,7 @@ export default function ImportWizardPage() {
                         ? 'border-red-500/50 text-red-400'
                         : currentValue
                         ? 'border-[#22C55E]/40 text-white'
-                        : 'border-[#141517] text-gray-500'
+                        : 'border-[var(--line)] text-gray-500'
                     }`}
                   >
                     <option value="">— Non mappato{field.required ? ' (obbligatorio)' : ''} —</option>
@@ -405,7 +406,7 @@ export default function ImportWizardPage() {
                 <p className="text-xs text-gray-400 mb-1">Colonne non mappate (verranno salvate nei dati grezzi):</p>
                 <div className="flex flex-wrap gap-1">
                   {unmapped.map(h => (
-                    <span key={h} className="text-xs px-2 py-0.5 bg-[#222428] text-gray-400 rounded border border-[#222428]">{h}</span>
+                    <span key={h} className="text-xs px-2 py-0.5 bg-[var(--surface)] text-gray-400 rounded border border-[var(--line)]">{h}</span>
                   ))}
                 </div>
               </div>
@@ -419,7 +420,7 @@ export default function ImportWizardPage() {
           )}
 
           <div className="flex justify-between">
-            <button onClick={() => setStep(1)} className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[#18191C] transition-colors">← Indietro</button>
+            <button onClick={() => setStep(1)} className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[var(--ink)] transition-colors">← Indietro</button>
             <button onClick={() => setStep(3)} disabled={!phoneIsMapped}
               className="px-6 py-2.5 bg-[#F59E0B] text-[#1e293b] rounded-lg font-semibold disabled:opacity-40 hover:bg-[#D97706] transition-colors">
               Continua →
@@ -430,8 +431,8 @@ export default function ImportWizardPage() {
 
       {/* ── STEP 3: Filtri e policy ── */}
       {step === 3 && (
-        <div className="bg-[#222428] rounded-xl border border-[#141517] p-6 space-y-5">
-          <h2 className="text-lg font-semibold text-white">Filtri e policy</h2>
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] p-6 space-y-5">
+          <h2 className="font-display text-lg font-semibold text-white">Filtri e policy</h2>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Tag CRM da escludere
@@ -440,12 +441,12 @@ export default function ImportWizardPage() {
             {tags.length > 0 ? (
               <>
                 <input type="text" value={tagSearch} onChange={e => setTagSearch(e.target.value)} placeholder="Cerca tag..."
-                  className="w-full px-3 py-2 mb-2 bg-[#141517] border border-[#141517] rounded-lg text-white text-sm placeholder-gray-500 focus:ring-2 focus:ring-[#F59E0B]" />
+                  className="w-full px-3 py-2 mb-2 bg-[#141517] border border-[var(--line)] rounded-lg text-white text-sm placeholder-gray-500 focus:ring-2 focus:ring-[#F59E0B]" />
                 <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
                   {filteredTags.map(tag => (
                     <button key={tag}
                       onClick={() => setExcludedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
-                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${excludedTags.includes(tag) ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-[#141517] text-gray-300 border-[#141517] hover:border-red-500/30'}`}>
+                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${excludedTags.includes(tag) ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-[#141517] text-gray-300 border-[var(--line)] hover:border-red-500/30'}`}>
                       {excludedTags.includes(tag) ? '✕ ' : ''}{tag}
                     </button>
                   ))}
@@ -457,7 +458,7 @@ export default function ImportWizardPage() {
                 <input type="text" value={tagSearch} onChange={e => setTagSearch(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && tagSearch.trim()) { setExcludedTags(p => [...p, tagSearch.trim()]); setTagSearch('') } }}
                   placeholder="Digita un tag e premi Invio"
-                  className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F59E0B]" />
+                  className="w-full px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F59E0B]" />
                 {excludedTags.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {excludedTags.map(t => (
@@ -480,7 +481,7 @@ export default function ImportWizardPage() {
                 { value: 'exclude',  label: 'Escludi dalla campagna',                      desc: 'I contatti già presenti nel CRM non verranno inviati al workflow' },
               ] as const).map(opt => (
                 <button key={opt.value} onClick={() => setExistingPolicy(opt.value)}
-                  className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${existingPolicy === opt.value ? 'border-[#F59E0B] bg-[#F59E0B]/10' : 'border-[#141517] bg-[#141517] hover:border-[#F59E0B]/30'}`}>
+                  className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${existingPolicy === opt.value ? 'border-[#F59E0B] bg-[#F59E0B]/10' : 'border-[var(--line)] bg-[#141517] hover:border-[#F59E0B]/30'}`}>
                   <p className={`text-sm font-medium ${existingPolicy === opt.value ? 'text-[#F59E0B]' : 'text-white'}`}>{opt.label}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{opt.desc}</p>
                 </button>
@@ -488,7 +489,7 @@ export default function ImportWizardPage() {
             </div>
           </div>
           <div className="flex justify-between">
-            <button onClick={() => setStep(2)} className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[#18191C] transition-colors">← Indietro</button>
+            <button onClick={() => setStep(2)} className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[var(--ink)] transition-colors">← Indietro</button>
             <button onClick={() => setStep(4)} className="px-6 py-2.5 bg-[#F59E0B] text-[#1e293b] rounded-lg font-semibold hover:bg-[#D97706] transition-colors">Continua →</button>
           </div>
         </div>
@@ -496,8 +497,8 @@ export default function ImportWizardPage() {
 
       {/* ── STEP 4: Riepilogo ── */}
       {step === 4 && (
-        <div className="bg-[#222428] rounded-xl border border-[#141517] p-6 space-y-5">
-          <h2 className="text-lg font-semibold text-white">Riepilogo import</h2>
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] p-6 space-y-5">
+          <h2 className="font-display text-lg font-semibold text-white">Riepilogo import</h2>
           <div className="bg-[#141517] rounded-lg p-4 space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-gray-400">Campagna</span><span className="text-white font-medium">{campaign?.name}</span></div>
             <div className="flex justify-between"><span className="text-gray-400">Automazione CRM</span><span className="text-white font-medium">{selectedWorkflow?.name}</span></div>
@@ -511,7 +512,7 @@ export default function ImportWizardPage() {
             Il file verrà analizzato, i numeri di cellulare validati e i contatti validi messi in coda per <strong className="text-white">{campaign?.name}</strong>.
           </p>
           <div className="flex justify-between">
-            <button onClick={() => setStep(3)} className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[#18191C] transition-colors">← Indietro</button>
+            <button onClick={() => setStep(3)} className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[var(--ink)] transition-colors">← Indietro</button>
             <button onClick={() => setStep(5)} className="px-6 py-2.5 bg-[#F59E0B] text-[#1e293b] rounded-lg font-semibold hover:bg-[#D97706] transition-colors">Continua →</button>
           </div>
         </div>
@@ -519,16 +520,16 @@ export default function ImportWizardPage() {
 
       {/* ── STEP 5: Consenso ── */}
       {step === 5 && (
-        <div className="bg-[#222428] rounded-xl border border-[#141517] p-6 space-y-5">
-          <h2 className="text-lg font-semibold text-white">Dichiarazione di responsabilità</h2>
-          <div className="bg-[#141517] rounded-lg p-4 text-sm text-gray-300 leading-relaxed border border-[#222428]">{CONSENT_TEXT}</div>
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] p-6 space-y-5">
+          <h2 className="font-display text-lg font-semibold text-white">Dichiarazione di responsabilità</h2>
+          <div className="bg-[#141517] rounded-lg p-4 text-sm text-gray-300 leading-relaxed border border-[var(--line)]">{CONSENT_TEXT}</div>
           <label className="flex items-start gap-3 cursor-pointer">
             <input type="checkbox" checked={consentAccepted} onChange={e => setConsentAccepted(e.target.checked)}
               className="mt-1 w-4 h-4 rounded accent-[#F59E0B] flex-shrink-0" />
             <span className="text-sm text-white">Confermo e accetto la dichiarazione sopra riportata</span>
           </label>
           <div className="flex justify-between">
-            <button onClick={() => setStep(4)} className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[#18191C] transition-colors">← Indietro</button>
+            <button onClick={() => setStep(4)} className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[var(--ink)] transition-colors">← Indietro</button>
             <button onClick={handleSubmit} disabled={!consentAccepted || isSubmitting}
               className="px-6 py-2.5 bg-[#F59E0B] text-[#1e293b] rounded-lg font-semibold disabled:opacity-40 hover:bg-[#D97706] transition-colors">
               {isSubmitting ? (
@@ -544,16 +545,16 @@ export default function ImportWizardPage() {
 
       {/* ── STEP 6: Completato ── */}
       {step === 6 && importResult && (
-        <div className="bg-[#222428] rounded-xl border border-[#141517] p-6 space-y-5">
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] p-6 space-y-5">
           <div className="text-center">
             <div className="w-16 h-16 bg-[#22C55E]/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl">✓</span>
             </div>
-            <h2 className="text-xl font-bold text-white mb-1">Import completato</h2>
+            <h2 className="font-display text-xl font-bold text-white mb-1">Import completato</h2>
             <p className="text-gray-400 text-sm">I contatti validi sono stati messi in coda</p>
           </div>
           <div className="bg-[#141517] rounded-lg p-5 space-y-2 text-sm">
-            <div className="flex justify-between pb-2 border-b border-[#222428]">
+            <div className="flex justify-between pb-2 border-b border-[var(--line)]">
               <span className="text-gray-400">Campagna</span><span className="text-white font-medium">{campaign?.name}</span>
             </div>
             <div className="flex justify-between"><span className="text-gray-400">Automazione CRM</span><span className="text-white">{selectedWorkflow?.name}</span></div>
@@ -569,7 +570,7 @@ export default function ImportWizardPage() {
             ].map(s => (
               <div key={s.label} className="bg-[#141517] rounded-lg p-3 text-center">
                 <p className="text-xs text-gray-500 mb-1">{s.label}</p>
-                <p className={`text-2xl font-bold ${s.color}`}>{s.value.toLocaleString('it-IT')}</p>
+                <p className={`font-mono text-2xl font-semibold tabular-nums ${s.color}`}>{s.value.toLocaleString('it-IT')}</p>
               </div>
             ))}
           </div>

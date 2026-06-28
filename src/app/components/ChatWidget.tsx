@@ -143,21 +143,21 @@ export function ChatWidget() {
         <div
           className={[
             // Mobile: full screen
-            'fixed inset-0 z-50 flex flex-col bg-[#18191C]',
+            'fixed inset-0 z-50 flex flex-col bg-[var(--ink)]',
             // Desktop: floating panel
             'sm:inset-auto sm:bottom-[88px] sm:right-6',
             'sm:w-[400px] sm:h-[580px]',
-            'sm:rounded-2xl sm:border sm:border-[#222428] sm:shadow-2xl',
+            'sm:rounded-2xl sm:border sm:border-[var(--line)] sm:shadow-2xl',
           ].join(' ')}
         >
           {/* ── Header ── */}
-          <div className="flex items-center gap-3 px-4 bg-[#141517] border-b border-[#222428] shrink-0"
+          <div className="flex items-center gap-3 px-4 bg-[#141517] border-b border-[var(--line)] shrink-0"
             style={{ paddingTop: 'max(12px, env(safe-area-inset-top))', paddingBottom: '12px' }}>
 
             {/* Back/close — freccia su mobile, X su desktop */}
             <button
               onClick={close}
-              className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-[#222428] transition-colors shrink-0"
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-[var(--surface-2)] transition-colors shrink-0"
               aria-label="Chiudi"
             >
               {/* Arrow on mobile */}
@@ -191,7 +191,7 @@ export function ChatWidget() {
                 <div className={`max-w-[78%] rounded-2xl text-sm leading-relaxed overflow-hidden shadow-sm ${
                   msg.role === 'user'
                     ? 'bg-[#F59E0B] text-[#1e293b] font-medium rounded-br-sm'
-                    : 'bg-[#222428] text-white rounded-bl-sm'
+                    : 'bg-[var(--surface)] text-white rounded-bl-sm'
                 }`}>
                   {msg.imagePreviewUrl && (
                     <img src={msg.imagePreviewUrl} alt="screenshot" className="w-full max-w-[260px] object-cover" />
@@ -217,7 +217,7 @@ export function ChatWidget() {
             {isLoading && (
               <div className="flex items-end gap-2">
                 <div className="w-7 h-7 bg-[#F59E0B] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-xs shrink-0">S</div>
-                <div className="bg-[#222428] px-4 py-3.5 rounded-2xl rounded-bl-sm shadow-sm">
+                <div className="bg-[var(--surface)] px-4 py-3.5 rounded-2xl rounded-bl-sm shadow-sm">
                   <div className="flex gap-1 items-center">
                     {[0, 150, 300].map(d => (
                       <div key={d} className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
@@ -232,14 +232,14 @@ export function ChatWidget() {
 
           {/* ── Input bar ── */}
           <div
-            className="shrink-0 bg-[#141517] border-t border-[#222428]"
+            className="shrink-0 bg-[#141517] border-t border-[var(--line)]"
             style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
           >
             {/* Image preview */}
             {pendingImagePreview && (
               <div className="px-4 pt-3 flex items-center gap-3">
                 <div className="relative">
-                  <img src={pendingImagePreview} alt="preview" className="w-14 h-14 object-cover rounded-xl border border-[#222428]" />
+                  <img src={pendingImagePreview} alt="preview" className="w-14 h-14 object-cover rounded-xl border border-[var(--line)]" />
                   <button onClick={() => { setPendingImage(null); setPendingImagePreview(null) }}
                     className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center font-bold">
                     ✕
@@ -273,7 +273,7 @@ export function ChatWidget() {
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) } }}
                 placeholder={pendingImage ? 'Descrizione...' : 'Scrivi un messaggio...'}
                 disabled={isLoading}
-                className="flex-1 bg-[#18191C] text-white text-sm px-4 py-3 rounded-2xl border border-[#222428] placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] disabled:opacity-50 transition-colors"
+                className="flex-1 bg-[var(--ink)] text-white text-sm px-4 py-3 rounded-2xl border border-[var(--line)] placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] disabled:opacity-50 transition-colors"
               />
 
               {/* Send */}

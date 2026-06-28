@@ -104,8 +104,8 @@ export default function WhatsAppPage() {
   if (authLoading || hasWhatsapp === null) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="h-8 w-48 bg-[#222428] rounded-lg loading mb-6" />
-        <div className="h-48 bg-[#222428] rounded-xl loading" />
+        <div className="h-8 w-48 bg-[var(--surface)] rounded-lg loading mb-6" />
+        <div className="h-48 bg-[var(--surface)] rounded-xl loading" />
       </div>
     )
   }
@@ -113,8 +113,8 @@ export default function WhatsAppPage() {
   if (!hasWhatsapp) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-[#222428] rounded-xl p-8 border border-[#141517] text-center">
-          <h1 className="text-xl font-semibold text-white mb-2">WhatsApp</h1>
+        <div className="bg-[var(--surface)] rounded-xl p-8 border border-[var(--line)] text-center">
+          <h1 className="font-display text-xl font-semibold text-white mb-2">WhatsApp</h1>
           <p className="text-gray-400">
             Questa funzione non è abilitata per il tuo account. Contatta l’assistenza per attivarla.
           </p>
@@ -126,7 +126,7 @@ export default function WhatsAppPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">WhatsApp</h1>
+        <h1 className="font-display text-2xl font-bold text-white">WhatsApp</h1>
         <p className="text-gray-400 mt-1">
           Collega uno o più numeri WhatsApp e associa a ciascuno un agente n8n che gestirà le
           interazioni.
@@ -146,7 +146,7 @@ export default function WhatsAppPage() {
       )}
 
       {/* Add new instance */}
-      <div className="bg-[#222428] rounded-xl p-5 border border-[#141517] flex flex-col sm:flex-row gap-3 sm:items-end">
+      <div className="bg-[var(--surface)] rounded-xl p-5 border border-[var(--line)] flex flex-col sm:flex-row gap-3 sm:items-end">
         <div className="flex-1">
           <label className="block text-sm text-gray-300 mb-1">Nome numero (es. EOK, Ares)</label>
           <input
@@ -154,7 +154,7 @@ export default function WhatsAppPage() {
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             placeholder="Etichetta per riconoscere il numero"
-            className="w-full px-4 py-2 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] text-white placeholder-gray-500"
+            className="w-full px-4 py-2 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] text-white placeholder-gray-500"
           />
         </div>
         <button
@@ -167,9 +167,9 @@ export default function WhatsAppPage() {
       </div>
 
       {loading ? (
-        <div className="h-48 bg-[#222428] rounded-xl loading" />
+        <div className="h-48 bg-[var(--surface)] rounded-xl loading" />
       ) : instances.length === 0 ? (
-        <div className="bg-[#222428] rounded-xl p-8 border border-[#141517] text-center text-gray-400">
+        <div className="bg-[var(--surface)] rounded-xl p-8 border border-[var(--line)] text-center text-gray-400">
           Nessun numero WhatsApp. Aggiungine uno per iniziare.
         </div>
       ) : (
@@ -419,10 +419,10 @@ function InstanceCard({
   const initials = (inst.pushName || inst.phone || 'WA').slice(0, 2).toUpperCase()
 
   return (
-    <div className="bg-[#222428] rounded-xl border border-[#141517] overflow-hidden">
+    <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[#141517]">
-        <h2 className="text-lg font-semibold text-white">{inst.label || 'Numero WhatsApp'}</h2>
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--line)]">
+        <h2 className="font-display text-lg font-semibold text-white">{inst.label || 'Numero WhatsApp'}</h2>
         <button
           onClick={handleDelete}
           className="text-xs px-3 py-1.5 rounded-lg font-medium text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-colors"
@@ -440,7 +440,7 @@ function InstanceCard({
               <img
                 src={inst.profileImageUrl}
                 alt="Profilo WhatsApp"
-                className="w-16 h-16 rounded-full object-cover border border-[#141517]"
+                className="w-16 h-16 rounded-full object-cover border border-[var(--line)]"
               />
             ) : (
               <div className="w-16 h-16 rounded-full bg-[#25D366] flex items-center justify-center text-white font-bold text-lg">
@@ -516,8 +516,8 @@ function InstanceCard({
 
       {/* Admin: link di scansione per il cliente */}
       {isAdmin && (
-        <div className="px-6 py-5 border-t border-[#141517]">
-          <h3 className="text-base font-semibold text-white mb-1">Link di scansione per il cliente</h3>
+        <div className="px-6 py-5 border-t border-[var(--line)]">
+          <h3 className="font-display text-base font-semibold text-white mb-1">Link di scansione per il cliente</h3>
           <p className="text-gray-400 text-sm mb-4">
             Genera un link da inviare al cliente: lo apre senza accedere alla dashboard, scansiona il QR e
             collega il suo WhatsApp. Il numero collegato comparirà qui sopra.
@@ -531,7 +531,7 @@ function InstanceCard({
                 max={30}
                 value={linkDays}
                 onChange={(e) => setLinkDays(Math.min(30, Math.max(1, Number(e.target.value) || 7)))}
-                className="w-20 px-3 py-2 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] text-white"
+                className="w-20 px-3 py-2 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] text-white"
               />
             </div>
             <button
@@ -543,14 +543,14 @@ function InstanceCard({
             </button>
           </div>
           {shareLink && (
-            <div className="mt-3 rounded-lg border border-[#141517] bg-[#141517] p-3">
+            <div className="mt-3 rounded-lg border border-[var(--line)] bg-[#141517] p-3">
               <div className="flex items-start gap-2">
                 <code className="flex-1 min-w-0 break-all text-xs text-gray-300 leading-relaxed">
                   {shareLink}
                 </code>
                 <button
                   onClick={copyLink}
-                  className="shrink-0 px-3 py-1.5 text-xs rounded-md font-medium bg-[#222428] text-white border border-[#141517] hover:bg-[#2C2E31] transition-colors"
+                  className="shrink-0 px-3 py-1.5 text-xs rounded-md font-medium bg-[var(--surface)] text-white border border-[var(--line)] hover:bg-[var(--surface-2)] transition-colors"
                 >
                   Copia
                 </button>
@@ -561,8 +561,8 @@ function InstanceCard({
       )}
 
       {/* n8n agent */}
-      <div className="px-6 py-5 border-t border-[#141517]">
-        <h3 className="text-base font-semibold text-white mb-1">Agente n8n</h3>
+      <div className="px-6 py-5 border-t border-[var(--line)]">
+        <h3 className="font-display text-base font-semibold text-white mb-1">Agente n8n</h3>
         <p className="text-gray-400 text-sm mb-4">
           Ogni messaggio in arrivo su questo numero verrà inoltrato al webhook dell’agente.
         </p>
@@ -578,7 +578,7 @@ function InstanceCard({
                 value={agentName}
                 onChange={(e) => setAgentName(e.target.value)}
                 placeholder="Es. Maria Ares WhatsApp"
-                className="w-full px-4 py-2 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] text-white placeholder-gray-500"
+                className="w-full px-4 py-2 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] text-white placeholder-gray-500"
               />
             </div>
             <div>
@@ -588,7 +588,7 @@ function InstanceCard({
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
                 placeholder="https://n8n.tuodominio.com/webhook/..."
-                className="w-full px-4 py-2 border border-[#141517] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] text-white placeholder-gray-500"
+                className="w-full px-4 py-2 border border-[var(--line)] bg-[#141517] rounded-lg focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B] text-white placeholder-gray-500"
               />
             </div>
 

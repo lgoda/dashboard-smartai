@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/app/components/AuthProvider'
+import { CreditCard, Settings } from '@/app/components/icons'
 
 export const dynamic = 'force-dynamic'
 
@@ -511,23 +512,23 @@ export default function AdminBillingPage() {
   const tabBtn = (t: Tab, label: string) => (
     <button
       onClick={() => setTab(t)}
-      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${tab === t ? 'bg-[#F59E0B] text-[#1e293b]' : 'text-gray-400 hover:text-white hover:bg-[#222428]'}`}
+      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${tab === t ? 'bg-[#F59E0B] text-[#1e293b]' : 'text-gray-400 hover:text-white hover:bg-[var(--surface-2)]'}`}
     >
       {label}
     </button>
   )
 
-  const inputCls = 'w-full bg-[#2C2E31] border border-[#3A3D42] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B]'
+  const inputCls = 'w-full bg-[var(--surface)] border border-[var(--line)] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B]'
   const labelCls = 'block text-xs text-gray-400 mb-1'
 
   return (
-    <div className="min-h-screen bg-[#1e1f22] text-white p-4 sm:p-6">
+    <div className="min-h-screen bg-[var(--ink)] text-white p-4 sm:p-6">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-xl font-bold text-white mb-1">Fatturazione Admin</h1>
+        <h1 className="font-display text-2xl font-bold text-white mb-1">Fatturazione Admin</h1>
         <p className="text-gray-400 text-sm mb-6">Gestisci saldi, agent, pacchetti e impostazioni billing</p>
 
         {/* Tabs */}
-        <div className="flex flex-wrap gap-1 mb-6 bg-[#2C2E31] p-1 rounded-xl w-fit">
+        <div className="flex flex-wrap gap-1 mb-6 bg-[var(--surface)] p-1 rounded-xl w-fit">
           {tabBtn('clienti', 'Clienti')}
           {tabBtn('agent', 'Agent')}
           {tabBtn('pacchetti', 'Pacchetti')}
@@ -541,11 +542,11 @@ export default function AdminBillingPage() {
             {clientsLoading ? (
               <div className="text-gray-400 text-sm">Caricamento...</div>
             ) : clients.length === 0 ? (
-              <div className="bg-[#2C2E31] rounded-xl p-6 text-gray-400 text-sm">Nessun cliente trovato</div>
+              <div className="bg-[var(--surface)] rounded-xl p-6 text-gray-400 text-sm">Nessun cliente trovato</div>
             ) : (
               <div className="space-y-3">
                 {clients.map(c => (
-                  <div key={c.id} className="bg-[#2C2E31] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div key={c.id} className="bg-[var(--surface)] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-white">{c.full_name || '—'}</div>
                       <div className="text-xs text-gray-400">{c.company || 'Nessuna azienda'}</div>
@@ -557,7 +558,7 @@ export default function AdminBillingPage() {
                         const grace   = c.billing_config.card_grace_period_until
                         const graceActive = !!grace && new Date(grace) > new Date()
                         if (hasCard) {
-                          return <div className="text-xs mt-0.5 text-green-400">💳 Carta salvata</div>
+                          return <div className="flex items-center gap-1 text-xs mt-0.5 text-green-400"><CreditCard className="w-3.5 h-3.5" /> Carta salvata</div>
                         }
                         if (graceActive) {
                           const daysLeft = Math.ceil((new Date(grace!).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -597,9 +598,9 @@ export default function AdminBillingPage() {
                     <div className="flex gap-2 shrink-0 flex-wrap">
                       <button
                         onClick={() => openClientConfig(c)}
-                        className="px-3 py-1.5 text-xs font-medium bg-[#3A3D42] text-gray-300 border border-[#3A3D42] rounded-lg hover:bg-[#444] transition-colors"
+                        className="px-3 py-1.5 text-xs font-medium bg-[var(--surface-2)] text-gray-300 border border-[var(--line)] rounded-lg hover:bg-[#444] transition-colors"
                       >
-                        ⚙ Configura
+                        <span className="inline-flex items-center gap-1.5"><Settings className="w-3.5 h-3.5" /> Configura</span>
                       </button>
                       <button
                         onClick={() => { setCreditModal(c); setCreditMsg(null); setCreditMinutes(''); setCreditDesc('') }}
@@ -633,8 +634,8 @@ export default function AdminBillingPage() {
         {tab === 'agent' && (
           <div className="space-y-4">
             {/* Add new agent manually */}
-            <div className="bg-[#2C2E31] rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-white mb-3">Aggiungi agent</h2>
+            <div className="bg-[var(--surface)] rounded-xl p-5">
+              <h2 className="font-display text-sm font-semibold text-white mb-3">Aggiungi agent</h2>
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_1.5fr_1fr_auto] gap-3 items-end">
                 <div>
                   <label className={labelCls}>Agent ID <span className="text-red-400">*</span></label>
@@ -698,7 +699,7 @@ export default function AdminBillingPage() {
             {agentsLoading ? (
               <div className="text-gray-400 text-sm py-4">Caricamento agent Retell...</div>
             ) : retellAgents.length === 0 && retellApiConfigured ? (
-              <div className="bg-[#2C2E31] rounded-xl p-6 text-gray-400 text-sm">
+              <div className="bg-[var(--surface)] rounded-xl p-6 text-gray-400 text-sm">
                 Nessun agent trovato nello storico chiamate. Gli agent appariranno qui automaticamente dopo la prima sincronizzazione.
               </div>
             ) : retellAgents.length > 0 ? (
@@ -720,7 +721,7 @@ export default function AdminBillingPage() {
                   const row = agentRows[agent.agent_id] ?? { userId: '', agentName: agent.agent_name ?? '', pricePerMinuteCents: '', saving: false, msg: null }
                   const isMapped = mappings.some(m => m.agent_id === agent.agent_id)
                   return (
-                    <div key={agent.agent_id} className="bg-[#2C2E31] rounded-xl p-4">
+                    <div key={agent.agent_id} className="bg-[var(--surface)] rounded-xl p-4">
                       <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,170px)_1fr_1.5fr_140px_80px] gap-3 items-center">
                         {/* Agent ID */}
                         <div className="min-w-0">
@@ -791,7 +792,7 @@ export default function AdminBillingPage() {
                   <h3 className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Mapping orfani (agent non trovati in Retell)</h3>
                   <div className="space-y-2">
                     {orphans.map(m => (
-                      <div key={m.id} className="bg-[#2C2E31] rounded-xl p-4 flex items-center gap-3 opacity-60">
+                      <div key={m.id} className="bg-[var(--surface)] rounded-xl p-4 flex items-center gap-3 opacity-60">
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium text-white">{m.agent_name || m.agent_id}</div>
                           <div className="text-xs text-gray-500 font-mono">{m.agent_id}</div>
@@ -809,8 +810,8 @@ export default function AdminBillingPage() {
         {/* ── TAB: PACCHETTI ── */}
         {tab === 'pacchetti' && (
           <div className="space-y-6">
-            <div className="bg-[#2C2E31] rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-white mb-4">Crea nuovo pacchetto</h2>
+            <div className="bg-[var(--surface)] rounded-xl p-5">
+              <h2 className="font-display text-sm font-semibold text-white mb-4">Crea nuovo pacchetto</h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className={labelCls}>Nome</label>
@@ -838,11 +839,11 @@ export default function AdminBillingPage() {
             {pkgLoading ? (
               <div className="text-gray-400 text-sm">Caricamento...</div>
             ) : packages.length === 0 ? (
-              <div className="bg-[#2C2E31] rounded-xl p-6 text-gray-400 text-sm">Nessun pacchetto creato</div>
+              <div className="bg-[var(--surface)] rounded-xl p-6 text-gray-400 text-sm">Nessun pacchetto creato</div>
             ) : (
               <div className="space-y-2">
                 {packages.map(p => (
-                  <div key={p.id} className={`bg-[#2C2E31] rounded-xl p-4 flex items-center gap-4 ${!p.is_active ? 'opacity-50' : ''}`}>
+                  <div key={p.id} className={`bg-[var(--surface)] rounded-xl p-4 flex items-center gap-4 ${!p.is_active ? 'opacity-50' : ''}`}>
                     <div className="flex-1">
                       <div className="font-medium text-white">{p.name}</div>
                       <div className="text-xs text-gray-400">{p.minutes} min — €{(p.price_cents / 100).toFixed(2)}</div>
@@ -872,18 +873,18 @@ export default function AdminBillingPage() {
                   setAdminInvoices([])
                   fetchAdminInvoices(0, f)
                 }}
-                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${adminInvoiceFilter === f ? 'bg-[#F59E0B] text-[#1e293b] border-[#F59E0B]' : 'border-[#3A3D42] text-gray-400 hover:text-white'}`}>
+                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${adminInvoiceFilter === f ? 'bg-[#F59E0B] text-[#1e293b] border-[#F59E0B]' : 'border-[var(--line)] text-gray-400 hover:text-white'}`}>
                   {f === '' ? 'Tutte' : f === 'issued' ? 'Da pagare' : f === 'paid' ? 'Pagate' : 'Annullate'}
                 </button>
               ))}
               <span className="ml-auto text-xs text-gray-500 self-center">{adminInvoicesTotal} fatture</span>
             </div>
 
-            <div className="bg-[#2C2E31] rounded-2xl overflow-hidden">
+            <div className="bg-[var(--surface)] rounded-2xl overflow-hidden">
               {adminInvoices.length === 0 && !adminInvoicesLoading ? (
                 <div className="p-6 text-center text-gray-400 text-sm">Nessuna fattura</div>
               ) : (
-                <div className="divide-y divide-[#3A3D42]">
+                <div className="divide-y divide-[var(--line-soft)]">
                   {adminInvoices.map(inv => (
                     <div key={inv.id} className="px-5 py-4 flex items-start gap-3">
                       <div className="flex-1 min-w-0">
@@ -920,13 +921,13 @@ export default function AdminBillingPage() {
                           <div className="flex gap-2 mt-2">
                             {inv.stripe_hosted_url && (
                               <a href={inv.stripe_hosted_url} target="_blank" rel="noopener noreferrer"
-                                className="text-xs px-2 py-1 rounded border border-[#3A3D42] text-gray-300 hover:bg-[#3A3D42] transition-colors">
+                                className="text-xs px-2 py-1 rounded border border-[var(--line)] text-gray-300 hover:bg-[var(--surface-2)] transition-colors">
                                 Visualizza
                               </a>
                             )}
                             {inv.stripe_pdf_url && (
                               <a href={inv.stripe_pdf_url} target="_blank" rel="noopener noreferrer"
-                                className="text-xs px-2 py-1 rounded border border-[#3A3D42] text-gray-300 hover:bg-[#3A3D42] transition-colors">
+                                className="text-xs px-2 py-1 rounded border border-[var(--line)] text-gray-300 hover:bg-[var(--surface-2)] transition-colors">
                                 PDF
                               </a>
                             )}
@@ -942,7 +943,7 @@ export default function AdminBillingPage() {
                             title="Crea Stripe Invoice e addebita sulla carta del cliente"
                             className="block w-full text-xs px-2 py-0.5 bg-[#F59E0B]/20 text-[#F59E0B] rounded hover:bg-[#F59E0B]/30 disabled:opacity-50 transition-colors"
                           >
-                            {chargingInvoiceId === inv.id ? 'Pagamento...' : '💳 Paga ora'}
+                            {chargingInvoiceId === inv.id ? 'Pagamento...' : <span className="inline-flex items-center gap-1.5"><CreditCard className="w-3.5 h-3.5" /> Paga ora</span>}
                           </button>
                         )}
                         {inv.status !== 'paid' && inv.status !== 'cancelled' && (
@@ -973,7 +974,7 @@ export default function AdminBillingPage() {
               )}
               {adminInvoicesLoading && <div className="p-4 text-center text-gray-400 text-sm">Caricamento...</div>}
               {adminInvoicesMore && (
-                <div className="px-5 py-4 border-t border-[#3A3D42]">
+                <div className="px-5 py-4 border-t border-[var(--line)]">
                   <button
                     onClick={() => { const next = adminInvoicePage + 1; setAdminInvoicePage(next); fetchAdminInvoices(next) }}
                     disabled={adminInvoicesLoading}
@@ -990,8 +991,8 @@ export default function AdminBillingPage() {
         {/* ── TAB: IMPOSTAZIONI ── */}
         {tab === 'impostazioni' && (
           <div className="space-y-6">
-            <div className="bg-[#2C2E31] rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-white mb-4">Configurazione globale billing</h2>
+            <div className="bg-[var(--surface)] rounded-xl p-5">
+              <h2 className="font-display text-sm font-semibold text-white mb-4">Configurazione globale billing</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Margine default (%)</label>
@@ -1035,8 +1036,8 @@ export default function AdminBillingPage() {
             </div>
 
             {/* Sync manuale */}
-            <div className="bg-[#2C2E31] rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-white mb-2">Sincronizzazione Retell</h2>
+            <div className="bg-[var(--surface)] rounded-xl p-5">
+              <h2 className="font-display text-sm font-semibold text-white mb-2">Sincronizzazione Retell</h2>
               {config?.last_retell_sync_at && (
                 <p className="text-xs text-gray-400 mb-3">
                   Ultima sync: {new Date(config.last_retell_sync_at).toLocaleString('it-IT')}
@@ -1056,15 +1057,15 @@ export default function AdminBillingPage() {
       {/* ── Modal credito ── */}
       {creditModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#2C2E31] rounded-2xl p-6 w-full max-w-md">
-            <h3 className="font-semibold text-white mb-1">Modifica credito</h3>
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md">
+            <h3 className="font-display font-semibold text-white mb-1">Modifica credito</h3>
             <p className="text-sm text-gray-400 mb-4">{creditModal.full_name} — saldo: {fmt(creditModal.balance.balance_minutes)}</p>
 
             <div className="space-y-3">
               <div className="flex gap-2">
                 {(['manual_credit', 'manual_debit'] as const).map(t => (
                   <button key={t} onClick={() => setCreditType(t)}
-                    className={`flex-1 py-2 text-sm rounded-lg border transition-colors ${creditType === t ? 'bg-[#F59E0B] text-[#1e293b] border-[#F59E0B]' : 'border-[#3A3D42] text-gray-400 hover:text-white'}`}>
+                    className={`flex-1 py-2 text-sm rounded-lg border transition-colors ${creditType === t ? 'bg-[#F59E0B] text-[#1e293b] border-[#F59E0B]' : 'border-[var(--line)] text-gray-400 hover:text-white'}`}>
                     {t === 'manual_credit' ? '+ Aggiungi minuti' : '− Sottrai minuti'}
                   </button>
                 ))}
@@ -1085,7 +1086,7 @@ export default function AdminBillingPage() {
 
             <div className="flex gap-2 mt-4">
               <button onClick={() => setCreditModal(null)}
-                className="flex-1 py-2 text-sm text-gray-400 border border-[#3A3D42] rounded-lg hover:text-white transition-colors">
+                className="flex-1 py-2 text-sm text-gray-400 border border-[var(--line)] rounded-lg hover:text-white transition-colors">
                 Annulla
               </button>
               <button onClick={saveCredit} disabled={creditSaving || !creditMinutes || Number(creditMinutes) <= 0 || !creditDesc}
@@ -1100,8 +1101,8 @@ export default function AdminBillingPage() {
       {/* ── Modal configura cliente ── */}
       {clientConfigModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#2C2E31] rounded-2xl p-6 w-full max-w-md">
-            <h3 className="font-semibold text-white mb-1">Configura billing</h3>
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md">
+            <h3 className="font-display font-semibold text-white mb-1">Configura billing</h3>
             <p className="text-sm text-gray-400 mb-4">{clientConfigModal.full_name}</p>
 
             <div className="space-y-3">
@@ -1202,7 +1203,7 @@ export default function AdminBillingPage() {
 
             <div className="flex gap-2 mt-4">
               <button onClick={() => setClientConfigModal(null)}
-                className="flex-1 py-2 text-sm text-gray-400 border border-[#3A3D42] rounded-lg hover:text-white transition-colors">
+                className="flex-1 py-2 text-sm text-gray-400 border border-[var(--line)] rounded-lg hover:text-white transition-colors">
                 Annulla
               </button>
               <button onClick={saveClientConfig} disabled={clientConfigSaving}

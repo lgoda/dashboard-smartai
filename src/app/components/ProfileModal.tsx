@@ -48,9 +48,9 @@ export function ProfileModal({ onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#18191C] rounded-2xl border border-[#222428] shadow-2xl w-full max-w-md">
+      <div className="bg-[var(--ink)] rounded-2xl border border-[var(--line)] shadow-2xl w-full max-w-md">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#222428]">
+        <div className="flex items-center justify-between p-6 border-b border-[var(--line)]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#F59E0B] rounded-full flex items-center justify-center text-[#1e293b] font-bold text-sm">
               {initials}
@@ -79,7 +79,7 @@ export function ProfileModal({ onClose }: Props) {
               value={fullName}
               onChange={e => setFullName(e.target.value)}
               placeholder="Mario Rossi"
-              className="w-full px-4 py-2.5 bg-[#141517] border border-[#222428] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
+              className="w-full px-4 py-2.5 bg-[#141517] border border-[var(--line)] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
             />
           </div>
 
@@ -91,7 +91,7 @@ export function ProfileModal({ onClose }: Props) {
               value={phone}
               onChange={e => setPhone(e.target.value)}
               placeholder="+39 333 000 0000"
-              className="w-full px-4 py-2.5 bg-[#141517] border border-[#222428] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
+              className="w-full px-4 py-2.5 bg-[#141517] border border-[var(--line)] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
             />
           </div>
 
@@ -103,7 +103,7 @@ export function ProfileModal({ onClose }: Props) {
               value={company}
               onChange={e => setCompany(e.target.value)}
               placeholder="Nome azienda"
-              className="w-full px-4 py-2.5 bg-[#141517] border border-[#222428] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
+              className="w-full px-4 py-2.5 bg-[#141517] border border-[var(--line)] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
             />
           </div>
 
@@ -117,7 +117,7 @@ export function ProfileModal({ onClose }: Props) {
           </button>
 
           {/* Cambio email */}
-          <div className="pt-2 border-t border-[#222428]">
+          <div className="pt-2 border-t border-[var(--line)]">
             <label className="block text-sm font-medium text-gray-300 mb-1">Cambia email</label>
             {emailSent ? (
               <p className="text-sm text-[#22C55E]">Controlla la nuova email per confermare il cambio.</p>
@@ -128,12 +128,12 @@ export function ProfileModal({ onClose }: Props) {
                   value={newEmail}
                   onChange={e => setNewEmail(e.target.value)}
                   placeholder="nuova@email.com"
-                  className="flex-1 px-4 py-2.5 bg-[#141517] border border-[#222428] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors text-sm"
+                  className="flex-1 px-4 py-2.5 bg-[#141517] border border-[var(--line)] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors text-sm"
                 />
                 <button
                   onClick={handleEmailChange}
                   disabled={isSaving || !newEmail.includes('@')}
-                  className="px-4 py-2.5 bg-[#222428] text-white rounded-lg text-sm hover:bg-[#4A4D52] transition-colors disabled:opacity-40"
+                  className="px-4 py-2.5 bg-[var(--surface)] text-white rounded-lg text-sm hover:bg-[#4A4D52] transition-colors disabled:opacity-40"
                 >
                   Invia
                 </button>

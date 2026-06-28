@@ -58,7 +58,7 @@ export default function Pagination({
   if (totalPages <= 1) return null
 
   return (
-    <div className="bg-[#222428] rounded-xl p-4 shadow-sm border border-[#141517]">
+    <div className="bg-[var(--surface)] rounded-xl p-4 shadow-sm border border-[var(--line)]">
       <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
         <div className="flex items-center space-x-4">
           <div className="text-sm text-gray-300">
@@ -74,7 +74,7 @@ export default function Pagination({
               id="itemsPerPage"
               value={itemsPerPage}
               onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-              className="px-3 py-1.5 border border-[#141517] bg-[#141517] rounded-lg text-sm font-medium text-white focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B]"
+              className="px-3 py-1.5 border border-[var(--line)] bg-[#141517] rounded-lg text-sm font-medium text-white focus:ring-2 focus:ring-[#F59E0B] focus:border-[#F59E0B]"
             >
               <option value="10">10</option>
               <option value="20">20</option>
@@ -92,7 +92,7 @@ export default function Pagination({
           <button
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className="px-3 py-1.5 text-sm font-medium text-gray-300 bg-[#141517] border border-[#141517] rounded-lg hover:bg-[#18191C] hover:text-[#F59E0B] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1.5 text-sm font-medium text-gray-300 bg-[#141517] border border-[var(--line)] rounded-lg hover:bg-[var(--ink)] hover:text-[#F59E0B] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Precedente
           </button>
@@ -117,7 +117,7 @@ export default function Pagination({
                   className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                     isActive
                       ? 'bg-[#F59E0B] text-[#1e293b]'
-                      : 'text-gray-300 hover:bg-[#141517] hover:text-[#F59E0B]'
+                      : 'text-gray-300 hover:bg-[var(--ink)] hover:text-[#F59E0B]'
                   }`}
                 >
                   {pageNumber}
@@ -133,7 +133,7 @@ export default function Pagination({
           <button
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="px-3 py-1.5 text-sm font-medium text-gray-300 bg-[#141517] border border-[#141517] rounded-lg hover:bg-[#18191C] hover:text-[#F59E0B] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1.5 text-sm font-medium text-gray-300 bg-[#141517] border border-[var(--line)] rounded-lg hover:bg-[var(--ink)] hover:text-[#F59E0B] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Successivo
           </button>

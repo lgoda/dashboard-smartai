@@ -1,40 +1,59 @@
 @import "tailwindcss";
 
 :root {
-  --background: #18191C;
-  --foreground: #ffffff;
+  /* ── Signal-console token system ───────────────────────────────
+     Neutrals are deliberately stepped so the hairline (--line) is
+     LIGHTER than the card surface — that's what gives panels a crisp
+     edge instead of melting into the background. */
+  --ink:        #141517;   /* page background */
+  --surface:    #1C1E22;   /* raised card */
+  --surface-2:  #24272D;   /* nested / hover */
+  --line:       #34373E;   /* hairline border (lighter than the card) */
+  --line-soft:  #26282E;   /* internal dividers */
+  --amber:      #F59E0B;   /* THE accent: primary action + live signal only */
+  --amber-deep: #D97706;
+  --live:       #22C55E;   /* genuine live / positive status only */
+  --text:       #F4F5F6;
+  --mute:       #8A8F98;
+  --mute-2:     #5D636C;
+
+  --background: var(--ink);
+  --foreground: var(--text);
+
+  /* Legacy aliases — kept so pages not yet migrated keep rendering. */
   --background-light: #F5F5F5;
   --foreground-dark: #1e293b;
-  --smartservice-orange: #F59E0B;
-  --smartservice-orange-dark: #D97706;
-  --smartservice-green: #22C55E;
-  --smartservice-charcoal: #18191C;
-  --smartservice-charcoal-light: #222428;
-  --smartservice-charcoal-dark: #141517;
+  --smartservice-orange: var(--amber);
+  --smartservice-orange-dark: var(--amber-deep);
+  --smartservice-green: var(--live);
+  --smartservice-charcoal: var(--ink);
+  --smartservice-charcoal-light: var(--surface-2);
+  --smartservice-charcoal-dark: #0F1011;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-bricolage);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--smartservice-charcoal);
-  color: var(--foreground);
-  font-family: inherit; /* Inter loaded via next/font in layout.tsx */
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font-sans), system-ui, sans-serif;
   line-height: 1.6;
 }
 
-/* Navigation progress bar */
+/* Navigation progress bar — the original amber "current" hint. */
 .nav-progress-bar {
   position: fixed;
   top: 0;
   left: 0;
   height: 2px;
   z-index: 9999;
-  background: #F59E0B;
+  background: var(--amber);
   animation: nav-progress 3s ease-out forwards;
   pointer-events: none;
 }
@@ -53,22 +72,21 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--smartservice-charcoal-dark);
+  background: var(--ink);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--smartservice-orange);
+  background: var(--line);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--smartservice-orange-dark);
+  background: var(--mute-2);
 }
 
 /* Date inputs on the dark theme: color-scheme:dark makes the browser render the
    native control AND the calendar popup in dark mode (light text + light icon),
-   otherwise they render light-on-dark and look invisible/broken. The picker is
-   also opened by clicking anywhere on the field via showPicker() in the component. */
+   otherwise they render light-on-dark and look invisible/broken. */
 input[type="date"] {
   color-scheme: dark;
   cursor: pointer;
@@ -83,35 +101,35 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 /* Card hover effects */
 .card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.2), 0 10px 10px -5px rgba(245, 158, 11, 0.1);
+  box-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.5);
+  border-color: var(--mute-2);
 }
 
-/* Button animations */
+/* Primary button */
 .btn-primary {
-  background: var(--smartservice-orange);
+  background: var(--amber);
   color: var(--foreground-dark);
   transition: all 0.2s ease;
   font-weight: 600;
 }
 
 .btn-primary:hover {
-  background: var(--smartservice-orange-dark);
+  background: var(--amber-deep);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
 }
 
-/* Table improvements */
+/* Table rows */
 .table-row:hover {
-  background-color: var(--smartservice-charcoal-light);
-  transform: scale(1.001);
+  background-color: var(--surface-2);
 }
 
-/* Loading animation */
+/* Loading shimmer */
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
@@ -121,13 +139,50 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Select and option styling improvements */
+/* ── Signature: the live "signal" language ─────────────────────────
+   Reused wherever something is genuinely live (today's row, the strip).
+   --amber marks the now; --live marks online/positive status. */
+.signal-top {
+  position: relative;
+}
+.signal-top::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--amber), rgba(245, 158, 11, 0) 78%);
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--live);
+  animation: live-pulse 2.4s ease-out infinite;
+}
+@keyframes live-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45); }
+  70%  { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+.eq { display: inline-flex; gap: 2px; align-items: flex-end; height: 16px; }
+.eq i { width: 3px; background: var(--amber); border-radius: 2px; animation: eq 1.1s ease-in-out infinite; }
+.eq i:nth-child(1) { height: 6px;  animation-delay: 0s;    }
+.eq i:nth-child(2) { height: 14px; animation-delay: .15s;  }
+.eq i:nth-child(3) { height: 9px;  animation-delay: .3s;   }
+.eq i:nth-child(4) { height: 16px; animation-delay: .45s;  }
+.eq i:nth-child(5) { height: 7px;  animation-delay: .6s;   }
+@keyframes eq { 0%, 100% { transform: scaleY(.4); } 50% { transform: scaleY(1); } }
+
+/* Select and option styling (native controls render light) */
 select {
   font-weight: 500;
   color: var(--foreground-dark);
   background-color: white;
 }
-
 select option {
   font-weight: 600;
   color: var(--foreground-dark);
@@ -135,22 +190,18 @@ select option {
   background-color: white;
 }
 
-/* SmartService brand gradients */
-.gradient-smartservice {
-  background: var(--smartservice-orange);
+/* Accessibility floor */
+:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
 }
 
-.gradient-smartservice-subtle {
-  background: var(--background-light);
+@media (prefers-reduced-motion: reduce) {
+  .live-dot, .eq i, .loading, .nav-progress-bar { animation: none !important; }
 }
 
-/* Mobile responsive improvements */
+/* Mobile responsive helpers */
 @media (max-width: 768px) {
-  .mobile-stack {
-    flex-direction: column;
-  }
-
-  .mobile-full {
-    width: 100%;
-  }
+  .mobile-stack { flex-direction: column; }
+  .mobile-full { width: 100%; }
 }

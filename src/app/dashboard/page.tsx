@@ -29,6 +29,117 @@ type UserServices = {
   has_ai_calls: boolean
 }
 
+// ── Inline single-stroke icons (no icon dependency) ──────────────────────────
+type IconProps = { className?: string }
+const stroke = {
+  fill: 'none' as const,
+  stroke: 'currentColor',
+  strokeWidth: 1.8,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+}
+const Users = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" {...stroke}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+)
+const MessageSquare = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" {...stroke}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+)
+const ArrowUpRight = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M7 7h10v10" /></svg>
+)
+const TrendingUp = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M7 7h10v10" /></svg>
+)
+
+// ── Real-data derivations for the readouts ───────────────────────────────────
+function sparkPoints(series: number[], w = 84, h = 26, pad = 3): string {
+  if (series.length === 0) return ''
+  const max = Math.max(1, ...series)
+  const n = series.length
+  return series
+    .map((v, i) => {
+      const x = n === 1 ? w / 2 : (i / (n - 1)) * w
+      const y = pad + (1 - v / max) * (h - pad * 2)
+      return `${x.toFixed(1)},${y.toFixed(1)}`
+    })
+    .join(' ')
+}
+
+// First half vs second half of the period — a real, defensible trend figure.
+// Returns null when the period is too short or the baseline is zero.
+function trendDelta(series: number[]): number | null {
+  if (series.length < 4) return null
+  const mid = Math.floor(series.length / 2)
+  const first = series.slice(0, mid).reduce((a, b) => a + b, 0)
+  const second = series.slice(mid).reduce((a, b) => a + b, 0)
+  if (first === 0) return null
+  return Math.round(((second - first) / first) * 100)
+}
+
+function Readout({
+  label,
+  value,
+  series,
+  delta,
+  color,
+  icon,
+}: {
+  label: string
+  value: number
+  series: number[]
+  delta: number | null
+  color: string
+  icon: React.ReactNode
+}) {
+  return (
+    <div className="bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-[18px]">
+      <div className="font-mono text-[10.5px] tracking-[.12em] uppercase text-[var(--mute)] flex items-center gap-2">
+        <span className="text-[var(--mute-2)]">{icon}</span>
+        {label}
+      </div>
+      <div className="font-mono font-semibold text-[38px] leading-none tracking-tight mt-3.5 tabular-nums text-[var(--text)]">
+        {value}
+      </div>
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--line-soft)]">
+        {delta === null ? (
+          <span className="font-mono text-[12px] text-[var(--mute-2)]">—</span>
+        ) : (
+          <span
+            className="font-mono text-[12px] flex items-center gap-1"
+            style={{ color: delta >= 0 ? 'var(--live)' : '#F87171' }}
+          >
+            <TrendingUp className={`w-3 h-3 ${delta >= 0 ? '' : 'rotate-90'}`} />
+            {delta >= 0 ? '+' : ''}{delta}%
+          </span>
+        )}
+        <svg width="84" height="26" viewBox="0 0 84 26" fill="none" aria-hidden="true">
+          <polyline points={sparkPoints(series)} stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+    </div>
+  )
+}
+
+function ActionCard({ href, kicker, title, desc }: { href: string; kicker: string; title: string; desc: string }) {
+  return (
+    <Link
+      href={href}
+      className="bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-[18px] flex flex-col justify-between min-h-[128px] transition-all duration-200 hover:border-[rgba(245,158,11,0.55)] hover:-translate-y-0.5 hover:bg-[rgba(245,158,11,0.05)] group"
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="font-mono text-[10.5px] tracking-[.12em] uppercase text-[var(--mute)]">{kicker}</div>
+          <div className="font-display font-semibold text-[19px] tracking-tight mt-0.5 text-[var(--text)]">{title}</div>
+          <div className="text-[12.5px] text-[var(--mute)] mt-0.5">{desc}</div>
+        </div>
+        <span className="w-8 h-8 rounded-[9px] grid place-items-center bg-[rgba(245,158,11,0.12)] text-[var(--amber)] border border-[rgba(245,158,11,0.25)] group-hover:bg-[rgba(245,158,11,0.2)] transition-colors">
+          <ArrowUpRight className="w-4 h-4" />
+        </span>
+      </div>
+    </Link>
+  )
+}
+
 export default function Dashboard() {
   const { user, loading: authLoading, accessToken } = useAuth()
   const [stats, setStats] = useState<Stats[]>([])
@@ -163,18 +274,28 @@ export default function Dashboard() {
     return `${dateRange.from.toLocaleDateString('it-IT')} - ${dateRange.to.toLocaleDateString('it-IT')}`
   }, [dateRange])
 
+  // ── Real-data derivations (all from `stats`, no invented figures) ──────────
+  const leadsSeries = useMemo(() => stats.map(s => s.leads), [stats])
+  const convsSeries = useMemo(() => stats.map(s => s.conversations), [stats])
+  const maxLeads = useMemo(() => Math.max(1, ...leadsSeries), [leadsSeries])
+  const maxConvs = useMemo(() => Math.max(1, ...convsSeries), [convsSeries])
+  const leadsDelta = useMemo(() => trendDelta(leadsSeries), [leadsSeries])
+  const convsDelta = useMemo(() => trendDelta(convsSeries), [convsSeries])
+  const todayISO = new Date().toISOString().slice(0, 10)
+  const todayStat = useMemo(() => stats.find(s => s.date === todayISO), [stats, todayISO])
+
   if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-[#222428] rounded-lg loading"></div>
-          <div className="h-8 bg-[#222428] rounded w-48 loading"></div>
+          <div className="h-9 bg-[var(--surface)] rounded-lg w-48 loading"></div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="h-[52px] bg-[var(--surface)] rounded-2xl loading border border-[var(--line)]"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517]">
-              <div className="h-4 bg-[#141517] rounded w-24 mb-3 loading"></div>
-              <div className="h-8 bg-[#141517] rounded w-16 loading"></div>
+            <div key={i} className="bg-[var(--surface)] rounded-2xl p-[18px] border border-[var(--line)]">
+              <div className="h-3 bg-[var(--surface-2)] rounded w-24 mb-4 loading"></div>
+              <div className="h-9 bg-[var(--surface-2)] rounded w-16 loading"></div>
             </div>
           ))}
         </div>
@@ -183,158 +304,110 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-[#F59E0B] rounded-xl flex items-center justify-center">
-            <span className="text-[#1e293b] text-lg">📊</span>
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-            <p className="text-gray-300 mt-1">Panoramica delle tue attività</p>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+        <div>
+          <h1 className="font-display font-bold text-[34px] leading-[1.05] tracking-tight text-[var(--text)]">Dashboard</h1>
+          <p className="text-[var(--mute)] text-sm mt-1.5">Panoramica delle tue attività</p>
         </div>
 
         <div className="sm:w-80">
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Periodo di analisi
+          <label className="block font-mono text-[10.5px] tracking-[.16em] uppercase text-[var(--mute-2)] mb-1.5">
+            Periodo
           </label>
-          <DateRangePicker
-            value={dateRange}
-            onChange={setDateRange}
-          />
+          <DateRangePicker value={dateRange} onChange={setDateRange} />
         </div>
       </div>
 
-      <div className="bg-[#222428] rounded-xl p-4 shadow-sm border border-[#141517]">
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="text-sm font-medium text-gray-300">Filtra per servizio:</label>
-          <div className="flex flex-wrap gap-2">
+      {/* Signature: live / today signal strip — derived from real data only */}
+      {todayStat ? (
+        <div className="signal-top relative overflow-hidden bg-[var(--surface)] border border-[var(--line)] rounded-2xl px-[18px] py-[15px] flex items-center gap-5 flex-wrap">
+          <span className="flex items-center gap-2.5 font-mono text-[11.5px] tracking-[.14em] uppercase text-[var(--live)]">
+            <span className="live-dot" />
+            Oggi
+          </span>
+          <span className="flex items-baseline gap-2 text-[13.5px] text-[var(--mute)]">
+            <b className="font-mono font-semibold text-[15px] text-[var(--text)] tabular-nums">{todayStat.leads}</b> lead
+          </span>
+          <span className="w-px h-5 bg-[var(--line)]" />
+          <span className="flex items-baseline gap-2 text-[13.5px] text-[var(--mute)]">
+            <b className="font-mono font-semibold text-[15px] text-[var(--text)] tabular-nums">{todayStat.conversations}</b> conversazioni
+          </span>
+          <span className="eq ml-auto" aria-hidden="true"><i /><i /><i /><i /><i /></span>
+        </div>
+      ) : (
+        <div className="bg-[var(--surface)] border border-[var(--line)] rounded-2xl px-[18px] py-[15px] flex items-center gap-5 flex-wrap">
+          <span className="font-mono text-[11.5px] tracking-[.14em] uppercase text-[var(--mute-2)]">Periodo</span>
+          <span className="flex items-baseline gap-2 text-[13.5px] text-[var(--mute)]">
+            <b className="font-mono font-semibold text-[15px] text-[var(--text)] tabular-nums">{totalLeads}</b> lead
+          </span>
+          <span className="w-px h-5 bg-[var(--line)]" />
+          <span className="flex items-baseline gap-2 text-[13.5px] text-[var(--mute)]">
+            <b className="font-mono font-semibold text-[15px] text-[var(--text)] tabular-nums">{totalConvs}</b> conversazioni
+          </span>
+        </div>
+      )}
+
+      {/* Service filter — segmented console control */}
+      <div className="flex items-center gap-3.5 flex-wrap">
+        <span className="font-mono text-[10.5px] tracking-[.16em] uppercase text-[var(--mute-2)]">Servizio</span>
+        <div className="inline-flex bg-[var(--surface)] border border-[var(--line)] rounded-xl p-[3px]">
+          {([
+            { key: 'all', label: 'Tutti i servizi', show: true },
+            { key: 'chatbot', label: 'Chatbot', show: userServices.has_chatbot },
+            { key: 'ai-calls', label: 'Chiamate IA', show: userServices.has_ai_calls },
+          ] as const).filter(t => t.show).map(t => (
             <button
-              onClick={() => setServiceFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                serviceFilter === 'all'
-                  ? 'bg-[#F59E0B] text-[#1e293b]'
-                  : 'bg-[#141517] text-gray-300 hover:bg-[#222428] hover:text-[#F59E0B]'
+              key={t.key}
+              onClick={() => setServiceFilter(t.key)}
+              className={`px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
+                serviceFilter === t.key
+                  ? 'bg-[rgba(245,158,11,0.12)] text-[var(--amber)]'
+                  : 'text-[var(--mute)] hover:text-[var(--text)]'
               }`}
             >
-              Tutti i Servizi
+              {t.label}
             </button>
-            {userServices.has_chatbot && (
-              <button
-                onClick={() => setServiceFilter('chatbot')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  serviceFilter === 'chatbot'
-                    ? 'bg-[#F59E0B] text-[#1e293b]'
-                    : 'bg-[#141517] text-gray-300 hover:bg-[#222428] hover:text-[#F59E0B]'
-                }`}
-              >
-                Chatbot
-              </button>
-            )}
-            {userServices.has_ai_calls && (
-              <button
-                onClick={() => setServiceFilter('ai-calls')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  serviceFilter === 'ai-calls'
-                    ? 'bg-[#F59E0B] text-[#1e293b]'
-                    : 'bg-[#141517] text-gray-300 hover:bg-[#222428] hover:text-[#F59E0B]'
-                }`}
-              >
-                Chiamate IA
-              </button>
-            )}
-          </div>
+          ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Readouts + actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {(serviceFilter === 'all' || serviceFilter === 'chatbot') && userServices.has_chatbot && (
           <>
-            <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517] card-hover">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Totale Lead</p>
-                  <p className="text-3xl font-bold text-white mt-2">{totalLeads}</p>
-                  <p className="text-sm text-gray-400 mt-1">{formatDateRange}</p>
-                </div>
-                <div className="w-12 h-12 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
-                  <span className="text-[#F59E0B] text-xl">📇</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-[#222428] rounded-xl p-6 shadow-sm border border-[#141517] card-hover">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-400 uppercase tracking-wide">Conversazioni</p>
-                  <p className="text-3xl font-bold text-white mt-2">{totalConvs}</p>
-                  <p className="text-sm text-gray-400 mt-1">{formatDateRange}</p>
-                </div>
-                <div className="w-12 h-12 bg-[#222428] rounded-lg flex items-center justify-center border border-[#141517]">
-                  <span className="text-gray-300 text-xl">💬</span>
-                </div>
-              </div>
-            </div>
-
-            <Link
-              href="/dashboard/leads"
-              className="bg-[#F59E0B] rounded-xl p-6 text-[#1e293b] card-hover group"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-[#1e293b]/80 uppercase tracking-wide">Gestisci</p>
-                  <p className="text-xl font-bold mt-2 group-hover:scale-105 transition-transform">I tuoi Lead</p>
-                  <p className="text-sm text-[#1e293b]/70 mt-1">Visualizza e esporta</p>
-                </div>
-                <div className="w-12 h-12 bg-[#1e293b]/20 rounded-lg flex items-center justify-center group-hover:bg-[#1e293b]/30 transition-colors">
-                  <span className="text-2xl">📥</span>
-                </div>
-              </div>
-            </Link>
-
-            <Link
-              href="/dashboard/conversations"
-              className="bg-[#F59E0B] rounded-xl p-6 text-[#1e293b] card-hover group"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-[#1e293b]/80 uppercase tracking-wide">Analizza</p>
-                  <p className="text-xl font-bold mt-2 group-hover:scale-105 transition-transform">Conversazioni</p>
-                  <p className="text-sm text-[#1e293b]/70 mt-1">Per sessione</p>
-                </div>
-                <div className="w-12 h-12 bg-[#1e293b]/20 rounded-lg flex items-center justify-center group-hover:bg-[#1e293b]/30 transition-colors">
-                  <span className="text-2xl">🔍</span>
-                </div>
-              </div>
-            </Link>
+            <Readout
+              label={`Totale lead · ${stats.length}g`}
+              value={totalLeads}
+              series={leadsSeries}
+              delta={leadsDelta}
+              color="#F59E0B"
+              icon={<Users className="w-3.5 h-3.5" />}
+            />
+            <Readout
+              label={`Conversazioni · ${stats.length}g`}
+              value={totalConvs}
+              series={convsSeries}
+              delta={convsDelta}
+              color="#22C55E"
+              icon={<MessageSquare className="w-3.5 h-3.5" />}
+            />
+            <ActionCard href="/dashboard/leads" kicker="Gestisci" title="I tuoi lead" desc="Visualizza ed esporta" />
+            <ActionCard href="/dashboard/conversations" kicker="Analizza" title="Conversazioni" desc="Per sessione" />
           </>
         )}
 
         {(serviceFilter === 'all' || serviceFilter === 'ai-calls') && userServices.has_ai_calls && (
-          <Link
-            href="/dashboard/ai-calls"
-            className="bg-[#F59E0B] rounded-xl p-6 text-[#1e293b] card-hover group"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-[#1e293b]/80 uppercase tracking-wide">Gestisci</p>
-                <p className="text-xl font-bold mt-2 group-hover:scale-105 transition-transform">Chiamate IA</p>
-                <p className="text-sm text-[#1e293b]/70 mt-1">ElevenLabs</p>
-              </div>
-              <div className="w-12 h-12 bg-[#1e293b]/20 rounded-lg flex items-center justify-center group-hover:bg-[#1e293b]/30 transition-colors">
-                <span className="text-2xl">📞</span>
-              </div>
-            </div>
-          </Link>
+          <ActionCard href="/dashboard/ai-calls" kicker="Gestisci" title="Chiamate IA" desc="ElevenLabs" />
         )}
 
         {!userServices.has_chatbot && !userServices.has_ai_calls && (
-          <div className="col-span-full bg-[#222428] rounded-xl p-12 text-center border border-[#141517]">
-            <p className="text-gray-300 mb-4">Nessun servizio attivo configurato</p>
+          <div className="col-span-full bg-[var(--surface)] rounded-2xl p-12 text-center border border-[var(--line)]">
+            <p className="text-[var(--mute)] mb-4">Nessun servizio attivo configurato</p>
             <Link
               href="/dashboard/settings"
-              className="inline-flex items-center px-6 py-3 bg-[#F59E0B] text-[#1e293b] rounded-lg font-medium hover:bg-[#D97706] transition-colors shadow-lg"
+              className="inline-flex items-center px-6 py-3 bg-[var(--amber)] text-[#1b1d20] rounded-lg font-semibold hover:bg-[var(--amber-deep)] transition-colors"
             >
               Vai alle Impostazioni
             </Link>
@@ -342,74 +415,68 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* Activity table */}
       {(serviceFilter === 'all' || serviceFilter === 'chatbot') && userServices.has_chatbot && (
-        <div className="bg-[#222428] rounded-xl shadow-sm border border-[#141517] overflow-hidden">
-          <div className="px-6 py-4 border-b border-[#141517]">
-            <h2 className="text-lg font-semibold text-white">Attività per periodo - Chatbot</h2>
-            <p className="text-sm text-gray-400 mt-1">Riepilogo giornaliero di lead e conversazioni per {formatDateRange}</p>
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--line)] overflow-hidden">
+          <div className="px-5 py-4 border-b border-[var(--line-soft)] flex items-center justify-between gap-4">
+            <div>
+              <h2 className="font-display font-semibold text-[16px] tracking-tight text-[var(--text)]">Attività per periodo — Chatbot</h2>
+              <p className="text-[12.5px] text-[var(--mute)] mt-0.5">Riepilogo giornaliero di lead e conversazioni · {formatDateRange}</p>
+            </div>
+            <div className="hidden sm:flex gap-4 font-mono text-[11.5px] text-[var(--mute)]">
+              <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-sm" style={{ background: '#F59E0B' }} />Lead</span>
+              <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-sm" style={{ background: '#22C55E' }} />Conversazioni</span>
+            </div>
           </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-[#141517]">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Data
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Lead
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Conversazioni
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Attività
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-[#222428] divide-y divide-[#141517]">
-              {stats.map((stat, index) => (
-                <tr key={index} className="table-row">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-white">
-                      {formatDate(stat.date)}
-                    </div>
-                    <div className="text-sm text-gray-400">
-                      {stat.date}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30">
-                        {stat.leads}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30">
-                        {stat.conversations}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex space-x-1">
-                      {stat.leads > 0 && (
-                        <div className="w-2 h-2 bg-[#F59E0B] rounded-full"></div>
-                      )}
-                      {stat.conversations > 0 && (
-                        <div className="w-2 h-2 bg-[#22C55E] rounded-full"></div>
-                      )}
-                      {stat.leads === 0 && stat.conversations === 0 && (
-                        <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                      )}
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead>
+                <tr className="bg-[#191B1F]">
+                  <th className="px-5 py-3 text-left font-mono text-[10.5px] tracking-[.1em] uppercase text-[var(--mute-2)] font-medium">Data</th>
+                  <th className="px-5 py-3 text-right font-mono text-[10.5px] tracking-[.1em] uppercase text-[var(--mute-2)] font-medium">Lead</th>
+                  <th className="px-5 py-3 text-right font-mono text-[10.5px] tracking-[.1em] uppercase text-[var(--mute-2)] font-medium">Conversazioni</th>
+                  <th className="px-5 py-3 text-right font-mono text-[10.5px] tracking-[.1em] uppercase text-[var(--mute-2)] font-medium">Attività</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {stats.map((stat, index) => {
+                  const isToday = stat.date === todayISO
+                  return (
+                    <tr
+                      key={index}
+                      className={`border-t border-[var(--line-soft)] transition-colors hover:bg-[var(--surface-2)] ${isToday ? 'signal-top relative' : ''}`}
+                      style={isToday ? { background: 'linear-gradient(90deg, rgba(245,158,11,0.06), transparent 40%)' } : undefined}
+                    >
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          {isToday && <span className="w-1.5 h-1.5 rounded-full bg-[var(--amber)] shadow-[0_0_0_3px_rgba(245,158,11,0.15)]" />}
+                          <span className="text-sm font-medium text-[var(--text)]">{formatDate(stat.date)}</span>
+                          <span className="font-mono text-[11.5px] text-[var(--mute-2)]">{isToday ? 'oggi' : stat.date}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap font-mono tabular-nums text-sm">
+                        <span style={{ color: stat.leads > 0 ? 'var(--amber)' : 'var(--mute-2)' }}>{stat.leads}</span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap font-mono tabular-nums text-sm">
+                        <span style={{ color: stat.conversations > 0 ? 'var(--live)' : 'var(--mute-2)' }}>{stat.conversations}</span>
+                      </td>
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <div className="flex flex-col gap-1 items-end">
+                          <div className="w-20 h-1.5 rounded-full bg-[var(--line-soft)] overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${(stat.leads / maxLeads) * 100}%`, background: '#F59E0B' }} />
+                          </div>
+                          <div className="w-20 h-1.5 rounded-full bg-[var(--line-soft)] overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${(stat.conversations / maxConvs) * 100}%`, background: '#22C55E' }} />
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

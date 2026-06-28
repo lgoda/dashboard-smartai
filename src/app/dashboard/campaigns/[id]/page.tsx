@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/app/components/AuthProvider'
 import Link from 'next/link'
+import { Trash2 } from '@/app/components/icons'
 
 export const dynamic = 'force-dynamic'
 
@@ -198,8 +199,8 @@ export default function CampaignDetailPage() {
   if (isLoading || !campaign) {
     return (
       <div className="space-y-6">
-        <div className="h-8 bg-[#222428] rounded w-64 loading" />
-        <div className="h-48 bg-[#222428] rounded-xl loading" />
+        <div className="h-8 bg-[var(--surface)] rounded w-64 loading" />
+        <div className="h-48 bg-[var(--surface)] rounded-xl loading" />
       </div>
     )
   }
@@ -225,11 +226,11 @@ export default function CampaignDetailPage() {
       </div>
 
       {/* Header card */}
-      <div className="bg-[#222428] rounded-xl p-6 border border-[#141517]">
+      <div className="bg-[var(--surface)] rounded-xl p-6 border border-[var(--line)]">
         <div className="flex items-start justify-between flex-wrap gap-4 mb-5">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-2xl font-bold text-white">{campaign.name}</h1>
+              <h1 className="font-display text-2xl font-bold text-white">{campaign.name}</h1>
               <StatusBadge status={campaign.status} />
               {!isCompleted && (
                 <button
@@ -275,8 +276,8 @@ export default function CampaignDetailPage() {
               </Link>
             )}
             <button onClick={() => setShowDeleteModal(true)} disabled={isDeleting}
-              className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg font-medium disabled:opacity-50 hover:bg-red-500/20 transition-colors">
-              {isDeleting ? '...' : '🗑 Elimina'}
+              className="px-4 py-2 flex items-center gap-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg font-medium disabled:opacity-50 hover:bg-red-500/20 transition-colors">
+              {isDeleting ? '...' : <><Trash2 className="w-4 h-4" /> Elimina</>}
             </button>
           </div>
         </div>
@@ -305,32 +306,32 @@ export default function CampaignDetailPage() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t border-[#141517]">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t border-[var(--line)]">
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">In coda</p>
-            <p className="text-2xl font-bold text-[#F59E0B]">{queuedTotal.toLocaleString('it-IT')}</p>
+            <p className="font-mono text-[10.5px] text-[var(--mute)] uppercase tracking-[.12em]">In coda</p>
+            <p className="font-mono text-2xl font-semibold tabular-nums text-[#F59E0B] mt-1">{queuedTotal.toLocaleString('it-IT')}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Inviati totale</p>
-            <p className="text-2xl font-bold text-[#22C55E]">{sentTotal.toLocaleString('it-IT')}</p>
+            <p className="font-mono text-[10.5px] text-[var(--mute)] uppercase tracking-[.12em]">Inviati totale</p>
+            <p className="font-mono text-2xl font-semibold tabular-nums text-[#22C55E] mt-1">{sentTotal.toLocaleString('it-IT')}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Inviati oggi</p>
-            <p className="text-2xl font-bold text-white">{sentToday} / {dailyLimit}</p>
+            <p className="font-mono text-[10.5px] text-[var(--mute)] uppercase tracking-[.12em]">Inviati oggi</p>
+            <p className="font-mono text-2xl font-semibold tabular-nums text-white mt-1">{sentToday} / {dailyLimit}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Rimanenti oggi</p>
-            <p className="text-2xl font-bold text-white">{remainingToday}</p>
+            <p className="font-mono text-[10.5px] text-[var(--mute)] uppercase tracking-[.12em]">Rimanenti oggi</p>
+            <p className="font-mono text-2xl font-semibold tabular-nums text-white mt-1">{remainingToday}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Esclusi</p>
-            <p className="text-2xl font-bold text-gray-400">{(statusCounts['excluded'] ?? 0).toLocaleString('it-IT')}</p>
+            <p className="font-mono text-[10.5px] text-[var(--mute)] uppercase tracking-[.12em]">Esclusi</p>
+            <p className="font-mono text-2xl font-semibold tabular-nums text-gray-400 mt-1">{(statusCounts['excluded'] ?? 0).toLocaleString('it-IT')}</p>
           </div>
         </div>
       </div>
 
       {/* Schedule settings */}
-      <div className="bg-[#222428] rounded-xl border border-[#141517]">
+      <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)]">
         <button onClick={() => setShowSchedule(!showSchedule)}
           className="w-full flex items-center justify-between p-5 text-left">
           <div>
@@ -344,7 +345,7 @@ export default function CampaignDetailPage() {
         </button>
 
         {showSchedule && (
-          <div className="px-5 pb-5 space-y-4 border-t border-[#141517]">
+          <div className="px-5 pb-5 space-y-4 border-t border-[var(--line)]">
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-300 mb-2">Giorni di invio</label>
               <div className="flex gap-2 flex-wrap">
@@ -364,23 +365,23 @@ export default function CampaignDetailPage() {
                 <label className="block text-xs font-medium text-gray-300 mb-1">Dalle</label>
                 <input type="time" value={scheduleForm.send_time_from}
                   onChange={(e) => setScheduleForm((f) => ({ ...f, send_time_from: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F59E0B] [color-scheme:dark]" />
+                  className="w-full px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F59E0B] [color-scheme:dark]" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-300 mb-1">Alle</label>
                 <input type="time" value={scheduleForm.send_time_to}
                   onChange={(e) => setScheduleForm((f) => ({ ...f, send_time_to: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F59E0B] [color-scheme:dark]" />
+                  className="w-full px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F59E0B] [color-scheme:dark]" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-300 mb-1">Limite/giorno</label>
                 <input type="number" min="1" value={scheduleForm.daily_limit}
                   onChange={(e) => setScheduleForm((f) => ({ ...f, daily_limit: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#141517] border border-[#141517] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F59E0B]" />
+                  className="w-full px-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F59E0B]" />
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setShowSchedule(false)} className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[#18191C] transition-colors">Annulla</button>
+              <button onClick={() => setShowSchedule(false)} className="px-4 py-2 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[var(--ink)] transition-colors">Annulla</button>
               <button onClick={saveSchedule} disabled={isSavingSchedule}
                 className="px-4 py-2 bg-[#F59E0B] text-[#1e293b] rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-[#D97706] transition-colors">
                 {isSavingSchedule ? 'Salvataggio...' : 'Salva impostazioni'}
@@ -397,7 +398,7 @@ export default function CampaignDetailPage() {
         </h2>
 
         {(campaign.campaign_imports ?? []).length === 0 ? (
-          <div className="bg-[#222428] rounded-xl p-8 border border-[#141517] text-center">
+          <div className="bg-[var(--surface)] rounded-xl p-8 border border-[var(--line)] text-center">
             <p className="text-gray-400 mb-4">Nessun import ancora.</p>
             {!isCompleted && (
               <Link href={`/dashboard/campaigns/${campaignId}/import`}
@@ -410,7 +411,7 @@ export default function CampaignDetailPage() {
           [...(campaign.campaign_imports ?? [])]
             .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
             .map((imp) => (
-              <div key={imp.id} className="bg-[#222428] rounded-xl border border-[#141517] p-5">
+              <div key={imp.id} className="bg-[var(--surface)] rounded-xl border border-[var(--line)] p-5">
                 <div className="flex items-start justify-between flex-wrap gap-2 mb-4">
                   <div>
                     <p className="font-semibold text-white">{imp.list_tag}</p>
@@ -458,7 +459,7 @@ export default function CampaignDetailPage() {
                   ))}
                 </div>
                 {((imp.excluded_crm ?? 0) > 0 || (imp.excluded_tag ?? 0) > 0) && (
-                  <div className="mt-2 pt-2 border-t border-[#18191C]">
+                  <div className="mt-2 pt-2 border-t border-[var(--line)]">
                     <p className="text-xs text-gray-500 mb-1.5">Esclusi dallo scheduler</p>
                     <div className="flex gap-2 flex-wrap">
                       {(imp.excluded_crm ?? 0) > 0 && (
@@ -481,10 +482,10 @@ export default function CampaignDetailPage() {
       {/* Delete confirmation modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#222428] rounded-2xl border border-red-500/20 w-full max-w-sm shadow-2xl">
+          <div className="bg-[var(--surface)] rounded-2xl border border-red-500/20 w-full max-w-sm shadow-2xl">
             <div className="p-6 text-center">
-              <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4 text-2xl">🗑</div>
-              <h2 className="text-lg font-bold text-white mb-1">Eliminare la campagna?</h2>
+              <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4 text-red-400"><Trash2 className="w-6 h-6" /></div>
+              <h2 className="font-display text-lg font-bold text-white mb-1">Eliminare la campagna?</h2>
               <p className="text-sm text-gray-400 mb-1">
                 <span className="font-semibold text-white">"{campaign.name}"</span>
               </p>
@@ -492,7 +493,7 @@ export default function CampaignDetailPage() {
             </div>
             <div className="flex gap-2 px-6 pb-6">
               <button onClick={() => setShowDeleteModal(false)}
-                className="flex-1 px-4 py-2.5 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[#18191C] transition-colors font-medium">
+                className="flex-1 px-4 py-2.5 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[var(--ink)] transition-colors font-medium">
                 Annulla
               </button>
               <button onClick={() => { setShowDeleteModal(false); deleteCampaign() }} disabled={isDeleting}
@@ -507,8 +508,8 @@ export default function CampaignDetailPage() {
       {/* Edit modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#222428] rounded-2xl border border-[#141517] w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between p-6 border-b border-[#141517]">
+          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--line)] w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between p-6 border-b border-[var(--line)]">
               <h2 className="text-lg font-bold text-white">Modifica campagna</h2>
               <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-white transition-colors text-xl">✕</button>
             </div>
@@ -519,7 +520,7 @@ export default function CampaignDetailPage() {
                   type="text"
                   value={editForm.name}
                   onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
-                  className="w-full px-3 py-2.5 bg-[#141517] border border-[#141517] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F59E0B] focus:outline-none"
+                  className="w-full px-3 py-2.5 bg-[#141517] border border-[var(--line)] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F59E0B] focus:outline-none"
                 />
               </div>
               <div>
@@ -541,12 +542,12 @@ export default function CampaignDetailPage() {
                   value={editForm.notes}
                   onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
                   rows={3}
-                  className="w-full px-3 py-2.5 bg-[#141517] border border-[#141517] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F59E0B] focus:outline-none resize-none"
+                  className="w-full px-3 py-2.5 bg-[#141517] border border-[var(--line)] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#F59E0B] focus:outline-none resize-none"
                 />
               </div>
             </div>
-            <div className="flex gap-2 p-6 border-t border-[#141517]">
-              <button onClick={() => setShowEditModal(false)} className="flex-1 px-4 py-2.5 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[#18191C] transition-colors">
+            <div className="flex gap-2 p-6 border-t border-[var(--line)]">
+              <button onClick={() => setShowEditModal(false)} className="flex-1 px-4 py-2.5 bg-[#141517] text-gray-300 rounded-lg text-sm hover:bg-[var(--ink)] transition-colors">
                 Annulla
               </button>
               <button onClick={saveEdit} disabled={isSavingEdit || !editForm.name.trim()}

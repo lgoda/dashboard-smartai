@@ -177,15 +177,15 @@ export default function ConsumoPage() {
   if (authLoading || enabled === null) {
     return (
       <div className="space-y-6">
-        <div className="h-8 bg-[#222428] rounded w-48 loading" />
-        <div className="h-40 bg-[#222428] rounded-2xl loading" />
+        <div className="h-8 bg-[var(--surface)] rounded w-48 loading" />
+        <div className="h-40 bg-[var(--surface)] rounded-2xl loading" />
       </div>
     )
   }
 
   if (!enabled) {
     return (
-      <div className="bg-[#222428] rounded-2xl p-12 text-center border border-[#141517]">
+      <div className="bg-[var(--surface)] rounded-2xl p-12 text-center border border-[var(--line)]">
         <p className="text-gray-300 mb-2">Pagina non disponibile</p>
         <p className="text-sm text-gray-500 mb-6">La vista Consumo non è attiva per il tuo account.</p>
         <Link
@@ -205,7 +205,7 @@ export default function ConsumoPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Consumo</h1>
+          <h1 className="font-display text-2xl font-bold text-white">Consumo</h1>
           <p className="text-gray-400 text-sm mt-1">Costo reale del servizio AI per periodo</p>
         </div>
         <div className="sm:w-72">
@@ -219,23 +219,20 @@ export default function ConsumoPage() {
         </div>
       )}
 
-      {/* Total spend */}
-      <div className="rounded-2xl border bg-[#222428] border-[#141517] overflow-hidden">
+      {/* Total spend — live auto-refreshing figure, carries the signal motif */}
+      <div className="signal-top relative rounded-2xl border bg-[var(--surface)] border-[var(--line)] overflow-hidden">
         <div className="p-6 flex items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs text-gray-400 uppercase tracking-wide">Speso nel periodo</span>
-              <span
-                className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"
-                title="Aggiornamento automatico ogni 60s"
-              />
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="font-mono text-[10.5px] text-[var(--mute)] uppercase tracking-[.14em]">Speso nel periodo</span>
+              <span className="live-dot" title="Aggiornamento automatico ogni 60s" />
             </div>
-            <div className={`text-4xl font-bold tabular-nums ${loading && !summary ? 'text-gray-600' : 'text-white'}`}>
+            <div className={`font-mono text-4xl font-semibold tracking-tight tabular-nums ${loading && !summary ? 'text-[var(--mute-2)]' : 'text-white'}`}>
               {summary ? euro(summary.total_eur) : '—'}
             </div>
             <div className="text-xs text-gray-500 mt-2 flex flex-wrap gap-x-4 gap-y-1">
-              <span>{summary?.total_calls ?? 0} chiamate</span>
-              <span>{durationLabel(summary?.total_seconds ?? 0)} totali</span>
+              <span><span className="font-mono tabular-nums">{summary?.total_calls ?? 0}</span> chiamate</span>
+              <span><span className="font-mono tabular-nums">{durationLabel(summary?.total_seconds ?? 0)}</span> totali</span>
             </div>
           </div>
           {lastRefresh && (
@@ -248,10 +245,10 @@ export default function ConsumoPage() {
       </div>
 
       {/* Daily breakdown */}
-      <div className="bg-[#222428] rounded-2xl border border-[#141517] overflow-hidden">
-        <div className="px-5 py-4 border-b border-[#141517] flex items-center justify-between">
-          <h2 className="font-semibold text-white text-sm">Dettaglio per giorno</h2>
-          {summary && <span className="text-xs text-gray-400">{summary.by_day.length} giorni</span>}
+      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--line)] overflow-hidden">
+        <div className="px-5 py-4 border-b border-[var(--line)] flex items-center justify-between">
+          <h2 className="font-display font-semibold text-white text-sm">Dettaglio per giorno</h2>
+          {summary && <span className="font-mono text-xs text-gray-400 tabular-nums">{summary.by_day.length} giorni</span>}
         </div>
 
         {loading && !summary ? (
@@ -267,17 +264,17 @@ export default function ConsumoPage() {
             Nessun consumo nel periodo selezionato
           </div>
         ) : (
-          <div className="divide-y divide-[#141517]">
+          <div className="divide-y divide-[var(--line-soft)]">
             {summary.by_day.map(d => (
               <div key={d.date} className="px-5 py-3.5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-sm text-white capitalize">{dayLabel(d.date)}</div>
                     <div className="text-xs text-gray-500 mt-0.5">
-                      {d.calls} {d.calls === 1 ? 'chiamata' : 'chiamate'} · {durationLabel(d.seconds)}
+                      <span className="font-mono tabular-nums">{d.calls}</span> {d.calls === 1 ? 'chiamata' : 'chiamate'} · <span className="font-mono tabular-nums">{durationLabel(d.seconds)}</span>
                     </div>
                   </div>
-                  <div className="text-sm font-semibold text-white tabular-nums shrink-0">{euro(d.eur)}</div>
+                  <div className="font-mono text-sm font-semibold text-white tabular-nums shrink-0">{euro(d.eur)}</div>
                 </div>
                 <div className="mt-2 h-1.5 bg-[#141517] rounded-full overflow-hidden">
                   <div
