@@ -19,6 +19,8 @@ export type UnifiedAICall = {
   disconnection_reason?: string
   termination_reason?: string
   direction?: string
+  /** Numero del cliente (chiamante se inbound, chiamato se outbound) */
+  phone_number?: string
   rating?: number
   message_count?: number
   call_cost?: {
@@ -79,6 +81,7 @@ export function normalizeRetellCall(call: RetellCall): UnifiedAICall {
     transcript_summary: call.call_analysis?.call_summary,
     call_summary_title: call.call_analysis?.call_summary?.substring(0, 100),
     recording_url: call.recording_url,
+    phone_number: call.direction === 'outbound' ? call.to_number : call.from_number,
     disconnection_reason: call.disconnection_reason,
     termination_reason: call.disconnection_reason,
     call_cost: call.call_cost,

@@ -207,10 +207,12 @@ export default function AICallsPage() {
       let filteredCalls = normalizedCalls
       if (debouncedSearch) {
         const searchLower = debouncedSearch.toLowerCase()
+        const searchDigits = debouncedSearch.replace(/\D/g, '')
         filteredCalls = filteredCalls.filter((call: UnifiedAICall) =>
           call.agent_name?.toLowerCase().includes(searchLower) ||
           call.transcript_summary?.toLowerCase().includes(searchLower) ||
-          call.id.toLowerCase().includes(searchLower)
+          call.id.toLowerCase().includes(searchLower) ||
+          (searchDigits && call.phone_number?.replace(/\D/g, '').includes(searchDigits))
         )
       }
       if (filters.terminationReason) {
@@ -934,7 +936,7 @@ export default function AICallsPage() {
             </svg>
             <input
               type="text"
-              placeholder="Cerca agent, titolo..."
+              placeholder="Cerca agent, titolo, numero..."
               value={filters.search}
               onChange={(e) => updateFilter('search', e.target.value)}
               className="w-full pl-9 pr-3 py-2 bg-[#141517] border border-[var(--line)] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#F59E0B] transition-colors"
@@ -1202,6 +1204,12 @@ export default function AICallsPage() {
                       </div>
                       <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500 flex-wrap">
                         <span>{call.agent_name || 'Agent sconosciuto'}</span>
+                        {call.phone_number && (
+                          <>
+                            <span>·</span>
+                            <span>{call.phone_number}</span>
+                          </>
+                        )}
                         <span>·</span>
                         <span>{callDate.toLocaleDateString('it-IT')} {callDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>

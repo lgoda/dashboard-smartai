@@ -7,6 +7,9 @@ export type RetellCall = {
   agent_id: string
   agent_name?: string
   agent_version?: number
+  direction?: 'inbound' | 'outbound'
+  from_number?: string
+  to_number?: string
   call_status: 'registered' | 'not_connected' | 'ongoing' | 'ended' | 'error'
   start_timestamp?: number
   end_timestamp?: number
